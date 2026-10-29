@@ -3,6 +3,34 @@
   var $ = function (id) { return document.getElementById(id); };
   var MAX_SECONDS = 240;
   var job = null, poll = null, method = 'code', dmPolls = 0, lastCode = '';
+  var submitting = false, checking = false, reqId = 0;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // lets :active (the press effect) work on iPhone Safari
+  document.addEventListener('touchstart', function () {}, { passive: true });
+
+  // sticky header: a soft shadow once the page has scrolled
+  var bar = document.querySelector('.bar'), ticking = false;
+  function onScroll() {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(function () { bar.classList.toggle('scrolled', window.scrollY > 4); ticking = false; });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  // swaps text with a short fade. Rapid calls keep only the latest text, so nothing flickers.
+  function swapText(el, text) {
+    if (el._t) clearTimeout(el._t);
+    if (!el._t && el.textContent === text) return;
+    if (reduced) { el.textContent = text; el.classList.remove('out'); el._t = 0; return; }
+    el.classList.add('out');
+    el._t = setTimeout(function () { el.textContent = text; el.classList.remove('out'); el._t = 0; }, 140);
+  }
+  // button feedback states: 'done' (copied), 'fail', 'shake'
+  function flash(btn, cls, ms) {
+    btn.classList.remove('done', 'fail', 'shake'); void btn.offsetWidth;
+    btn.classList.add(cls);
+    if (btn._f) clearTimeout(btn._f);
+    btn._f = setTimeout(function () { btn.classList.remove(cls); btn._f = 0; }, ms || 1800);
+  }
 
   // ---------- helpers ----------
   function show(step) {
@@ -17,14 +45,24 @@
   function setText(el, msg) { el.textContent = msg || ''; el.hidden = !msg; }
   function stop() { if (poll) clearInterval(poll); poll = null; }
 
-  function copy(text, labelEl) {
-    var old = labelEl.textContent;
-    var ok = function () { labelEl.textContent = 'Copied ✓'; setTimeout(function () { labelEl.textContent = old; }, 1800); };
+  // copies text and shows a success (gold) or failure state on the button
+  function copy(text, btn, labelEl) {
+    labelEl = labelEl || btn;
+    if (!labelEl._old) labelEl._old = labelEl.textContent;
+    var restore = function () { labelEl.textContent = labelEl._old; labelEl._old = null; };
+    var ok = function () {
+      labelEl.textContent = 'Copied ✓'; flash(btn, 'done', 1800);
+      clearTimeout(labelEl._r); labelEl._r = setTimeout(restore, 1800);
+    };
+    var bad = function () {
+      labelEl.textContent = 'Press and hold to copy'; flash(btn, 'fail', 2400);
+      clearTimeout(labelEl._r); labelEl._r = setTimeout(restore, 2400);
+    };
     var fallback = function () {
       var ta = document.createElement('textarea');
       ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
-      try { if (document.execCommand('copy')) ok(); else labelEl.textContent = 'Press and hold to copy'; } catch (e) { labelEl.textContent = 'Press and hold to copy'; }
+      try { if (document.execCommand('copy')) ok(); else bad(); } catch (e) { bad(); }
       document.body.removeChild(ta);
     };
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, fallback); else fallback();
@@ -39,28 +77,37 @@
   })();
 
   // ---------- tabs ----------
+  var tabs = $('tabs'), HINT = {
+    code: 'Enter your WhatsApp number to generate a one-time pairing code.',
+    qr: 'Show a QR code and scan it with WhatsApp. You need a second screen to display it.'
+  };
   function setMethod(m, focus) {
+    if (submitting) return;                       // never change method while a request is running
+    var code = m === 'code', same = m === method;
     method = m;
-    var code = m === 'code';
     $('t-code').classList.toggle('on', code); $('t-qr').classList.toggle('on', !code);
     $('t-code').setAttribute('aria-selected', code); $('t-qr').setAttribute('aria-selected', !code);
     $('t-code').tabIndex = code ? 0 : -1; $('t-qr').tabIndex = code ? -1 : 0;
-    $('numwrap').hidden = !code;
-    $('go-text').textContent = code ? 'Generate pairing code' : 'Show QR code';
-    $('mhint-text').textContent = code
-      ? 'Enter your WhatsApp number to generate a one-time pairing code.'
-      : 'Show a QR code and scan it with WhatsApp. You need a second screen to display it.';
-    setText($('err1'), ''); setText($('numerr'), ''); $('number').removeAttribute('aria-invalid');
+    tabs.classList.toggle('qr', !code);          // the indicator slides (CSS transition)
+    var field = $('numwrap');
+    field.classList.toggle('off', !code);
+    if (!code) field.setAttribute('inert', ''); else field.removeAttribute('inert');
+    field.setAttribute('aria-hidden', code ? 'false' : 'true');
+    swapText($('mhint-text'), HINT[m]);
+    swapText($('go-text'), code ? 'Generate pairing code' : 'Show QR code');
+    if (!same) { setText($('err1'), ''); setText($('numerr'), ''); $('number').removeAttribute('aria-invalid'); }
     if (focus) $(code ? 't-code' : 't-qr').focus();
   }
   $('t-code').addEventListener('click', function () { setMethod('code'); });
   $('t-qr').addEventListener('click', function () { setMethod('qr'); });
-  document.querySelector('.tabs').addEventListener('keydown', function (e) {
+  tabs.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
       e.preventDefault();
       setMethod(e.key === 'ArrowLeft' || e.key === 'Home' ? 'code' : 'qr', true);
     }
   });
+  // turn the slide animation on only after the first paint, so the page does not animate on load
+  requestAnimationFrame(function () { requestAnimationFrame(function () { tabs.classList.add('ready'); }); });
 
   // ---------- phone number: international formatting ----------
   function digitsOf(v) { var d = String(v).replace(/\D/g, ''); if (d.indexOf('00') === 0) d = d.slice(2); return d.slice(0, 15); }
@@ -108,7 +155,7 @@
 
   // ---------- start ----------
   function reset() {
-    stop(); job = null; lastCode = ''; dmPolls = 0;
+    stop(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode('');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
@@ -119,38 +166,52 @@
   }
   function busy(on) {
     var b = $('go'); b.classList.toggle('busy', on); b.setAttribute('aria-busy', on ? 'true' : 'false'); b.disabled = on;
+    tabs.classList.toggle('locked', on); $('number').readOnly = on;
+  }
+  function idleLabel() { swapText($('go-text'), method === 'code' ? 'Generate pairing code' : 'Show QR code'); }
+  function failSubmit(msg) {
+    submitting = false; busy(false); idleLabel();
+    setText($('err1'), msg); flash($('go'), 'shake', 500); $('go').classList.add('fail');
+    try { $('err1').scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' }); } catch (e) { /* older browsers */ }
+    setTimeout(function () { $('go').classList.remove('fail'); }, 2400);
   }
 
   $('form').addEventListener('submit', function (e) {
     e.preventDefault();
+    if (submitting) return;                       // a request is already running: ignore repeated taps and Enter
     setText($('err1'), '');
     var number = '';
-    if (method === 'code') { number = validNumber(); if (!number) return; }
+    if (method === 'code') { number = validNumber(); if (!number) { flash($('go'), 'shake', 500); return; } }
+    submitting = true; var mine = ++reqId, sent = method;
     busy(true);
-    $('go-text').textContent = method === 'code' ? 'Generating…' : 'Preparing…';
-    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: method, number: number }) })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
+    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
-        if (!x.ok) { busy(false); $('go-text').textContent = method === 'code' ? 'Generate pairing code' : 'Show QR code'; return setText($('err1'), x.j.error || 'Something went wrong. Please try again.'); }
+        if (mine !== reqId) return;
+        if (!x.ok) return failSubmit(x.j.error || 'Something went wrong. Please try again.');
+        submitting = false;
         job = x.j.job; dmPolls = 0;
         $('pane-code').hidden = method !== 'code'; $('pane-qr').hidden = method !== 'qr';
         $('status').textContent = method === 'code' ? 'Requesting your pairing code…' : 'Preparing your QR code…';
         renderCode(''); $('qrimg').hidden = true; $('qrskel').hidden = false;
-        busy(false); $('go-text').textContent = method === 'code' ? 'Generate pairing code' : 'Show QR code';
+        busy(false); idleLabel();
         show('step-wait');
         poll = setInterval(check, 2000); check();
       })
-      .catch(function () { busy(false); $('go-text').textContent = method === 'code' ? 'Generate pairing code' : 'Show QR code'; setText($('err1'), 'Could not reach the site. Check your internet connection and try again.'); });
+      .catch(function () { if (mine === reqId) failSubmit('Could not reach the site. Check your internet connection and try again.'); });
   });
 
   // ---------- progress ----------
   function check() {
-    if (!job) return;
+    if (!job || checking) return;
+    checking = true; var mine = job;
     fetch('/api/job/' + job).then(function (r) { return r.json(); }).then(function (j) {
-      if (!job) return;
+      checking = false;
+      if (!job || job !== mine) return;
       if (!j.state) { stop(); return setText($('err2'), j.error || 'This attempt is no longer available. Start over.'); }
 
-      if (j.state === 'code' && j.code && j.code !== lastCode) { lastCode = j.code; renderCode(j.code); $('copycode').disabled = false; }
+      if ((j.state === 'code' || j.state === 'linking') && j.code && j.code !== lastCode) { lastCode = j.code; renderCode(j.code); $('copycode').disabled = false; }
       if (j.state === 'qr' && j.qr) {
         if ($('qrimg').getAttribute('src') !== j.qr) $('qrimg').src = j.qr;
         $('qrimg').hidden = false; $('qrskel').hidden = true;
@@ -180,7 +241,7 @@
         $('status').textContent = 'This attempt ended.';
         setText($('err2'), j.error || 'Linking failed. Please start over.');
       }
-    }).catch(function () { /* keep trying */ });
+    }).catch(function () { checking = false; /* keep trying */ });
   }
   function dmNote(dm) {
     $('dm').textContent = dm === true ? 'A copy was also sent to your WhatsApp (in your own chat).'
@@ -190,8 +251,10 @@
 
   $('cancel').addEventListener('click', reset);
   $('again').addEventListener('click', reset);
-  $('copycode').addEventListener('click', function () { if (lastCode) copy(lastCode.replace(/-/g, ''), $('copycode').querySelector('span')); });
-  $('copy').addEventListener('click', function () { copy($('sid').textContent, $('copy-text')); });
-  $('copyenv').addEventListener('click', function () { copy($('env').textContent, $('copyenv').querySelector('span')); });
+  $('copycode').addEventListener('click', function () { if (lastCode) copy(lastCode.replace(/-/g, ''), $('copycode'), $('copycode').querySelector('span')); });
+  $('copy').addEventListener('click', function () { copy($('sid').textContent, $('copy'), $('copy-text')); });
+  $('copyenv').addEventListener('click', function () { copy($('env').textContent, $('copyenv'), $('copyenv').querySelector('span')); });
+  $('sid').addEventListener('click', function () { copy($('sid').textContent, $('copy'), $('copy-text')); flash($('sid'), 'done', 1200); });
+  $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
 })();

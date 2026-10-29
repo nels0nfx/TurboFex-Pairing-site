@@ -31,3 +31,14 @@ SESSION_ID=TFX-XXXX-XXXX-XXXX
 
 ## Tests
 `npm test` inside `pairsite/` (the WhatsApp part is replaced by a stand-in; the real WhatsApp exchange can only be tested live).
+
+## Updating the site from Termux
+```
+termux-setup-storage                       # once, to reach your Downloads folder
+cd ~/turbofex-pair                         # your cloned repo
+unzip -o ~/storage/downloads/turbofex-pairsite.zip -d .
+git add -A
+git commit -m "Smoother interactions and sticky header"
+git push
+```
+Render redeploys by itself after the push.
