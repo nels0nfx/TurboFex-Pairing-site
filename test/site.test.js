@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { createApp } = require('../server');
 const { newId, normalizeId, makeStore } = require('../store');
+const { dmText } = require('../server');
 
 const CREDS = { registered: true, me: { id: '2348012345678:5@s.whatsapp.net' }, noiseKey: { private: 'x' } };
 
@@ -18,7 +19,7 @@ function fakeEngine(behaviour = 'ok') {
         else hooks.onCode('ABCD-EFGH');
         setTimeout(() => {
           hooks.onPairing();
-          setTimeout(() => hooks.onLinked(CREDS), 20);
+          setTimeout(() => { try { const text = hooks.onLinked(CREDS); if (hooks.onDm) hooks.onDm(!!text); } catch (e) { /* the site is already shut down */ } }, 20);
         }, 20);
       }, 10);
       return { cancel() {} };
@@ -116,6 +117,8 @@ test('QR mode: no number needed, a scannable QR picture is served, then linked',
   const done = await until(async () => { const x = await (await fetch(`${s.base}/api/job/${job}`)).json(); return x.state === 'linked' ? x : null; });
   assert.match(done.sessionId, /^TFX-/);
   assert.strictEqual(done.qr, null);
+  const after = await until(async () => { const x = await (await fetch(`${s.base}/api/job/${job}`)).json(); return x.dm !== null ? x : null; });
+  assert.strictEqual(after.dm, true);
   assert.deepStrictEqual(await (await fetch(`${s.base}/api/session/${done.sessionId}`)).json(), CREDS);
   s.close();
 });
@@ -125,12 +128,19 @@ test('page and assets are served with safe headers', async () => {
   const r = await fetch(s.base + '/');
   assert.strictEqual(r.status, 200);
   assert.match(r.headers.get('content-security-policy'), /default-src 'self'/);
-  assert.match(await r.text(), /<title>TurboFex Pair<\/title>/);
+  assert.match(await r.text(), /<title>TurboFex Pair/);
   const js = await fetch(s.base + '/app.js');
   assert.strictEqual(js.status, 200);
   assert.match(await js.text(), /api\/pair/);
-  assert.strictEqual((await fetch(s.base + '/logo.png')).headers.get('content-type'), 'image/png');
+  assert.strictEqual((await fetch(s.base + '/logo-gold.png')).headers.get('content-type'), 'image/png');
   assert.strictEqual((await fetch(s.base + '/..%2fserver.js')).status, 404);
   assert.strictEqual((await fetch(s.base + '/server.js')).status, 404);
   s.close();
+});
+
+test('the WhatsApp message carries the session ID on its own line', () => {
+  const t = dmText('TFX-ABCD-EFGH-JKLM');
+  assert.match(t, /TurboFex linked/);
+  assert.ok(t.includes('```TFX-ABCD-EFGH-JKLM```'));
+  assert.match(t, /SESSION_ID/);
 });

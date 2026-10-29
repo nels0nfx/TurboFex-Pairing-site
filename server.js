@@ -12,6 +12,10 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
+// the WhatsApp message the person receives with their session ID
+const dmText = (id) =>
+  `✅ *TurboFex linked!*\n\nYour session ID:\n\`\`\`${id}\`\`\`\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 24 hours. Don't share it with anyone.`;
+
 function createApp(opts = {}) {
   const env = opts.env || process.env;
   const dataDir = opts.dataDir || path.join(__dirname, 'data');
@@ -84,7 +88,7 @@ function createApp(opts = {}) {
 
   function startJob(number, method) {
     const id = crypto.randomBytes(16).toString('hex');
-    const job = { id, number, method, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null };
+    const job = { id, number, method, dm: null, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null };
     const done = () => {
       job.doneAt = Date.now();
       clearTimeout(job.timer);
@@ -118,10 +122,17 @@ function createApp(opts = {}) {
         } catch (err) {
           job.state = 'failed';
           job.error = 'Linked, but the session could not be saved. Please try again.';
+          done();
+          throw err;
         }
         done();
+        return dmText(job.sessionId); // the engine sends this to the person on WhatsApp
+      },
+      onDm: (sent) => {
+        job.dm = !!sent;
       },
       onFail: (message) => {
+        if (job.state === 'linked') return; // already delivered: a later close is not a failure
         job.state = 'failed';
         job.error = message;
         job.code = null;
@@ -191,7 +202,7 @@ function createApp(opts = {}) {
         if (!job.qrSvg || job.qrSvg.text !== job.qr) job.qrSvg = { text: job.qr, url: qrImage.toDataUrl(job.qr) };
         qr = job.qrSvg.url;
       }
-      return send(res, 200, { state: job.state, method: job.method, qr, code: job.code, sessionId: job.sessionId, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
+      return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
     // 3) the bot downloads its login with the session ID
@@ -239,7 +250,7 @@ function createApp(opts = {}) {
   return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) try { j.handle.cancel(); } catch (e) {} server.close(); } };
 }
 
-module.exports = { createApp };
+module.exports = { createApp, dmText };
 
 if (require.main === module) {
   process.on('unhandledRejection', (e) => console.error('Unhandled:', e));

@@ -2,80 +2,151 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TurboFex Pair</title>
-<meta name="theme-color" content="#0b1411">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TurboFex Pair — Connect your WhatsApp</title>
+<meta name="description" content="Securely link your WhatsApp account to your TurboFex bot with a pairing code or QR code.">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="color-scheme" content="light">
 <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<div class="decor" aria-hidden="true">
+<svg class="arc arc-a" viewBox="0 0 200 300" aria-hidden="true"><path d="M-10 280C30 200 60 120 130 -10M-30 300C20 210 55 130 120 20" fill="none" stroke="#C9A45C" stroke-width="1"/></svg>
+<svg class="arc arc-b" viewBox="0 0 200 300" aria-hidden="true"><path d="M210 20C170 100 140 180 70 310M230 0C180 90 145 170 80 290" fill="none" stroke="#C9A45C" stroke-width="1"/></svg>
+</div>
+
+<header class="bar">
+  <div class="bar-in">
+    <a class="brand" href="/" aria-label="TurboFex Pair home">
+      <img src="/logo-gold.png" alt="" width="38" height="27">
+      <span class="word">TURBOFEX</span>
+      <span class="badge">PAIR</span>
+    </a>
+    <div class="secure" id="secure">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>
+      <span id="secure-text"><span class="long">Secure Connection</span><span class="short">Secure</span></span>
+    </div>
+  </div>
+</header>
+
 <main>
-  <header>
-    <div class="logo"><img src="/logo.png" alt="TurboFex" width="104" height="80"></div>
-    <h1>TurboFex Pair</h1>
-    <p class="sub">Link your WhatsApp and get a short session ID for your bot.</p>
-  </header>
-
-  <section id="step-number" class="card">
-    <p class="label" id="mlabel">How do you want to link?</p>
-    <div class="seg" role="tablist" aria-labelledby="mlabel">
-      <button id="m-code" class="on" role="tab" aria-selected="true" type="button">Pairing code</button>
-      <button id="m-qr" role="tab" aria-selected="false" type="button">QR code</button>
-    </div>
-    <p id="mhint" class="hint">Best on one phone: you type a code, no second device needed.</p>
-
-    <div id="numwrap">
-      <label for="number">Your WhatsApp number</label>
-      <input id="number" type="tel" inputmode="numeric" autocomplete="tel" placeholder="2348012345678" maxlength="20">
-      <p class="hint">Country code first, digits only, no + and no leading 0.</p>
-    </div>
-    <button id="go" class="primary">Get pairing code</button>
-    <p id="err1" class="error" role="alert" hidden></p>
+  <section class="hero">
+    <div class="tile"><img src="/logo-gold.png" alt="TurboFex" width="68" height="48"></div>
+    <h1>Connect your WhatsApp</h1>
+    <p class="sub">Securely link your account to your TurboFex bot in seconds.</p>
   </section>
 
-  <section id="step-code" class="card" hidden>
+  <!-- step 1 -->
+  <section id="step-number" class="card step">
+    <h2>Choose connection method</h2>
+    <div class="tabs" role="tablist" aria-label="Connection method">
+      <button id="t-code" class="tab on" role="tab" aria-selected="true" aria-controls="panel" type="button">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Pairing code</span>
+      </button>
+      <button id="t-qr" class="tab" role="tab" aria-selected="false" aria-controls="panel" type="button" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2.5v2.5H14zM18 14h2v2h-2zM14 18.5h2v1.5h-2zM17.5 17.5H20V20h-2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>QR code</span>
+      </button>
+    </div>
+
+    <div id="panel" role="tabpanel">
+      <p class="info" id="mhint">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 11v5.5M12 7.8v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span id="mhint-text">Enter your WhatsApp number to generate a one-time pairing code.</span>
+      </p>
+
+      <form id="form" novalidate>
+        <div id="numwrap">
+          <label for="number">WhatsApp number</label>
+          <div class="field">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6.6 3.5h2.8l1.4 3.8-1.9 1.3a11 11 0 0 0 5.5 5.5l1.3-1.9 3.8 1.4v2.8a2 2 0 0 1-2.2 2A15.500 15.500 0 0 1 4.600 5.700a2 2 0 0 1 2-2.200z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <input id="number" name="number" type="tel" inputmode="tel" autocomplete="tel" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="234 801 234 5678" maxlength="22" aria-describedby="numhint numerr">
+          </div>
+          <p id="numhint" class="hint">Country code first · No + sign or leading zero.<br><span class="ex">Nigeria 234 · UK 44 · USA 1 · Ghana 233 · South Africa 27</span></p>
+          <p id="numerr" class="err" role="alert" hidden></p>
+        </div>
+
+        <button id="go" class="cta" type="submit">
+          <span class="spin" aria-hidden="true"></span>
+          <span id="go-text">Generate pairing code</span>
+          <svg class="arrow" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <p id="err1" class="err box" role="alert" hidden></p>
+      </form>
+
+      <p class="assure">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 2.800v5.500c0 4.200-2.800 7.800-7 9.200-4.200-1.400-7-5-7-9.200V5.800z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8.800 12.200l2.200 2.200 4.200-4.400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Encrypted in transit and in storage
+      </p>
+    </div>
+  </section>
+
+  <!-- step 2 -->
+  <section id="step-wait" class="card step" hidden>
     <div id="pane-code">
-      <p class="label">Your pairing code</p>
-      <div id="code" class="code" aria-live="polite">········</div>
-      <ol class="how">
-        <li>Open <b>WhatsApp</b> on the phone with this number.</li>
-        <li>Go to <b>Settings → Linked devices → Link a device</b>.</li>
-        <li>Tap <b>Link with phone number instead</b>.</li>
-        <li>Type the code above.</li>
+      <h2>Your pairing code</h2>
+      <div class="codeRow" id="code" role="group" aria-label="Pairing code" aria-live="polite"></div>
+      <button id="copycode" class="ghost" type="button" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15 9V6.500A2.500 2.500 0 0 0 12.500 4h-6A2.500 2.500 0 0 0 4 6.500v6A2.500 2.500 0 0 0 6.500 15H9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>Copy code</span>
+      </button>
+      <ol class="steps">
+        <li><span class="n">1</span><span>Open <b>WhatsApp</b> on the phone with this number.</span></li>
+        <li><span class="n">2</span><span>Go to <b>Settings → Linked devices → Link a device</b>.</span></li>
+        <li><span class="n">3</span><span>Tap <b>Link with phone number instead</b>.</span></li>
+        <li><span class="n">4</span><span>Type the code above.</span></li>
       </ol>
     </div>
+
     <div id="pane-qr" hidden>
-      <p class="label">Scan this QR code</p>
-      <div class="qrbox"><img id="qrimg" alt="QR code to scan with WhatsApp" width="260" height="260" hidden><p id="qrwait" class="hint">Getting your QR code…</p></div>
-      <ol class="how">
-        <li>On the phone you want to link, open <b>WhatsApp → Settings → Linked devices → Link a device</b>.</li>
-        <li>Scan this QR with it. You need <b>a second screen</b> to show this page (a laptop or another phone).</li>
-        <li>If WhatsApp asks again, a new QR appears here. Scan it too.</li>
+      <h2>Scan this QR code</h2>
+      <div class="qrbox"><div class="skel" id="qrskel" aria-hidden="true"></div><img id="qrimg" alt="QR code to scan with WhatsApp" width="280" height="280" hidden></div>
+      <ol class="steps">
+        <li><span class="n">1</span><span>On the phone you want to link, open <b>WhatsApp → Settings → Linked devices → Link a device</b>.</span></li>
+        <li><span class="n">2</span><span>Scan this QR code. You need <b>a second screen</b> to show this page, such as a laptop or another phone.</span></li>
+        <li><span class="n">3</span><span>If WhatsApp asks again, a new QR code appears here. Scan it too.</span></li>
       </ol>
     </div>
-    <p id="wait" class="hint" hidden></p>
-    <p id="timer" class="hint" hidden></p>
-    <button id="cancel" class="ghost">Start over</button>
-    <p id="err2" class="error" role="alert" hidden></p>
+
+    <div class="status" aria-live="polite"><span class="spin dark" aria-hidden="true"></span><span id="status">Getting ready…</span></div>
+    <div class="bar-t" aria-hidden="true"><i id="prog"></i></div>
+    <p class="hint center" id="timer" hidden></p>
+    <button id="cancel" class="link" type="button">Start over</button>
+    <p id="err2" class="err box" role="alert" hidden></p>
   </section>
 
-  <section id="step-done" class="card" hidden>
-    <p class="ok">✓ Linked</p>
+  <!-- step 3 -->
+  <section id="step-done" class="card step" hidden>
+    <div class="ok" aria-hidden="true"><svg viewBox="0 0 52 52" width="64" height="64"><circle cx="26" cy="26" r="24" fill="none" stroke="#C9A45C" stroke-width="1.5"/><path class="tick" d="M15 27l8 8 14-16" fill="none" stroke="#C9A45C" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h2 class="center">Linked successfully</h2>
     <p class="label">Your session ID</p>
-    <div id="sid" class="code small"></div>
-    <button id="copy" class="primary">Copy session ID</button>
-    <div class="use">
-      <p><b>Use it on your bot</b></p>
-      <p class="hint">In your bot's panel, add this setting and start the bot:</p>
-      <pre id="env"></pre>
-      <button id="copyenv" class="ghost">Copy setting</button>
-    </div>
-    <p class="hint warn">The ID works <b>once</b> and expires in 24 hours. Anyone who has it can use your WhatsApp, so don't share it.</p>
-    <button id="again" class="ghost">Link another number</button>
-  </section>
+    <div class="sid" id="sid"></div>
+    <button id="copy" class="cta" type="button"><span id="copy-text">Copy session ID</span></button>
+    <p class="dm" id="dm" aria-live="polite">Sending a copy to your WhatsApp…</p>
 
-  <footer>Made for TurboFex bots. Your login is stored encrypted and deleted when your bot collects it.</footer>
+    <div class="use">
+      <p class="use-h">Use it on your bot</p>
+      <ol class="steps">
+        <li><span class="n">1</span><span>Open your bot's panel and add this setting:</span></li>
+      </ol>
+      <pre id="env"></pre>
+      <button id="copyenv" class="ghost" type="button"><span>Copy setting</span></button>
+      <ol class="steps after">
+        <li><span class="n">2</span><span>Start the bot. It logs in by itself.</span></li>
+      </ol>
+    </div>
+    <p class="hint warn">The ID works <b>once</b> and expires in 24 hours. Anyone who has it can use your WhatsApp, so keep it private.</p>
+    <button id="again" class="link" type="button">Link another number</button>
+  </section>
 </main>
+
+<footer>
+  <div class="rule"><i></i><span>Built for TurboFex bots</span><i></i></div>
+  <p>Your session data is protected and deleted after collection.</p>
+</footer>
 <script src="/app.js"></script>
 </body>
 </html>
