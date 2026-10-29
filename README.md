@@ -1,55 +1,33 @@
 # TurboFex Pair (the pairing site)
 
-A small website where anyone links their WhatsApp number with a **pairing code** (no QR, no second device) and gets a short **session ID** like `TFX-K7M2-9QXA-4BNP`.
+A small website where anyone links their WhatsApp number with a **pairing code** (no QR, no second device) and gets a short **session ID** like `TFX-K7M2-9QXA-4BNP`. They put that ID in their bot's settings and the bot logs in by itself.
 
-That session ID is what your Turbo-X / TurboFex bot uses to pull the linked credentials.
+## How it works
+1. The visitor picks **Pairing code** (types their number, gets an 8-character code, enters it in WhatsApp > Linked devices > Link a device > Link with phone number instead) or **QR code** (scans a QR shown on the page; needs a second screen).
+2. (Both ways end the same.)
+3. When the link finishes, the site saves the login **encrypted** and shows the session ID.
+4. The visitor sets only `SESSION_ID` on their bot. On start the bot downloads the login from the site and the site **deletes it** (one use, expires after 24 hours).
 
-## What the visitor does
+## Run the site
+Needs Node 20+ and a host that stays online (a panel, a VPS, Railway, Render...). It must be reachable over HTTPS because the bot sends the ID to it.
 
-1. Opens the site
-2. Types their WhatsApp number (with country code)
-3. Gets an 8-digit pairing code
-4. Opens WhatsApp → Linked devices → Link with phone number → enters the code
-5. The site shows a short session ID
-6. They (or you) paste that session ID into the bot
-
-## Run locally
-
-```bash
-cp .env.example .env
+```
+cd pairsite
 npm install
-npm start
+node server.js        # PORT=3000 by default
+```
+Settings are in `.env.example` (all optional). Keep `data/secret.key` safe, or set `SITE_SECRET` yourself: without it saved sessions cannot be read. Set `TRUST_PROXY=1` when the site is behind a proxy.
+
+## Use it from the bot
+Before you share the bot, write your site's address once in `config.js` (`pairSiteUrl: 'https://your-site.onrender.com'`). Then users only set one thing on the bot (panel variable):
+```
+SESSION_ID=TFX-XXXX-XXXX-XXXX
 ```
 
-Open http://localhost:3000
+## Safety notes
+- A session ID is the key to someone's WhatsApp. It is high-entropy, works once, expires, and the stored login is encrypted with a key made from the ID itself, so a copy of the site's disk is not enough to use it.
+- Pairing attempts are rate limited per visitor (`PAIR_LIMIT`) and limited in total (`MAX_JOBS`).
+- Run this site only for people who know what it does: the site briefly holds their login. Do not log request URLs on your host (the ID is in `/api/session/<id>`).
 
-## Deploy (Render free tier)
-
-The `render.yaml` is ready. Connect the repo on Render and it will deploy.
-
-Important: set `SITE_SECRET` in the Render environment (or let it auto-generate once and keep the value). Without a stable secret, saved sessions stop working after a restart.
-
-## API the bot talks to
-
-- `GET /health` – simple health check
-- `POST /pair` – start a pairing job `{ "number": "2348012345678" }` → returns `{ "jobId", "code" }` or an error
-- `GET /status/:jobId` – poll until linked or failed
-- `GET /session/:id` – exchange a session ID for the encrypted credentials (one-time by default)
-
-## Notes
-
-- Pairing codes are rate-limited per visitor.
-- Sessions expire (default 24 h).
-- By default a session ID can only be fetched once.
-- The site never stores the full WhatsApp account; only the temporary credentials the bot needs.
-
-## Files
-
-| File | Role |
-|------|------|
-| `server.js` | HTTP server, routes, rate limits |
-| `engine.js` | Baileys pairing + session handling |
-| `store.js` | Encrypted short-lived session store |
-| `pairfix.js` | Workaround for the July 2026 companion_reg_refresh change |
-| `qr.js` | SVG QR generator (fallback) |
-| `public/` | Frontend |
+## Tests
+`npm test` inside `pairsite/` (the WhatsApp part is replaced by a stand-in; the real WhatsApp exchange can only be tested live).
