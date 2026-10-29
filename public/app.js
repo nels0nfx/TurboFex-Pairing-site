@@ -8,6 +8,23 @@
   // lets :active (the press effect) work on iPhone Safari
   document.addEventListener('touchstart', function () {}, { passive: true });
 
+  // theme switch (dark is the default; the choice is remembered on this device)
+  var root = document.documentElement, themeBtn = $('theme');
+  function syncTheme() {
+    var dark = root.getAttribute('data-theme') !== 'light';
+    themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    themeBtn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  themeBtn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.classList.add('theming');                       // short colour fade
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
+    syncTheme();
+    setTimeout(function () { root.classList.remove('theming'); }, 450);
+  });
+  syncTheme();
+
   // sticky header: a soft shadow once the page has scrolled
   var bar = document.querySelector('.bar'), ticking = false;
   function onScroll() {
