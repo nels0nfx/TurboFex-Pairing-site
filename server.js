@@ -76,7 +76,7 @@ function createApp(opts = {}) {
           req.destroy();
         } else chunks.push(c);
       });
-      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8'));
+      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
       req.on('error', reject);
     });
 

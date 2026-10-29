@@ -11,10 +11,11 @@ const CREDS = { registered: true, me: { id: '2348012345678:5@s.whatsapp.net' }, 
 // stand-in for WhatsApp: gives a code, then "links"
 function fakeEngine(behaviour = 'ok') {
   return {
-    start(number, hooks) {
+    start(number, hooks, opts = {}) {
       setTimeout(() => {
         if (behaviour === 'refuse') return hooks.onFail('WhatsApp refused the pairing code (400 bad-request).');
-        hooks.onCode('ABCD-EFGH');
+        if (opts.method === 'qr') hooks.onQr('2@' + 'x'.repeat(60) + ',' + 'A'.repeat(43) + '=,' + 'B'.repeat(43) + '=,' + 'C'.repeat(43) + '=,1');
+        else hooks.onCode('ABCD-EFGH');
         setTimeout(() => {
           hooks.onPairing();
           setTimeout(() => hooks.onLinked(CREDS), 20);
@@ -91,11 +92,31 @@ test('refusal from WhatsApp is shown, bad input is rejected', async () => {
   s.close();
 });
 
-test('rate limit and one job per number', async () => {
-  const s = await boot({ PAIR_LIMIT: '2' });
-  assert.strictEqual((await post(`${s.base}/api/pair`, { number: '2348011111111' })).status, 200);
-  assert.strictEqual((await post(`${s.base}/api/pair`, { number: '2348011111111' })).status, 409);
-  assert.strictEqual((await post(`${s.base}/api/pair`, { number: '2348022222222' })).status, 429);
+test('rate limit; a new attempt for the same number replaces the old one', async () => {
+  const s = await boot({ PAIR_LIMIT: '3' });
+  const first = await (await post(`${s.base}/api/pair`, { number: '2348011111111' })).json();
+  const second = await post(`${s.base}/api/pair`, { number: '2348011111111' });
+  assert.strictEqual(second.status, 200, 'not blocked');
+  const old = await (await fetch(`${s.base}/api/job/${first.job}`)).json();
+  assert.strictEqual(old.state, 'failed');
+  assert.strictEqual((await post(`${s.base}/api/pair`, { number: '2348022222222' })).status, 200);
+  assert.strictEqual((await post(`${s.base}/api/pair`, { number: '2348033333333' })).status, 429);
+  s.close();
+});
+
+test('QR mode: no number needed, a scannable QR picture is served, then linked', async () => {
+  const s = await boot();
+  const r = await post(`${s.base}/api/pair`, { method: 'qr' });
+  assert.strictEqual(r.status, 200);
+  const { job } = await r.json();
+  const j = await until(async () => { const x = await (await fetch(`${s.base}/api/job/${job}`)).json(); return x.state === 'qr' ? x : null; });
+  assert.strictEqual(j.method, 'qr');
+  assert.match(j.qr, /^data:image\/svg\+xml;base64,/);
+  assert.match(Buffer.from(j.qr.split(',')[1], 'base64').toString(), /<svg[^>]*viewBox/);
+  const done = await until(async () => { const x = await (await fetch(`${s.base}/api/job/${job}`)).json(); return x.state === 'linked' ? x : null; });
+  assert.match(done.sessionId, /^TFX-/);
+  assert.strictEqual(done.qr, null);
+  assert.deepStrictEqual(await (await fetch(`${s.base}/api/session/${done.sessionId}`)).json(), CREDS);
   s.close();
 });
 
@@ -108,6 +129,7 @@ test('page and assets are served with safe headers', async () => {
   const js = await fetch(s.base + '/app.js');
   assert.strictEqual(js.status, 200);
   assert.match(await js.text(), /api\/pair/);
+  assert.strictEqual((await fetch(s.base + '/logo.png')).headers.get('content-type'), 'image/png');
   assert.strictEqual((await fetch(s.base + '/..%2fserver.js')).status, 404);
   assert.strictEqual((await fetch(s.base + '/server.js')).status, 404);
   s.close();
