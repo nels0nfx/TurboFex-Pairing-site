@@ -5,34 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TurboFex Pair</title>
 <meta name="theme-color" content="#0b1411">
+<link rel="icon" type="image/png" href="/favicon.png">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <main>
   <header>
-    <div class="logo" aria-hidden="true">⚡</div>
+    <div class="logo"><img src="/logo.png" alt="TurboFex" width="104" height="80"></div>
     <h1>TurboFex Pair</h1>
-    <p class="sub">Link your WhatsApp with a code and get a short session ID for your bot. No QR, no second device.</p>
+    <p class="sub">Link your WhatsApp and get a short session ID for your bot.</p>
   </header>
 
   <section id="step-number" class="card">
-    <label for="number">Your WhatsApp number</label>
-    <input id="number" type="tel" inputmode="numeric" autocomplete="tel" placeholder="2348012345678" maxlength="20">
-    <p class="hint">Country code first, digits only, no + and no leading 0.</p>
+    <p class="label" id="mlabel">How do you want to link?</p>
+    <div class="seg" role="tablist" aria-labelledby="mlabel">
+      <button id="m-code" class="on" role="tab" aria-selected="true" type="button">Pairing code</button>
+      <button id="m-qr" role="tab" aria-selected="false" type="button">QR code</button>
+    </div>
+    <p id="mhint" class="hint">Best on one phone: you type a code, no second device needed.</p>
+
+    <div id="numwrap">
+      <label for="number">Your WhatsApp number</label>
+      <input id="number" type="tel" inputmode="numeric" autocomplete="tel" placeholder="2348012345678" maxlength="20">
+      <p class="hint">Country code first, digits only, no + and no leading 0.</p>
+    </div>
     <button id="go" class="primary">Get pairing code</button>
     <p id="err1" class="error" role="alert" hidden></p>
   </section>
 
   <section id="step-code" class="card" hidden>
-    <p class="label">Your pairing code</p>
-    <div id="code" class="code" aria-live="polite">········</div>
-    <p id="wait" class="hint">Getting your code…</p>
-    <ol id="how" class="how" hidden>
-      <li>Open <b>WhatsApp</b> on the phone with this number.</li>
-      <li>Go to <b>Settings → Linked devices → Link a device</b>.</li>
-      <li>Tap <b>Link with phone number instead</b>.</li>
-      <li>Type the code above.</li>
-    </ol>
+    <div id="pane-code">
+      <p class="label">Your pairing code</p>
+      <div id="code" class="code" aria-live="polite">········</div>
+      <ol class="how">
+        <li>Open <b>WhatsApp</b> on the phone with this number.</li>
+        <li>Go to <b>Settings → Linked devices → Link a device</b>.</li>
+        <li>Tap <b>Link with phone number instead</b>.</li>
+        <li>Type the code above.</li>
+      </ol>
+    </div>
+    <div id="pane-qr" hidden>
+      <p class="label">Scan this QR code</p>
+      <div class="qrbox"><img id="qrimg" alt="QR code to scan with WhatsApp" width="260" height="260" hidden><p id="qrwait" class="hint">Getting your QR code…</p></div>
+      <ol class="how">
+        <li>On the phone you want to link, open <b>WhatsApp → Settings → Linked devices → Link a device</b>.</li>
+        <li>Scan this QR with it. You need <b>a second screen</b> to show this page (a laptop or another phone).</li>
+        <li>If WhatsApp asks again, a new QR appears here. Scan it too.</li>
+      </ol>
+    </div>
+    <p id="wait" class="hint" hidden></p>
     <p id="timer" class="hint" hidden></p>
     <button id="cancel" class="ghost">Start over</button>
     <p id="err2" class="error" role="alert" hidden></p>
