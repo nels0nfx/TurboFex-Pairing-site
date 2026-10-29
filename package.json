@@ -1,0 +1,16 @@
+{
+  "name": "turbofex-pairsite",
+  "version": "1.0.0",
+  "description": "TurboFex pairing site: link WhatsApp with a pairing code and get a short session ID",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "pino": "^9.5.0"
+  },
+  "license": "MIT"
+}
