@@ -3,6 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const pairfix = require('./pairfix'); // WhatsApp's new step after a QR scan ("Couldn't link device" without it)
 
 let libPromise = null;
 function loadLib() {
@@ -21,8 +22,11 @@ function loadLib() {
 
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
-// hooks: onCode(code "ABCD-EFGH"), onPairing() (the phone accepted the code), onLinked(creds), onFail(message)
+// method 'code': asks WhatsApp for a pairing code for `number`.  method 'qr': shows a QR to scan (no number needed).
+// hooks: onCode(code "ABCD-EFGH"), onQr(text of the QR, a new one now and then), onPairing() (the phone accepted),
+//        onLinked(creds), onFail(message)
 function start(number, hooks, opts = {}) {
+  const method = opts.method === 'qr' ? 'qr' : 'code';
   const tmpRoot = opts.tmpDir || path.join(os.tmpdir(), 'tfx-pair');
   fs.mkdirSync(tmpRoot, { recursive: true });
   let workDir = null;
@@ -77,6 +81,10 @@ function start(number, hooks, opts = {}) {
         syncFullHistory: false,
       });
       sock = s;
+      const linking = pairfix.install(s);
+      linking.onRefresh((qr) => {
+        if (method === 'qr' && hooks.onQr) hooks.onQr(qr); // WhatsApp asked for a refreshed QR: scan the new one
+      });
       s.ev.on('creds.update', () => Promise.resolve(saveCreds()).catch(() => {}));
 
       if (s.ws && typeof s.ws.on === 'function') {
@@ -89,8 +97,14 @@ function start(number, hooks, opts = {}) {
       s.ev.on('connection.update', async (u) => {
         if (finished || s !== sock) return;
 
-        // the first QR event means the connection is ready: ask for the pairing code (QR itself is ignored)
-        if (u.qr && !asked && !state.creds.registered) {
+        // QR mode: show every QR WhatsApp makes
+        if (u.qr && method === 'qr' && !state.creds.registered) {
+          asked = true;
+          if (hooks.onQr) hooks.onQr(linking.fixQr(u.qr));
+        }
+
+        // code mode: the first QR event means the connection is ready, so ask for the pairing code (the QR is ignored)
+        if (u.qr && method === 'code' && !asked && !state.creds.registered) {
           asked = true;
           const t0 = Date.now();
           try {
