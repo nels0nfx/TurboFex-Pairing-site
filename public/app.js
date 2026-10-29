@@ -57,7 +57,7 @@
       } else if (j.state === 'linked') {
         stop();
         $('sid').textContent = j.sessionId;
-        $('env').textContent = 'SESSION_ID=' + j.sessionId + '\nPAIR_SITE_URL=' + location.origin;
+        $('env').textContent = 'SESSION_ID=' + j.sessionId;
         show('step-done');
       } else if (j.state === 'failed') {
         stop();
