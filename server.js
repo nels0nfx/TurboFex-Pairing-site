@@ -5,9 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { makeStore, normalizeId } = require('./store');
+const qrImage = require('./qr');
 
 const PUBLIC = path.join(__dirname, 'public');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
@@ -36,7 +37,7 @@ function createApp(opts = {}) {
   const jobs = new Map(); // id -> job
   const hits = new Map(); // "kind:ip" -> [timestamps]
 
-  // allows max hits per windowMs for one visitor
+  // allows `max` hits per `windowMs` for one visitor
   const limited = (kind, ip, max, windowMs) => {
     const key = `${kind}:${ip}`;
     const now = Date.now();
@@ -75,15 +76,15 @@ function createApp(opts = {}) {
           req.destroy();
         } else chunks.push(c);
       });
-      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8'));
       req.on('error', reject);
     });
 
   const cleanNumber = (raw) => String(raw || '').replace(/\D/g, '');
 
-  function startJob(number) {
+  function startJob(number, method) {
     const id = crypto.randomBytes(16).toString('hex');
-    const job = { id, number, state: 'starting', code: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null };
+    const job = { id, number, method, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null };
     const done = () => {
       job.doneAt = Date.now();
       clearTimeout(job.timer);
@@ -95,14 +96,25 @@ function createApp(opts = {}) {
           job.code = code;
         }
       },
+      onQr: (text) => {
+        if (job.state === 'starting' || job.state === 'qr') {
+          job.state = 'qr';
+          job.qr = text; // the picture is made when the page asks (see /api/job)
+        }
+      },
       onPairing: () => {
-        if (job.state === 'code') job.state = 'linking';
+        if (job.state === 'code' || job.state === 'qr') {
+          job.state = 'linking';
+          job.qr = null;
+          job.qrSvg = null;
+        }
       },
       onLinked: (creds) => {
         try {
           job.sessionId = store.put(creds);
           job.state = 'linked';
           job.code = null;
+          job.qr = null;
         } catch (err) {
           job.state = 'failed';
           job.error = 'Linked, but the session could not be saved. Please try again.';
@@ -115,24 +127,30 @@ function createApp(opts = {}) {
         job.code = null;
         done();
       },
-    });
+    }, { method });
     job.timer = setTimeout(() => {
       if (job.state === 'linked' || job.state === 'failed') return;
-      try {
-        job.handle.cancel();
-      } catch (err) {
-        // already stopped
-      }
-      job.state = 'failed';
-      job.error = 'Time ran out. Start again and enter the code quickly.';
-      job.code = null;
-      done();
+      stopJob(job, 'Time ran out. Start again.' + (job.method === 'code' ? ' Enter the code quickly.' : ''));
     }, JOB_MAX);
     jobs.set(id, job);
     return job;
   }
 
   const active = () => [...jobs.values()].filter((j) => !j.doneAt);
+
+  function stopJob(job, message) {
+    try {
+      job.handle.cancel();
+    } catch (err) {
+      // already stopped
+    }
+    clearTimeout(job.timer);
+    job.state = 'failed';
+    job.error = message;
+    job.code = null;
+    job.qr = null;
+    job.doneAt = Date.now();
+  }
 
   async function handle(req, res) {
     const url = new URL(req.url, 'http://x');
@@ -150,12 +168,17 @@ function createApp(opts = {}) {
       } catch (err) {
         return send(res, 400, { error: 'Bad request.' });
       }
-      const number = cleanNumber(body.number);
-      if (number.length < 8 || number.length > 15) return send(res, 400, { error: 'Enter the full number with the country code, digits only.' });
-      if (String(body.number).trim().startsWith('0')) return send(res, 400, { error: 'Start with the country code (for example 234…), not 0.' });
-      if (active().some((j) => j.number === number)) return send(res, 409, { error: 'This number is already linking. Wait a minute and try again.' });
+      const method = body.method === 'qr' ? 'qr' : 'code';
+      let number = '';
+      if (method === 'code') {
+        number = cleanNumber(body.number);
+        if (number.length < 8 || number.length > 15) return send(res, 400, { error: 'Enter the full number with the country code, digits only.' });
+        if (String(body.number).trim().startsWith('0')) return send(res, 400, { error: 'Start with the country code (for example 234…), not 0.' });
+        // the same number asking again means the person started over: stop the old attempt instead of blocking them
+        for (const j of active()) if (j.number === number) stopJob(j, 'Replaced by a new attempt.');
+      }
       if (active().length >= maxJobs) return send(res, 503, { error: 'The site is busy. Try again in a minute.' });
-      const job = startJob(number);
+      const job = startJob(number, method);
       return send(res, 200, { job: job.id });
     }
 
@@ -163,7 +186,12 @@ function createApp(opts = {}) {
     if (req.method === 'GET' && p.startsWith('/api/job/')) {
       const job = jobs.get(p.slice('/api/job/'.length));
       if (!job) return send(res, 404, { error: 'Not found. Start again.' });
-      return send(res, 200, { state: job.state, code: job.code, sessionId: job.sessionId, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
+      let qr = null;
+      if (job.state === 'qr' && job.qr) {
+        if (!job.qrSvg || job.qrSvg.text !== job.qr) job.qrSvg = { text: job.qr, url: qrImage.toDataUrl(job.qr) };
+        qr = job.qrSvg.url;
+      }
+      return send(res, 200, { state: job.state, method: job.method, qr, code: job.code, sessionId: job.sessionId, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
     // 3) the bot downloads its login with the session ID
