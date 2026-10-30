@@ -219,7 +219,7 @@ test('mobile: the page does not draw under the phone status bar or navigation ba
     // "viewport-fit=cover" lets some Android browsers put the header under the status bar, so it must stay off
     assert.ok(/name="viewport"/.test(html) && !/viewport-fit\s*=\s*cover/.test(html));
     const css = await (await fetch(t.base + '/style.css')).text();
-    assert.ok(/footer \{[^}]*calc\(44px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
+    assert.ok(/footer \{[^}]*calc\(60px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
     assert.ok(/\.island \{[^}]*position: fixed/.test(css), 'the floating bar stays in view');
   } finally { t.close(); }
 });
@@ -233,8 +233,8 @@ test('navigation: one floating pill with logo, wordmark, theme and menu buttons;
     assert.ok(html.includes('TURBOFEX') && html.includes('/logo-gold.png'));
     const css = await (await fetch(t.base + '/style.css')).text();
     assert.ok(/\.island \{[^}]*position: fixed/.test(css));
-    assert.ok(/@keyframes streak/.test(css) && /@keyframes bloom/.test(css) && /@keyframes spark/.test(css) && /@keyframes breathe/.test(css));
+    assert.ok(/@keyframes run18/.test(css) && /@keyframes bloom/.test(css) && /@keyframes spark/.test(css) && /@keyframes breathe/.test(css));
     const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-    assert.ok(/\.ring::before, \.sparks i, \.bloom/.test(rm) && /animation: none !important/.test(rm), 'ambient animation off for reduced motion');
+    assert.ok(/\.flow rect, \.sparks i, \.bloom/.test(rm) && /animation: none !important/.test(rm), 'ambient animation off for reduced motion');
   } finally { t.close(); }
 });

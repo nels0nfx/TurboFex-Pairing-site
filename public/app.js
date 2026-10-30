@@ -46,6 +46,24 @@
   }
   window.addEventListener('scroll', onScroll, { passive: true });
 
+  // the travelling light runs along the pill's outline: size its rectangles to the pill (also while it grows or shrinks)
+  var flow = $('flow');
+  function flowLayout() {
+    var w = bar.offsetWidth, h = bar.offsetHeight;
+    if (!flow || !w || !h) return;
+    var r = parseFloat(getComputedStyle(bar).borderTopLeftRadius) || h / 2;
+    r = Math.max(0, Math.min(r, h / 2, w / 2));
+    var P = 9, rects = flow.children;
+    for (var i = 0; i < rects.length; i++) {
+      var echo = rects[i].getAttribute('class') === 'echo', d = echo ? -6 : 1;
+      rects[i].setAttribute('x', P + d); rects[i].setAttribute('y', P + d);
+      rects[i].setAttribute('width', Math.max(0, w - 2 * d)); rects[i].setAttribute('height', Math.max(0, h - 2 * d));
+      rects[i].setAttribute('rx', Math.max(0, r - d)); rects[i].setAttribute('ry', Math.max(0, r - d));
+    }
+  }
+  if (window.ResizeObserver) new ResizeObserver(flowLayout).observe(bar); else window.addEventListener('resize', flowLayout);
+  flowLayout();
+
   // the navigation pill grows to show the pairing status (idle -> working -> ok / bad)
   var islText = $('isl-text'), islT = 0, islLock = false;
   function islandSet(state, text) {
