@@ -17,11 +17,19 @@
   }
   themeBtn.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    root.classList.add('theming');                       // short colour fade
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
-    syncTheme();
-    setTimeout(function () { root.classList.remove('theming'); }, 450);
+    function apply() {
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
+      syncTheme();
+    }
+    if (reduced) { apply(); return; }
+    if (document.startViewTransition) {                  // whole page cross-fades (gradients included)
+      try { document.startViewTransition(apply); return; } catch (e) { /* fall through */ }
+    }
+    root.classList.add('theming');                       // fallback: colours fade
+    apply();
+    clearTimeout(themeBtn._t);
+    themeBtn._t = setTimeout(function () { root.classList.remove('theming'); }, 350);
   });
   syncTheme();
 
