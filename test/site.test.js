@@ -211,3 +211,15 @@ test('site: session endpoint is one-use, an expired ID is rejected, the page sho
     assert.strictEqual((await fetch(`${t.base}/api/session/${j2.sessionId}`)).status, 404, 'expired ID refused');
   } finally { Date.now = realNow; t.close(); }
 });
+
+test('mobile: the page does not draw under the phone status bar or navigation bar', async () => {
+  const t = await boot();
+  try {
+    const html = await (await fetch(t.base + '/')).text();
+    // "viewport-fit=cover" lets some Android browsers put the header under the status bar, so it must stay off
+    assert.ok(/name="viewport"/.test(html) && !/viewport-fit\s*=\s*cover/.test(html));
+    const css = await (await fetch(t.base + '/style.css')).text();
+    assert.ok(/footer \{[^}]*calc\(44px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
+    assert.ok(/\.bar \{[^}]*position: sticky/.test(css));
+  } finally { t.close(); }
+});

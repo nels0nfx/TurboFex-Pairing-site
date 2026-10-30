@@ -19,6 +19,7 @@
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     function apply() {
       root.setAttribute('data-theme', next);
+      var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute('content', next === 'dark' ? '#111111' : '#0B0B0B');
       try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
       syncTheme();
     }
