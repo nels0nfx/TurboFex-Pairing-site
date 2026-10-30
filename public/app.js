@@ -19,7 +19,7 @@
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     function apply() {
       root.setAttribute('data-theme', next);
-      var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute('content', next === 'dark' ? '#111111' : '#0B0B0B');
+      var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute('content', next === 'dark' ? '#0B0B0B' : '#F8F6F0');
       try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
       syncTheme();
     }
@@ -34,13 +34,62 @@
   });
   syncTheme();
 
-  // sticky header: a soft shadow once the page has scrolled
-  var bar = document.querySelector('.bar'), ticking = false;
+  // floating navigation: a deeper shadow once the page has scrolled, and the menu closes when you scroll
+  var bar = $('island'), ticking = false;
   function onScroll() {
     if (ticking) return; ticking = true;
-    requestAnimationFrame(function () { bar.classList.toggle('scrolled', window.scrollY > 4); ticking = false; });
+    requestAnimationFrame(function () {
+      bar.classList.toggle('scrolled', window.scrollY > 4);
+      if (menuIsOpen && Math.abs(window.scrollY - menuAt) > 30) menuOpen(false);
+      ticking = false;
+    });
   }
-  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // the navigation pill grows to show the pairing status (idle -> working -> ok / bad)
+  var islText = $('isl-text'), islT = 0, islLock = false;
+  function islandSet(state, text) {
+    if (islLock && state !== 'idle') return;           // a finished result stays until the next attempt
+    if (bar.getAttribute('data-state') === state && (!text || islText.textContent === text)) return;
+    clearTimeout(islT);
+    var drawer = bar.querySelector('.isl-drawer');
+    if (state !== 'idle') drawer.setAttribute('aria-hidden', 'false');
+    if (text) islText.textContent = text;
+    bar.setAttribute('data-state', state);
+    if (state === 'ok' || state === 'bad') {
+      islLock = true;
+      islT = setTimeout(function () { bar.setAttribute('data-state', 'idle'); drawer.setAttribute('aria-hidden', 'true'); }, 7000);
+    }
+    if (state === 'idle') drawer.setAttribute('aria-hidden', 'true');
+  }
+  function islandReset() { islLock = false; islandSet('idle'); }
+
+  // menu (opens under the pill)
+  var menuBtn = $('menu'), menuPanel = $('menupanel'), menuIsOpen = false, menuAt = 0, menuT = 0;
+  function menuOpen(on) {
+    if (on === menuIsOpen) return;
+    menuIsOpen = on; clearTimeout(menuT);
+    menuBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    menuBtn.setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
+    if (on) { menuAt = window.scrollY; menuPanel.classList.remove('out'); menuPanel.hidden = false; syncMenu(); }
+    else if (reduced) { menuPanel.hidden = true; }
+    else { menuPanel.classList.add('out'); menuT = setTimeout(function () { menuPanel.hidden = true; menuPanel.classList.remove('out'); }, 200); }
+  }
+  function syncMenu() {
+    var free = !$('step-number').hidden && !submitting;     // the shortcuts only work on the first screen
+    $('m-code').disabled = !free; $('m-qr').disabled = !free;
+  }
+  menuBtn.addEventListener('click', function () { menuOpen(!menuIsOpen); });
+  document.addEventListener('click', function (e) { if (menuIsOpen && !e.target.closest('#menupanel') && !e.target.closest('#menu')) menuOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menuIsOpen) { menuOpen(false); menuBtn.focus(); } });
+  function menuPick(m) {
+    menuOpen(false);
+    setMethod(m);
+    try { $('step-number').scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }); } catch (e) { /* older browsers */ }
+  }
+  $('m-code').addEventListener('click', function () { menuPick('code'); });
+  $('m-qr').addEventListener('click', function () { menuPick('qr'); });
+  onScroll();
 
   // swaps text with a short fade. Rapid calls keep only the latest text, so nothing flickers.
   function swapText(el, text) {
@@ -67,6 +116,7 @@
       if (on) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (menuIsOpen) syncMenu();
   }
   function setText(el, msg) { el.textContent = msg || ''; el.hidden = !msg; }
   function stop() { if (poll) clearInterval(poll); poll = null; }
@@ -207,7 +257,7 @@
 
   // ---------- start ----------
   function reset() {
-    stop(); idStop(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
+    stop(); idStop(); islandReset(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode('');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
@@ -225,6 +275,7 @@
   function idleLabel() { swapText($('go-text'), method === 'code' ? 'Generate pairing code' : 'Show QR code'); }
   function failSubmit(msg) {
     submitting = false; busy(false); idleLabel();
+    islandSet('bad', 'Could not start. Try again.');
     setText($('err1'), msg); flash($('go'), 'shake', 500); $('go').classList.add('fail');
     try { $('err1').scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' }); } catch (e) { /* older browsers */ }
     setTimeout(function () { $('go').classList.remove('fail'); }, 2400);
@@ -238,6 +289,7 @@
     if (method === 'code') { number = validNumber(); if (!number) { flash($('go'), 'shake', 500); return; } }
     submitting = true; var mine = ++reqId, sent = method;
     busy(true);
+    islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
     fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
@@ -271,6 +323,12 @@
         $('qrimg').hidden = false; $('qrskel').hidden = true;
       }
 
+      if (j.state === 'starting') islandSet('working', method === 'code' ? 'Requesting your code…' : 'Preparing your QR…');
+      if (j.state === 'code') islandSet('working', 'Enter the code in WhatsApp');
+      if (j.state === 'qr') islandSet('working', 'Scan the QR code');
+      if (j.state === 'linking') islandSet('working', 'Linking your account…');
+      if (j.state === 'linked') islandSet('ok', 'Linked successfully');
+      if (j.state === 'failed') islandSet('bad', 'Linking failed');
       if (j.state === 'starting') $('status').textContent = method === 'code' ? 'Requesting your pairing code…' : 'Preparing your QR code…';
       if (j.state === 'code') $('status').textContent = 'Waiting for you to enter the code in WhatsApp…';
       if (j.state === 'qr') $('status').textContent = 'Waiting for you to scan the QR code…';

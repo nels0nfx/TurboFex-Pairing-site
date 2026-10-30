@@ -6,7 +6,7 @@
   try { t = localStorage.getItem('tfx-theme'); } catch (e) { /* private mode: just use the default */ }
   if (t !== 'light' && t !== 'dark') t = DEFAULT;
   document.documentElement.setAttribute('data-theme', t);
-  // the phone's status bar takes the colour of the header
+  // the phone's status bar takes the colour of the page (the navigation floats below it)
   var m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'dark' ? '#111111' : '#0B0B0B');
+  if (m) m.setAttribute('content', t === 'dark' ? '#0B0B0B' : '#F8F6F0');
 })();
