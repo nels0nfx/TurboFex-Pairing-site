@@ -144,3 +144,70 @@ test('the WhatsApp message carries the session ID on its own line', () => {
   assert.ok(t.includes('```TFX-ABCD-EFGH-JKLM```'));
   assert.match(t, /SESSION_ID/);
 });
+
+test('expiry: IDs last 5 minutes by default, are refused after that even before any clean-up, and survive a restart', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ttl-test-'));
+  const st = makeStore({ dir, secret: 's1' });
+  assert.strictEqual(st.ttlMs, 300000, 'default is exactly 5 minutes');
+  const t0 = Date.now();
+  const id = st.put(CREDS, t0);
+  const file = path.join(dir, fs.readdirSync(dir)[0]);
+  assert.strictEqual(JSON.parse(fs.readFileSync(file, 'utf8')).exp, t0 + 300000, 'expiry saved with the record');
+  const realNow = Date.now;
+  try {
+    // a "restarted" site (new store object on the same folder) at 4:59 still accepts it
+    Date.now = () => t0 + 299000;
+    assert.deepStrictEqual(makeStore({ dir, secret: 's1' }).take(id), CREDS, 'valid at 4:59 after a restart');
+    // a second ID: refused at exactly 5:00, with no sweep having run
+    Date.now = () => t0;
+    const id2 = st.put(CREDS, t0);
+    Date.now = () => t0 + 300000;
+    assert.strictEqual(makeStore({ dir, secret: 's1' }).take(id2), null, 'refused at 5:00');
+    assert.strictEqual(fs.readdirSync(dir).length, 0, 'the refused record was deleted too');
+    // clean-up removes expired and leaves valid ones
+    Date.now = () => t0;
+    const a = st.put(CREDS, t0), b = st.put(CREDS, t0 + 200000);
+    Date.now = () => t0 + 350000;
+    assert.strictEqual(st.sweep(), 1, 'one expired record swept');
+    Date.now = () => t0 + 399000;
+    assert.deepStrictEqual(st.take(b), CREDS, 'the newer one is still valid');
+    assert.strictEqual(st.take(a), null);
+  } finally { Date.now = realNow; }
+});
+
+test('expiry: an edited expiry time is rejected, and old-format records are refused', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tamper-test-'));
+  const st = makeStore({ dir, secret: 's1' });
+  const id = st.put(CREDS, Date.now() - 299000); // 1 second left
+  const file = path.join(dir, fs.readdirSync(dir)[0]);
+  const rec = JSON.parse(fs.readFileSync(file, 'utf8'));
+  rec.exp += 24 * 3600 * 1000; // try to stretch it to a day
+  fs.writeFileSync(file, JSON.stringify(rec));
+  assert.strictEqual(st.take(id), null, 'stretched expiry does not work');
+  const old = path.join(dir, 'old.json');
+  fs.writeFileSync(old, JSON.stringify({ exp: Date.now() + 1e7, iv: 'a', tag: 'a', data: 'a' }));
+  assert.strictEqual(st.sweep() >= 1, true);
+  assert.ok(!fs.existsSync(old), 'old 24h-style record removed');
+});
+
+test('site: session endpoint is one-use, an expired ID is rejected, the page shows the time left', async () => {
+  const t = await boot();
+  const realNow = Date.now;
+  try {
+    const r = await (await post(t.base + '/api/pair', { method: 'code', number: '2348012345678' })).json();
+    const j = await until(async () => { const x = await (await fetch(`${t.base}/api/job/${r.job}`)).json(); return x.state === 'linked' ? x : null; });
+    assert.ok(j.idSecondsLeft > 295 && j.idSecondsLeft <= 300, 'about 5 minutes left: ' + j.idSecondsLeft);
+    assert.strictEqual(j.expired, false);
+    // retrieve once, then it is used up
+    assert.strictEqual((await fetch(`${t.base}/api/session/${j.sessionId}`)).status, 200);
+    assert.strictEqual((await fetch(`${t.base}/api/session/${j.sessionId}`)).status, 404, 'already used');
+    // a new ID, left unused until it expires
+    const r2 = await (await post(t.base + '/api/pair', { method: 'qr' })).json();
+    const j2 = await until(async () => { const x = await (await fetch(`${t.base}/api/job/${r2.job}`)).json(); return x.state === 'linked' ? x : null; });
+    Date.now = () => realNow() + 301000;
+    const late = await (await fetch(`${t.base}/api/job/${r2.job}`)).json();
+    assert.strictEqual(late.expired, true);
+    assert.strictEqual(late.sessionId, null, 'the page is not given an expired ID');
+    assert.strictEqual((await fetch(`${t.base}/api/session/${j2.sessionId}`)).status, 404, 'expired ID refused');
+  } finally { Date.now = realNow; t.close(); }
+});

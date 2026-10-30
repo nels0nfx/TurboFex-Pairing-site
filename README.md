@@ -6,7 +6,7 @@ A small website where anyone links their WhatsApp number with a **pairing code**
 1. The visitor picks **Pairing code** (types their number, gets an 8-character code, enters it in WhatsApp > Linked devices > Link a device > Link with phone number instead) or **QR code** (scans a QR shown on the page; needs a second screen).
 2. (Both ways end the same.)
 3. When the link finishes, the site saves the login **encrypted** and shows the session ID.
-4. The visitor sets only `SESSION_ID` on their bot. On start the bot downloads the login from the site and the site **deletes it** (one use, expires after 24 hours).
+4. The visitor sets only `SESSION_ID` on their bot. On start the bot downloads the login from the site and the site **deletes it** (one use, expires 5 minutes after it is made, so start the bot soon after linking).
 
 ## Run the site
 Needs Node 20+ and a host that stays online (a panel, a VPS, Railway, Render...). It must be reachable over HTTPS because the bot sends the ID to it.

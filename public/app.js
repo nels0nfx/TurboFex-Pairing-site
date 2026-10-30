@@ -70,6 +70,32 @@
   function setText(el, msg) { el.textContent = msg || ''; el.hidden = !msg; }
   function stop() { if (poll) clearInterval(poll); poll = null; }
 
+  // countdown for the finished session ID. The server sends how many seconds are left and also enforces it.
+  var idTimer = null, idEnd = 0;
+  function fmtLeft(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function idStop() { if (idTimer) clearInterval(idTimer); idTimer = null; idEnd = 0; }
+  function idExpired() {
+    idStop();
+    $('idtimer').textContent = 'This session ID has expired. Link again to get a new one.';
+    $('idtimer').classList.add('gone');
+    $('sid').classList.add('expired'); $('sid').setAttribute('aria-disabled', 'true'); $('sid').tabIndex = -1;
+    $('sid').textContent = 'Expired';
+    $('env').textContent = 'SESSION_ID=(expired)';
+    $('copy').disabled = true; $('copyenv').disabled = true;
+  }
+  function idTick() {
+    var left = Math.max(0, Math.ceil((idEnd - Date.now()) / 1000));
+    if (left <= 0) { idExpired(); return; }
+    $('idtimer').textContent = 'Expires in ' + fmtLeft(left);
+    $('idtimer').classList.toggle('low', left <= 60);
+  }
+  function idStart(seconds) {
+    if (idTimer || seconds <= 0) return;
+    idEnd = Date.now() + seconds * 1000;
+    $('idtimer').classList.remove('gone', 'low');
+    idTick(); idTimer = setInterval(idTick, 1000);
+  }
+
   // copies text and shows a success (gold) or failure state on the button
   function copy(text, btn, labelEl) {
     labelEl = labelEl || btn;
@@ -180,13 +206,15 @@
 
   // ---------- start ----------
   function reset() {
-    stop(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
+    stop(); idStop(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode('');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
     $('prog').style.width = '100%'; $('timer').hidden = true;
     setText($('err1'), ''); setText($('err2'), '');
     busy(false);
+    $('sid').classList.remove('expired'); $('sid').removeAttribute('aria-disabled'); $('sid').tabIndex = 0;
+    $('copy').disabled = false; $('copyenv').disabled = false; $('idtimer').textContent = ''; $('idtimer').classList.remove('gone', 'low');
     show('step-number');
   }
   function busy(on) {
@@ -252,10 +280,14 @@
         $('prog').style.width = Math.min(100, (left / MAX_SECONDS) * 100) + '%';
         $('timer').hidden = false;
         $('timer').textContent = 'This attempt expires in ' + Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2);
-      } else if (j.state === 'linked') {
-        $('sid').textContent = j.sessionId;
-        $('env').textContent = 'SESSION_ID=' + j.sessionId;
+      } else if (j.state === 'linked' && j.expired) {
+        stop();
         if ($('step-done').hidden) show('step-done');
+        idExpired();
+      } else if (j.state === 'linked') {
+        if (!idTimer) { $('sid').textContent = j.sessionId; $('env').textContent = 'SESSION_ID=' + j.sessionId; }
+        if ($('step-done').hidden) show('step-done');
+        idStart(j.idSecondsLeft);
         dmNote(j.dm);
         dmPolls++;
         if (j.dm !== null || dmPolls > 12) { stop(); if (j.dm === null) dmNote(false); }
@@ -279,7 +311,8 @@
   $('copycode').addEventListener('click', function () { if (lastCode) copy(lastCode.replace(/-/g, ''), $('copycode'), $('copycode').querySelector('span')); });
   $('copy').addEventListener('click', function () { copy($('sid').textContent, $('copy'), $('copy-text')); });
   $('copyenv').addEventListener('click', function () { copy($('env').textContent, $('copyenv'), $('copyenv').querySelector('span')); });
-  $('sid').addEventListener('click', function () { copy($('sid').textContent, $('copy'), $('copy-text')); flash($('sid'), 'done', 1200); });
+  $('sid').addEventListener('click', function () { if ($('sid').classList.contains('expired')) return; copy($('sid').textContent, $('copy'), $('copy-text')); flash($('sid'), 'done', 1200); });
   $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
+
 })();

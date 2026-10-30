@@ -217,6 +217,11 @@ input[aria-invalid="true"] { border-color: var(--text); box-shadow: 0 0 0 4px va
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (hover: hover) { .sid[role="button"]:hover { border-color: #DEC184; box-shadow: 0 0 0 4px var(--gold-faint); } }
 .sid.done { background: var(--gold); color: #0B0B0B; }
+.sid.expired { opacity: .45; cursor: default; user-select: none; -webkit-user-select: none; letter-spacing: .08em; }
+.idtimer { margin: 6px 0 0; font-variant-numeric: tabular-nums; transition: color .3s; }
+.idtimer.low { color: var(--gold); }
+.idtimer.gone { color: var(--text); }
+.ghost:disabled { opacity: .5; cursor: not-allowed; }
 
 /* pairing code */
 .codeRow { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 18px 8px; margin: 0; background: #0B0B0B; border-radius: 18px; border: 1px solid var(--gold); min-height: 92px; }

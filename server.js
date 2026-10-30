@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { makeStore, normalizeId } = require('./store');
+const { makeStore, normalizeId, DEFAULT_TTL_MS } = require('./store');
 const qrImage = require('./qr');
 
 const PUBLIC = path.join(__dirname, 'public');
@@ -14,7 +14,7 @@ const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
 // the WhatsApp message the person receives with their session ID
 const dmText = (id) =>
-  `✅ *TurboFex linked!*\n\nYour session ID:\n\`\`\`${id}\`\`\`\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 24 hours. Don't share it with anyone.`;
+  `✅ *TurboFex linked!*\n\nYour session ID:\n\`\`\`${id}\`\`\`\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 5 minutes. Don't share it with anyone.`;
 
 function createApp(opts = {}) {
   const env = opts.env || process.env;
@@ -30,9 +30,10 @@ function createApp(opts = {}) {
   const store = makeStore({
     dir: path.join(dataDir, 'sessions'),
     secret,
-    ttlMs: (Number(env.SESSION_TTL_HOURS) || 24) * 3600 * 1000,
-    oneTime: String(env.ONE_TIME || '1') !== '0',
+    ttlMs: (Number(env.SESSION_TTL_SECONDS) > 0 ? Number(env.SESSION_TTL_SECONDS) * 1000 : DEFAULT_TTL_MS), // 5 minutes unless changed
+    oneTime: true, // an ID can only be used once
   });
+  try { store.sweep(); } catch (err) { /* clear anything that expired while the site was off */ }
   const engine = opts.engine || require('./engine');
   const trustProxy = String(env.TRUST_PROXY || '') === '1';
   const pairLimit = Number(env.PAIR_LIMIT) || 4;
@@ -115,7 +116,9 @@ function createApp(opts = {}) {
       },
       onLinked: (creds) => {
         try {
-          job.sessionId = store.put(creds);
+          job.idMadeAt = Date.now();
+          job.sessionId = store.put(creds, job.idMadeAt);
+          job.idExp = job.idMadeAt + store.ttlMs;
           job.state = 'linked';
           job.code = null;
           job.qr = null;
@@ -202,7 +205,11 @@ function createApp(opts = {}) {
         if (!job.qrSvg || job.qrSvg.text !== job.qr) job.qrSvg = { text: job.qr, url: qrImage.toDataUrl(job.qr) };
         qr = job.qrSvg.url;
       }
-      return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
+      // a finished ID is only shown while it is still valid (the server decides, not the page)
+      const idLeft = job.idExp ? Math.max(0, Math.ceil((job.idExp - Date.now()) / 1000)) : 0;
+      const idExpired = job.state === 'linked' && idLeft === 0;
+      if (idExpired) job.sessionId = null;
+      return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, idSecondsLeft: idLeft, expired: idExpired, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
     // 3) the bot downloads its login with the session ID
@@ -210,7 +217,7 @@ function createApp(opts = {}) {
       if (limited('fetch', ip, 20, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' });
       const id = decodeURIComponent(p.slice('/api/session/'.length));
       if (!normalizeId(id)) return send(res, 400, { error: 'That is not a session ID.' });
-      const creds = store.take(id);
+      const creds = store.take(id); // checks the expiry itself and marks the ID as used
       if (!creds) return send(res, 404, { error: 'Session ID not found, expired, or already used.' });
       return send(res, 200, creds);
     }
@@ -244,7 +251,7 @@ function createApp(opts = {}) {
     } catch (err) {
       // not important
     }
-  }, 60 * 1000);
+  }, 30 * 1000);
   sweeper.unref();
 
   return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) try { j.handle.cancel(); } catch (e) {} server.close(); } };
