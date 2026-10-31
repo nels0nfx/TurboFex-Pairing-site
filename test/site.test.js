@@ -219,7 +219,7 @@ test('mobile: the page does not draw under the phone status bar or navigation ba
     // "viewport-fit=cover" lets some Android browsers put the header under the status bar, so it must stay off
     assert.ok(/name="viewport"/.test(html) && !/viewport-fit\s*=\s*cover/.test(html));
     const css = await (await fetch(t.base + '/style.css')).text();
-    assert.ok(/footer \{[^}]*calc\(60px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
+    assert.ok(/footer \{[^}]*calc\(22px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
     assert.ok(/\.island \{[^}]*position: fixed/.test(css), 'the floating bar stays in view');
   } finally { t.close(); }
 });

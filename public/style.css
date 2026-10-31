@@ -433,7 +433,7 @@ pre { margin: 14px 0 0; padding: 14px; background: var(--track); border: 1px sol
 .warn { margin-top: 22px; color: var(--text); }
 
 /* footer */
-footer { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; width: 100%; padding: 18px max(var(--gutter), env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left)); text-align: center; border-top: 1px solid var(--gold-soft); }
+footer { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; width: 100%; padding: 18px max(var(--gutter), env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left)); text-align: center; border-top: 1px solid var(--gold-soft); }
 .foot-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 6px; text-align: left; }
 .foot-brand { display: flex; align-items: center; gap: 12px; }
 .foot-brand b { display: block; font-size: 15px; letter-spacing: .2em; }
