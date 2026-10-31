@@ -109,14 +109,14 @@
   }
   // sounds: a quiet tick on taps, a chime when linking works, a low note on errors (see sound.js)
   document.addEventListener('click', function (e) {
-    var b = e.target.closest ? e.target.closest('button, a.navlink') : null;
+    var b = e.target.closest ? e.target.closest('button, a.navlink, a.mi, a.cbtn') : null;
     if (!b || b.disabled) return;
     var id = b.id;
     if (id === 'theme') return snd(root.getAttribute('data-theme') === 'light' ? 'themeDark' : 'themeLight');
     if (id === 'menu') return snd(menuIsOpen ? 'close' : 'open');
     if (b.classList.contains('tab')) return snd('tab');
-    if (b.classList.contains('mi') && id !== 'm-sound') return snd('tap');
-    if (b.classList.contains('link') || b.classList.contains('navlink')) return snd('tap');
+    if (b.classList.contains('mi') && id !== 'm-sound') { if (b.tagName === 'A') setTimeout(function () { menuOpen(false); }, 150); return snd('tap'); }
+    if (b.classList.contains('link') || b.classList.contains('navlink') || b.classList.contains('cbtn')) return snd('tap');
   }, true);
   function syncSound() {
     var on = !!(window.tfxSound && window.tfxSound.isOn());

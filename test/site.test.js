@@ -246,7 +246,11 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     for (const id of ['connect', 'how', 'security', 'st-server', 'st-ver', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
     for (const word of ['Linked devices', 'Link a device', 'Security tips', 'POWERED BY INNOVATION']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
-    assert.ok(!/12,482|v0\.9\.0|100% Secure|discord|telegram|twitter|x\.com/i.test(html), 'no made-up figures or social links');
+    const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
+    for (const u of own) assert.ok(html.includes(`href="${u}"`), 'community link ' + u);
+    const links = [...html.matchAll(/href="(https?:[^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(links.filter(u => !own.includes(u)), [], 'only the two community links go off-site');
+    assert.ok(!/12,482|v0\.9\.0|100% Secure|discord|twitter|x\.com/i.test(html), 'no made-up figures or other social links');
     // every in-page link points at something that exists
     for (const m of html.matchAll(/href="#([a-z-]+)"/g)) assert.ok(html.includes(`id="${m[1]}"`), 'anchor ' + m[1]);
     const h = await (await fetch(t.base + '/health')).json();
