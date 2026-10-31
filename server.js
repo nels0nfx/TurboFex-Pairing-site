@@ -8,6 +8,7 @@ const { makeStore, normalizeId, DEFAULT_TTL_MS } = require('./store');
 const qrImage = require('./qr');
 
 const PUBLIC = path.join(__dirname, 'public');
+const VERSION = require('./package.json').version;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
@@ -171,7 +172,7 @@ function createApp(opts = {}) {
     const p = url.pathname;
     const ip = ipOf(req);
 
-    if (req.method === 'GET' && p === '/health') return send(res, 200, { ok: true });
+    if (req.method === 'GET' && p === '/health') return send(res, 200, { ok: true, version: VERSION, sessionMinutes: Math.round(store.ttlMs / 600) / 100 });
 
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {

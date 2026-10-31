@@ -4,6 +4,7 @@
   var MAX_SECONDS = 240;
   var job = null, poll = null, method = 'code', dmPolls = 0, lastCode = '';
   var submitting = false, checking = false, reqId = 0;
+  var snd = function (n) { if (window.tfxSound) window.tfxSound.play(n); };
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // lets :active (the press effect) work on iPhone Safari
   document.addEventListener('touchstart', function () {}, { passive: true });
@@ -74,6 +75,7 @@
     if (state !== 'idle') drawer.setAttribute('aria-hidden', 'false');
     if (text) islText.textContent = text;
     bar.setAttribute('data-state', state);
+    if (state === 'ok') snd('success'); else if (state === 'bad') snd('error');
     if (state === 'ok' || state === 'bad') {
       islLock = true;
       islT = setTimeout(function () { bar.setAttribute('data-state', 'idle'); drawer.setAttribute('aria-hidden', 'true'); }, 7000);
@@ -105,6 +107,26 @@
     setMethod(m);
     try { $('step-number').scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }); } catch (e) { /* older browsers */ }
   }
+  // sounds: a quiet tick on taps, a chime when linking works, a low note on errors (see sound.js)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button, a.navlink') : null;
+    if (!b || b.disabled) return;
+    var id = b.id;
+    if (id === 'theme') return snd(root.getAttribute('data-theme') === 'light' ? 'themeDark' : 'themeLight');
+    if (id === 'menu') return snd(menuIsOpen ? 'close' : 'open');
+    if (b.classList.contains('tab')) return snd('tab');
+    if (b.classList.contains('mi') && id !== 'm-sound') return snd('tap');
+    if (b.classList.contains('link') || b.classList.contains('navlink')) return snd('tap');
+  }, true);
+  function syncSound() {
+    var on = !!(window.tfxSound && window.tfxSound.isOn());
+    $('m-sound').setAttribute('aria-checked', on ? 'true' : 'false');
+    $('m-sound-t').textContent = 'Sound: ' + (on ? 'On' : 'Off');
+  }
+  if (window.tfxSound) {
+    $('m-sound').addEventListener('click', function () { var v = window.tfxSound.set(!window.tfxSound.isOn()); syncSound(); if (v) snd('tap'); });
+    syncSound();
+  } else { $('m-sound').hidden = true; }
   $('m-code').addEventListener('click', function () { menuPick('code'); });
   $('m-qr').addEventListener('click', function () { menuPick('qr'); });
   onScroll();
@@ -119,6 +141,7 @@
   }
   // button feedback states: 'done' (copied), 'fail', 'shake'
   function flash(btn, cls, ms) {
+    if (cls === 'shake' && window.tfxSound) window.tfxSound.play('error');
     btn.classList.remove('done', 'fail', 'shake'); void btn.offsetWidth;
     btn.classList.add(cls);
     if (btn._f) clearTimeout(btn._f);
@@ -171,11 +194,11 @@
     if (!labelEl._old) labelEl._old = labelEl.textContent;
     var restore = function () { labelEl.textContent = labelEl._old; labelEl._old = null; };
     var ok = function () {
-      labelEl.textContent = 'Copied ✓'; flash(btn, 'done', 1800);
+      labelEl.textContent = 'Copied ✓'; flash(btn, 'done', 1800); snd('copy');
       clearTimeout(labelEl._r); labelEl._r = setTimeout(restore, 1800);
     };
     var bad = function () {
-      labelEl.textContent = 'Press and hold to copy'; flash(btn, 'fail', 2400);
+      labelEl.textContent = 'Press and hold to copy'; flash(btn, 'fail', 2400); snd('error');
       clearTimeout(labelEl._r); labelEl._r = setTimeout(restore, 2400);
     };
     var fallback = function () {
@@ -307,7 +330,7 @@
     if (method === 'code') { number = validNumber(); if (!number) { flash($('go'), 'shake', 500); return; } }
     submitting = true; var mine = ++reqId, sent = method;
     busy(true);
-    islLock = false; islandSet('working', 'Connecting…');
+    snd('press'); islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
     fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
@@ -392,4 +415,25 @@
   $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
 
+
+  // status bar: asks the site itself (/health) whether it is running, and which version
+  (function () {
+    var dot = $('st-dot'), txt = $('st-server'), ver = $('st-ver'), min = $('st-min');
+    $('yr').textContent = new Date().getFullYear();
+    function set(ok) {
+      dot.className = 'sdot ' + (ok ? 'on' : 'off'); txt.className = ok ? 'on' : 'off';
+      txt.textContent = 'Server: ' + (ok ? 'Online' : 'Offline');
+    }
+    function look() {
+      if (!window.fetch) return;
+      fetch('/health', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (!d || !d.ok) return set(false);
+        set(true);
+        if (d.version) ver.textContent = 'TurboFex Pair v' + d.version;
+        if (d.sessionMinutes) min.textContent = d.sessionMinutes;
+      }).catch(function () { set(false); });
+    }
+    look();
+    setInterval(function () { if (!document.hidden) look(); }, 60000);
+  })();
 })();

@@ -238,3 +238,22 @@ test('navigation: one floating pill with logo, wordmark, theme and menu buttons;
     assert.ok(/\.flow rect, \.sparks i, \.bloom/.test(rm) && /animation: none !important/.test(rm), 'ambient animation off for reduced motion');
   } finally { t.close(); }
 });
+
+test('redesign: new sections exist, status comes from the real /health, nothing is made up', async () => {
+  const t = await boot();
+  try {
+    const html = await (await fetch(t.base + '/')).text();
+    for (const id of ['connect', 'how', 'security', 'st-server', 'st-ver', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const word of ['Linked devices', 'Link a device', 'Security tips', 'POWERED BY INNOVATION']) assert.ok(html.includes(word), word);
+    // no invented numbers, ratings, links or claims
+    assert.ok(!/12,482|v0\.9\.0|100% Secure|discord|telegram|twitter|x\.com/i.test(html), 'no made-up figures or social links');
+    // every in-page link points at something that exists
+    for (const m of html.matchAll(/href="#([a-z-]+)"/g)) assert.ok(html.includes(`id="${m[1]}"`), 'anchor ' + m[1]);
+    const h = await (await fetch(t.base + '/health')).json();
+    assert.strictEqual(h.ok, true);
+    assert.strictEqual(h.version, require('../package.json').version);
+    assert.strictEqual(h.sessionMinutes, 5);
+    for (const f of ['/skyline.svg', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(html) && !/ style=/.test(html), 'still no inline scripts or styles (CSP)');
+  } finally { t.close(); }
+});
