@@ -205,7 +205,7 @@
   </section>
   </div>
 
-  <section class="info-grid">
+  <section class="info-grid" id="info-slider" aria-label="How to connect and security tips" tabindex="-1">
     <article class="panel" id="how">
       <h3><span class="num"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5.500M12 7.800v.4" stroke="currentColor" stroke-width="2.200" stroke-linecap="round"/></svg></span>How to connect</h3>
       <ol class="how">
@@ -226,6 +226,10 @@
       <p class="about"><b>What does pairing do?</b> It links your WhatsApp to your TurboFex bot as a linked device, the same way WhatsApp Web works. You can unlink it any time from Linked devices in WhatsApp.</p>
     </article>
   </section>
+  <div class="dots" id="info-dots" role="group" aria-label="Choose a section">
+    <button type="button" class="dot on" data-i="0" aria-label="How to connect" aria-current="true"></button>
+    <button type="button" class="dot" data-i="1" aria-label="Security tips"></button>
+  </div>
 
   <section class="statusbar" aria-label="Status">
     <div><i class="sdot" id="st-dot"></i><span id="st-server">Server: checking…</span></div>

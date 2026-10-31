@@ -156,9 +156,19 @@
       el.hidden = !on;
       if (on) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toConnect(true);
     if (menuIsOpen) syncMenu();
   }
+  // the page always opens on (and returns to) the connection section, just under the floating bar
+  function toConnect(smooth) {
+    var el = $('connect'), top = el.getBoundingClientRect().top + window.pageYOffset - (bar.getBoundingClientRect().bottom + 14);
+    try { window.scrollTo({ top: Math.max(0, top), behavior: smooth && !reduced ? 'smooth' : 'instant' }); } catch (e) { window.scrollTo(0, Math.max(0, top)); }
+  }
+  // an unfinished attempt survives a refresh: only the attempt number is kept in this tab (never the session ID itself,
+  // which the server hands out again while it is still valid)
+  var JOBKEY = 'tfx-job', restoring = false;
+  function saveJob() { try { sessionStorage.setItem(JOBKEY, JSON.stringify({ job: job, method: method })); } catch (e) { /* fine */ } }
+  function clearJob() { try { sessionStorage.removeItem(JOBKEY); } catch (e) { /* fine */ } }
   function setText(el, msg) { el.textContent = msg || ''; el.hidden = !msg; }
   function stop() { if (poll) clearInterval(poll); poll = null; }
 
@@ -167,7 +177,7 @@
   function fmtLeft(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
   function idStop() { if (idTimer) clearInterval(idTimer); idTimer = null; idEnd = 0; }
   function idExpired() {
-    idStop();
+    idStop(); clearJob();
     $('idtimer').textContent = 'This session ID has expired. Link again to get a new one.';
     $('idtimer').classList.add('gone');
     $('sid').classList.add('expired'); $('sid').setAttribute('aria-disabled', 'true'); $('sid').tabIndex = -1;
@@ -298,7 +308,7 @@
 
   // ---------- start ----------
   function reset() {
-    stop(); idStop(); islandReset(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
+    stop(); idStop(); clearJob(); restoring = false; islandReset(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode('');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
@@ -338,7 +348,7 @@
         if (mine !== reqId) return;
         if (!x.ok) return failSubmit(x.j.error || 'Something went wrong. Please try again.');
         submitting = false;
-        job = x.j.job; dmPolls = 0;
+        job = x.j.job; dmPolls = 0; saveJob();
         $('pane-code').hidden = method !== 'code'; $('pane-qr').hidden = method !== 'qr';
         $('status').textContent = method === 'code' ? 'Requesting your pairing code…' : 'Preparing your QR code…';
         renderCode(''); $('qrimg').hidden = true; $('qrskel').hidden = false;
@@ -356,8 +366,9 @@
     fetch('/api/job/' + job).then(function (r) { return r.json(); }).then(function (j) {
       checking = false;
       if (!job || job !== mine) return;
-      if (!j.state) { stop(); return setText($('err2'), j.error || 'This attempt is no longer available. Start over.'); }
+      if (!j.state) { stop(); if (restoring) { restoring = false; return reset(); } clearJob(); return setText($('err2'), j.error || 'This attempt is no longer available. Start over.'); }
 
+      restoring = false;
       if ((j.state === 'code' || j.state === 'linking') && j.code && j.code !== lastCode) { lastCode = j.code; renderCode(j.code); $('copycode').disabled = false; }
       if (j.state === 'qr' && j.qr) {
         if ($('qrimg').getAttribute('src') !== j.qr) $('qrimg').src = j.qr;
@@ -392,7 +403,7 @@
         dmPolls++;
         if (j.dm !== null || dmPolls > 12) { stop(); if (j.dm === null) dmNote(false); }
       } else if (j.state === 'failed') {
-        stop();
+        stop(); clearJob();
         renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrskel').hidden = false;
         $('timer').hidden = true; $('prog').style.width = '0%';
         $('status').textContent = 'This attempt ended.';
@@ -415,6 +426,39 @@
   $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
 
+  // opening or refreshing the page: go to the connection section and carry on with an unfinished attempt
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { /* fine */ }
+  (function () {
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(JOBKEY) || 'null'); } catch (e) { saved = null; }
+    if (saved && typeof saved.job === 'string' && /^[\w-]{4,64}$/.test(saved.job)) {
+      job = saved.job; restoring = true;
+      setMethod(saved.method === 'qr' ? 'qr' : 'code');
+      $('pane-code').hidden = method !== 'code'; $('pane-qr').hidden = method !== 'qr';
+      $('status').textContent = 'Picking up where you left off…';
+      idleLabel();
+      show('step-wait');
+      poll = setInterval(check, 2000); check();
+    }
+    if (!location.hash) {
+      toConnect(false); var y0 = window.pageYOffset;
+      // pictures and fonts can shift things a little when they finish loading: re-aim once, but only if the visitor has not moved the page yet
+      window.addEventListener('load', function () { if (Math.abs(window.pageYOffset - y0) < 4) toConnect(false); });
+    }
+  })();
+
+  // the How to connect / Security tips slider: dots follow the swipe and can be tapped
+  (function () {
+    var sl = $('info-slider'), dots = $('info-dots');
+    if (!sl || !dots) return;
+    var btns = [].slice.call(dots.querySelectorAll('.dot')), cur = 0;
+    function mark(i) { cur = i; btns.forEach(function (b, k) { b.classList.toggle('on', k === i); if (k === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
+    function where() { var cards = sl.children, best = 0, d = 1e9; for (var k = 0; k < cards.length; k++) { var x = Math.abs(cards[k].offsetLeft - sl.scrollLeft - cards[0].offsetLeft); if (x < d) { d = x; best = k; } } return best; }
+    var t = 0;
+    sl.addEventListener('scroll', function () { if (t) return; t = requestAnimationFrame(function () { t = 0; var i = where(); if (i !== cur) mark(i); }); }, { passive: true });
+    btns.forEach(function (b, k) { b.addEventListener('click', function () { snd('tab'); var c = sl.children[k]; sl.scrollTo({ left: c.offsetLeft - sl.children[0].offsetLeft, behavior: reduced ? 'auto' : 'smooth' }); mark(k); }); });
+    sl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var k = Math.max(0, Math.min(1, cur + (e.key === 'ArrowRight' ? 1 : -1))); btns[k].click(); } });
+  })();
 
   // status bar: asks the site itself (/health) whether it is running, and which version
   (function () {
