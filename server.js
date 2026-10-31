@@ -13,9 +13,17 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
-// the WhatsApp message the person receives with their session ID
-const dmText = (id) =>
-  `✅ *TurboFex linked!*\n\nYour session ID:\n\`\`\`${id}\`\`\`\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 5 minutes. Don't share it with anyone.`;
+// The WhatsApp messages the person receives: a short note, then the session ID ALONE (so one press-and-hold copies just the ID),
+// then our community links, each with its own small link card.
+const LINKS = { whatsapp: 'https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', telegram: 'https://t.me/+7PwU2Vo9czE1NTRk' };
+const dmText = () =>
+  `✅ *TurboFex linked!*\n\nYour session ID is in the next message. Press and hold it, then tap *Copy*.\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 5 minutes. Don't share it with anyone.`;
+const dmMessages = (id) => [
+  dmText(),
+  id,
+  { text: `📣 *Join the TurboFex WhatsApp Channel*\n${LINKS.whatsapp}`, linkPreview: { 'canonical-url': LINKS.whatsapp, 'matched-text': LINKS.whatsapp, title: 'TurboFex on WhatsApp', description: 'News, updates and tips from TurboFex.' } },
+  { text: `✈️ *Join us on Telegram*\n${LINKS.telegram}`, linkPreview: { 'canonical-url': LINKS.telegram, 'matched-text': LINKS.telegram, title: 'TurboFex on Telegram', description: 'Community and support for TurboFex.' } },
+];
 
 function createApp(opts = {}) {
   const env = opts.env || process.env;
@@ -130,7 +138,7 @@ function createApp(opts = {}) {
           throw err;
         }
         done();
-        return dmText(job.sessionId); // the engine sends this to the person on WhatsApp
+        return dmMessages(job.sessionId); // the engine sends these to the person on WhatsApp
       },
       onDm: (sent) => {
         job.dm = !!sent;
@@ -258,7 +266,7 @@ function createApp(opts = {}) {
   return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) try { j.handle.cancel(); } catch (e) {} server.close(); } };
 }
 
-module.exports = { createApp, dmText };
+module.exports = { createApp, dmText, dmMessages };
 
 if (require.main === module) {
   process.on('unhandledRejection', (e) => console.error('Unhandled:', e));

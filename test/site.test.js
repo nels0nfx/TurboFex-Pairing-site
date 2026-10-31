@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { createApp } = require('../server');
 const { newId, normalizeId, makeStore } = require('../store');
-const { dmText } = require('../server');
+const { dmText, dmMessages } = require('../server');
 
 const CREDS = { registered: true, me: { id: '2348012345678:5@s.whatsapp.net' }, noiseKey: { private: 'x' } };
 
@@ -138,11 +138,26 @@ test('page and assets are served with safe headers', async () => {
   s.close();
 });
 
-test('the WhatsApp message carries the session ID on its own line', () => {
-  const t = dmText('TFX-ABCD-EFGH-JKLM');
-  assert.match(t, /TurboFex linked/);
-  assert.ok(t.includes('```TFX-ABCD-EFGH-JKLM```'));
-  assert.match(t, /SESSION_ID/);
+test('the WhatsApp messages: a note, the session ID ALONE, then the two community links', () => {
+  const ms = dmMessages('TFX-ABCD-EFGH-JKLM');
+  assert.match(ms[0], /TurboFex linked/);
+  assert.match(ms[0], /SESSION_ID/);
+  assert.ok(!ms[0].includes('TFX-ABCD'), 'the note does not repeat the ID');
+  assert.strictEqual(ms[1], 'TFX-ABCD-EFGH-JKLM', 'the ID is alone in its own message so one long-press copies only it');
+  assert.ok(ms[2].text.includes('https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w') && ms[2].linkPreview['canonical-url']);
+  assert.ok(ms[3].text.includes('https://t.me/+7PwU2Vo9czE1NTRk') && ms[3].linkPreview['canonical-url']);
+});
+
+test('sendDm sends every message in order, falls back to a plain link when a card fails, and reports false if the ID was not sent', async () => {
+  const { sendDm } = require('../engine');
+  const sent = [];
+  const sock = { user: { id: '2348012345678:5@s.whatsapp.net' }, sendMessage: async (j, c) => { if (c.linkPreview && c.text.includes('t.me')) throw new Error('card'); sent.push(c); } };
+  const ok = await sendDm(sock, null, dmMessages('TFX-ABCD-EFGH-JKLM'), {}, async () => {});
+  assert.strictEqual(ok, true);
+  assert.deepStrictEqual(sent.map((c) => c.text), [dmText(), 'TFX-ABCD-EFGH-JKLM', sent[2].text, sent[3].text]);
+  assert.ok(sent[3].text.includes('t.me') && !sent[3].linkPreview, 'plain link after the card failed');
+  const bad = { user: { id: '1@s.whatsapp.net' }, sendMessage: async () => { throw new Error('no'); } };
+  assert.strictEqual(await sendDm(bad, null, dmMessages('X'), {}, async () => {}), false);
 });
 
 test('expiry: IDs last 5 minutes by default, are refused after that even before any clean-up, and survive a restart', () => {

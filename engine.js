@@ -24,15 +24,33 @@ function loadLib() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
-// Sends `text` to the person's own WhatsApp (the "message yourself" chat). Never throws: the page shows the ID anyway.
+// Sends one or more messages to the person's own WhatsApp (the "message yourself" chat). `text` is a string, or a list whose
+// items are a string or { text, linkPreview } (a small card shown under a link).
+// Never throws: the page shows the ID anyway. Returns true when the first TWO messages (the note and the session ID) went out;
+// anything after those (the community links) is a bonus and never makes it fail.
 async function sendDm(sock, creds, text, lib = {}, nap = sleep) {
   try {
     const raw = (sock && sock.user && sock.user.id) || (creds && creds.me && creds.me.id);
-    if (!raw || !text) return false;
+    const items = (Array.isArray(text) ? text : [text]).filter(Boolean).map((m) => (typeof m === 'string' ? { text: m } : m));
+    if (!raw || !items.length) return false;
     const jid = typeof lib.jidNormalizedUser === 'function' ? lib.jidNormalizedUser(raw) : `${String(raw).split('@')[0].split(':')[0]}@s.whatsapp.net`;
-    await withTimeout(sock.sendMessage(jid, { text }), 12000);
-    await nap(2500); // give the message time to leave before the connection is closed
-    return true;
+    let ok = true;
+    for (let i = 0; i < items.length; i++) {
+      try {
+        try {
+          await withTimeout(sock.sendMessage(jid, items[i]), 12000);
+        } catch (err) {
+          if (!items[i].linkPreview) throw err;
+          await withTimeout(sock.sendMessage(jid, { text: items[i].text }), 12000); // the card failed: send the plain link
+        }
+      } catch (err) {
+        console.log('[pair] could not send message', i + 1, 'of the session ID messages:', err.message);
+        if (i < 2) { ok = false; break; }
+      }
+      if (i < items.length - 1) await nap(700); // keep them in order
+    }
+    await nap(2500); // give the messages time to leave before the connection is closed
+    return ok;
   } catch (err) {
     console.log('[pair] could not send the session ID message:', err.message);
     return false;
