@@ -9,4 +9,9 @@
   // the phone's status bar takes the colour of the page (the navigation floats below it)
   var m = document.querySelector('meta[name="theme-color"]');
   if (m) m.setAttribute('content', t === 'dark' ? '#0B0B0B' : '#F8F6F0');
+  // older / low-memory phones, or a visitor who asked for less data: a lighter page (fewer glowing effects, no blur)
+  try {
+    var n = navigator, c = n.connection || {};
+    if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 2) || c.saveData) document.documentElement.classList.add('lite');
+  } catch (e) { /* normal page */ }
 })();

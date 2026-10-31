@@ -1,6 +1,6 @@
 {
   "name": "turbofex-pairsite",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "TurboFex pairing site: link WhatsApp with a pairing code and get a short session ID",
   "main": "server.js",
   "scripts": {

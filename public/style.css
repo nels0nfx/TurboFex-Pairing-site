@@ -471,7 +471,7 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 .checks li { position: relative; padding: 0 0 0 28px; margin: 0 0 11px; font-size: 15px; line-height: 1.5; }
 .checks li::before { content: ""; position: absolute; left: 3px; top: .38em; width: 14px; height: 8px; border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(-45deg) scale(.9); }
 .about { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.55; }
-.about b { color: var(--text); }
+.about b { color: var(--gold); }
 .statusbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 26px; max-width: 760px; margin: 14px auto 0; padding: 14px 18px; border: 1px solid var(--gold-soft); border-radius: var(--r-card); background: var(--surface); color: var(--muted); font-size: 14px; }
 .statusbar > div { display: inline-flex; align-items: center; gap: 9px; }
 .statusbar svg { color: var(--gold); flex: none; }
@@ -520,12 +520,35 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
   .hr { margin-left: 0; }
   .chips { justify-content: flex-start; }
 }
-/* phones: How to connect and Security tips sit side by side in one swipeable row (the next card peeks in from the edge) */
+/* FAQ heading (gold title with a chat icon and a curved gold line either side) */
+.faq-head { display: flex; align-items: center; gap: 12px; margin: 34px 0 16px; }
+.faq-line { flex: 1; height: 14px; border-top: 1.5px solid; border-color: var(--gold); opacity: .75; min-width: 8px; }
+.faq-line.l { border-radius: 16px 0 0 0; border-left: 1.5px solid var(--gold); }
+.faq-line.r { border-radius: 0 16px 0 0; border-right: 1.5px solid var(--gold); }
+.faq-t { text-align: center; flex: none; }
+.faq-t h2 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; color: var(--gold); font-family: var(--serif); font-size: 32px; line-height: 1; letter-spacing: .02em; }
+.faq-t h2 svg { flex: none; }
+.faq-t p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+/* phones: How to connect and Security tips sit side by side, both fully on screen (compact type so neither feels cramped) */
 @media (max-width: 699.98px) {
-  .info-grid { display: flex; gap: 12px; align-items: stretch; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 6px 0 10px; margin: 18px 0 0; outline: none; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; margin: 0; }
+  .info-grid > .panel { min-width: 0; padding: 16px 12px; }
+  .info-grid .panel h3 { font-size: 16px; gap: 8px; margin-bottom: 12px; }
+  .info-grid .panel h3 .num { width: 28px; height: 28px; }
+  .info-grid .how li { margin-bottom: 10px; }
+  .info-grid .how li, .info-grid .checks li { font-size: 14px; line-height: 1.4; gap: 8px; }
+  .info-grid .checks li { padding-left: 22px; }
+  .info-grid .how .n { width: 24px; height: 24px; font-size: 12px; }
+  .info-grid .how em { font-size: 12.5px; }
+  .info-grid .about { font-size: 13px; line-height: 1.5; }
+  #info-dots { display: none; }
+}
+/* very narrow phones (under 340px): two cards would be too cramped, so they become a swipeable row */
+@media (max-width: 339.98px) {
+  .info-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; padding: 6px 0 10px; gap: 12px; }
   .info-grid::-webkit-scrollbar { display: none; }
-  .info-grid > .panel { flex: 0 0 84%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+  .info-grid > .panel { flex: 0 0 90%; scroll-snap-align: start; scroll-snap-stop: always; }
+  #info-dots { display: flex; }
 }
 .dots { display: flex; justify-content: center; gap: 4px; margin: 0 0 18px; }
 .dot { appearance: none; border: 0; background: none; padding: 10px 6px; cursor: pointer; position: relative; }
@@ -613,3 +636,11 @@ html.theming *, html.theming *::before, html.theming *::after { transition: back
   .cta:active, .ghost:active, .tab:active, .link:active, .brand:active, .sid[role="button"]:active { transform: none; }
   .spin { animation-duration: 1.6s !important; animation-iteration-count: infinite !important; }
 }
+
+/* lighter page for low-end phones (class "lite" is set in theme.js): the island keeps working, only the decorative glow is simplified */
+html.lite .bloom, html.lite .sparks { display: none; }
+html.lite .ring, html.lite .glow, html.lite .orbit, html.lite .glass::after, html.lite .scene .tile { animation: none !important; }
+html.lite .glass, html.lite .menu, html.lite .island, html.lite .card, html.lite .panel { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite .island, html.lite .island.scrolled { box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 8px 16px -8px rgba(0, 0, 0, .55); }
+html.lite .panel, html.lite .card, html.lite .hero-art, html.lite .statusbar { box-shadow: none; }
+html.lite .skyline { opacity: .6; }

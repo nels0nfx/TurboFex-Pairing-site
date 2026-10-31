@@ -1,15 +1,15 @@
-// Interface sounds: a short, crisp, soft "mechanical key" tick made on the spot with the browser's audio.
-// No sound files. Quiet, with a tiny soft attack and a very quick decay (no beeps, nothing hollow).
+// Interface sounds: soft, round "tim" tones made on the spot with the browser's audio. No sound files.
+// Quiet, gentle attack, short fade (nothing harsh, no noise, no loud beeps).
 // Plays only after the visitor has touched the page, and can be switched off in the menu (remembered on this device).
 (function () {
-  var KEY = 'tfx-sound', ctx = null, master = null, on = true, buf = null, last = {};
+  var KEY = 'tfx-sound', ctx = null, master = null, on = true, last = {};
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) { /* use the default */ }
   var AC = window.AudioContext || window.webkitAudioContext;
 
   function ready() {
     if (!AC) return false;
     try {
-      if (!ctx) { ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.85; master.connect(ctx.destination); }
+      if (!ctx) { ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination); }
       if (ctx.state === 'suspended') ctx.resume();
       return true;
     } catch (e) { return false; }
@@ -19,43 +19,31 @@
     window.addEventListener(ev, function () { if (on) ready(); }, { once: true, passive: true, capture: true });
   });
 
-  // a few milliseconds of noise that fades out by itself: this is the "click" material
-  function noise() {
-    if (buf) return buf;
-    var n = Math.floor(ctx.sampleRate * 0.05), d;
-    buf = ctx.createBuffer(1, n, ctx.sampleRate); d = buf.getChannelData(0);
-    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
-    return buf;
-  }
-  // one click: noise through a narrow band (pitch = how "sharp" it sounds), 1.5 ms soft attack, quick decay
-  function click(at, freq, q, vol, len) {
-    var t = ctx.currentTime + at, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    s.buffer = noise(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  // one soft "tim": a pure tone with a tiny soft attack, a quiet bell-like overtone, rounded off by a low-pass filter,
+  // and a short natural fade. No noise, no clicks, nothing sharp.
+  function tim(at, freq, vol, len) {
+    var t = ctx.currentTime + at, f = ctx.createBiquadFilter(), g = ctx.createGain(), o = ctx.createOscillator(), o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    f.type = 'lowpass'; f.frequency.value = 2600; f.Q.value = 0.4;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.0015);
+    g.gain.linearRampToValueAtTime(vol, t + 0.004);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    s.connect(f); f.connect(g); g.connect(master);
-    s.start(t); s.stop(t + len + 0.01);
-  }
-  // a very short, quiet body under the click so it feels like a key and not just a hiss
-  function body(at, f0, f1, vol) {
-    var t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'triangle'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + 0.012);
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.001); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.014);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.02);
+    o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+    o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2.76, t); g2.gain.value = 0.16;
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(master);
+    o.start(t); o2.start(t); o.stop(t + len + 0.02); o2.stop(t + len * 0.5);
   }
 
   var SOUNDS = {
-    tap:        function () { click(0, 3400, 1.5, 0.30, 0.016); body(0, 2300, 1500, 0.035); },
-    press:      function () { click(0, 2900, 1.3, 0.38, 0.020); click(0.024, 1900, 1.1, 0.16, 0.014); body(0, 1900, 1200, 0.045); },
-    tab:        function () { click(0, 3900, 1.7, 0.26, 0.014); },
-    open:       function () { click(0, 3100, 1.4, 0.26, 0.016); },
-    close:      function () { click(0, 2400, 1.4, 0.22, 0.016); },
-    themeLight: function () { click(0, 3400, 1.6, 0.26, 0.014); click(0.06, 5200, 1.8, 0.24, 0.014); },
-    themeDark:  function () { click(0, 5200, 1.8, 0.24, 0.014); click(0.06, 3400, 1.6, 0.26, 0.014); },
-    copy:       function () { click(0, 4300, 1.8, 0.24, 0.012); click(0.065, 4300, 1.8, 0.2, 0.012); },
-    success:    function () { click(0, 3300, 1.6, 0.26, 0.016); click(0.08, 4700, 1.8, 0.26, 0.018); click(0.085, 7500, 1.2, 0.05, 0.1); },
-    error:      function () { click(0, 1100, 0.9, 0.42, 0.045); body(0, 220, 130, 0.04); }
+    tap:        function () { tim(0, 1047, 0.10, 0.10); },
+    press:      function () { tim(0, 784, 0.13, 0.13); tim(0.03, 1175, 0.07, 0.10); },
+    tab:        function () { tim(0, 988, 0.09, 0.09); },
+    open:       function () { tim(0, 784, 0.08, 0.09); tim(0.055, 1047, 0.08, 0.11); },
+    close:      function () { tim(0, 1047, 0.07, 0.08); tim(0.055, 784, 0.07, 0.10); },
+    themeLight: function () { tim(0, 880, 0.08, 0.10); tim(0.08, 1319, 0.08, 0.16); },
+    themeDark:  function () { tim(0, 1319, 0.07, 0.10); tim(0.08, 880, 0.08, 0.16); },
+    copy:       function () { tim(0, 1319, 0.08, 0.09); tim(0.07, 1760, 0.06, 0.12); },
+    success:    function () { tim(0, 1047, 0.09, 0.16); tim(0.09, 1319, 0.09, 0.16); tim(0.18, 1568, 0.10, 0.30); },
+    error:      function () { tim(0, 330, 0.14, 0.18); tim(0.11, 262, 0.12, 0.24); }
   };
 
   window.tfxSound = {
