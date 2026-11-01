@@ -33,37 +33,46 @@ async function dressCard(sock, lib, item, fetchFn) {
   return card ? { ...rest, linkPreview: card } : rest;
 }
 
-// WhatsApp only accepts new links from a recent WhatsApp Web version. The library's built-in number goes stale (issue
-// WhiskeySockets/Baileys#2679: "Couldn't link device" on the phone). So: ask WhatsApp for the current one, and if the
-// library's own lookup quietly fails (it then hands back the stale built-in number), read it ourselves from WhatsApp Web.
-let versionCache = null; // { at, version, source }
+// WhatsApp only accepts new links from a CURRENT WhatsApp Web version (a version expires about two months after it is
+// released). The library's built-in number goes stale, and its own lookup can quietly fail and hand the old number back
+// (Baileys issue #2679: "Couldn't link device" on the phone). So several sources are asked at the same time and the NEWEST
+// number wins: WhatsApp Web's service worker, WhatsApp's update check, WhatsApp Web's home page, the library's lookup, and
+// a public list of recent versions (wppconnect-team/wa-version on GitHub). The candidates are written to the log.
+let versionCache = null; // { at, version, source, tried }
+const WEB_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'sec-fetch-site': 'same-origin', 'sec-fetch-mode': 'same-origin', 'sec-fetch-dest': 'serviceworker', 'accept-language': 'en-US,en;q=0.9' };
+const revisionOf = (v) => (Array.isArray(v) && v.length === 3 && Number.isFinite(Number(v[2])) ? Number(v[2]) : 0);
 async function resolveVersion(lib, fetchFn = globalThis.fetch, log = () => {}) {
   if (versionCache && Date.now() - versionCache.at < 10 * 60 * 1000) return versionCache;
-  const done = (version, source) => (versionCache = { at: Date.now(), version, source });
-  try {
-    if (typeof lib.fetchLatestWaWebVersion === 'function') {
-      const f = await withTimeout(lib.fetchLatestWaWebVersion(), 8000);
-      if (f && Array.isArray(f.version) && f.isLatest !== false && !f.error) return done(f.version, 'library');
+  const text = async (url, headers) => (await withTimeout(fetchFn(url, { headers }), 7000)).text();
+  const sources = {
+    'sw.js': async () => { const m = /\\?"client_revision\\?":\s*(\d+)/.exec(await text('https://web.whatsapp.com/sw.js', WEB_HEADERS)); return m && [2, 3000, Number(m[1])]; },
+    'check-update': async () => { const j = JSON.parse(await text('https://web.whatsapp.com/check-update?version=2.3000.0&platform=web', WEB_HEADERS)); const m = /2\.3000\.(\d+)/.exec(String(j.currentVersion || '')); return m && [2, 3000, Number(m[1])]; },
+    'home page': async () => { const m = /\\?"client_revision\\?":\s*(\d+)/.exec(await text('https://web.whatsapp.com/', { ...WEB_HEADERS, 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate', 'sec-fetch-site': 'none' })); return m && [2, 3000, Number(m[1])]; },
+    library: async () => { const f = typeof lib.fetchLatestWaWebVersion === 'function' ? await withTimeout(lib.fetchLatestWaWebVersion(), 8000) : null; return f && f.isLatest !== false && !f.error && f.version; },
+    'public list': async () => { const list = JSON.parse(await text('https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json', { 'User-Agent': WEB_HEADERS['User-Agent'] })); const m = /2\.3000\.(\d+)/.exec(String((list[list.length - 1] || {}).version || '')); return m && [2, 3000, Number(m[1])]; },
+  };
+  const found = [], tried = [];
+  await Promise.all(Object.entries(sources).map(async ([name, fn]) => {
+    try {
+      const v = await fn();
+      if (revisionOf(v) > 0) { found.push({ name, version: [2, 3000, revisionOf(v)] }); tried.push(`${name}=${revisionOf(v)}`); } else tried.push(`${name}=none`);
+    } catch (err) {
+      tried.push(`${name}=failed(${String(err.message).slice(0, 30)})`);
     }
-  } catch (err) {
-    log('version lookup (library) failed:', err.message);
+  }));
+  log('version sources:', tried.sort().join(' '));
+  if (found.length) {
+    found.sort((x, y) => revisionOf(y.version) - revisionOf(x.version));
+    versionCache = { at: Date.now(), version: found[0].version, source: found[0].name, tried };
+    return versionCache;
   }
   try {
-    const r = await withTimeout(fetchFn('https://web.whatsapp.com/sw.js', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' } }), 8000);
-    const m = /\\?"client_revision\\?":\s*(\d+)/.exec(await r.text());
-    if (m) return done([2, 3000, Number(m[1])], 'web.whatsapp.com');
-  } catch (err) {
-    log('version lookup (WhatsApp Web) failed:', err.message);
-  }
-  try {
-    if (typeof lib.fetchLatestBaileysVersion === 'function') {
-      const f = await withTimeout(lib.fetchLatestBaileysVersion(), 8000);
-      if (f && Array.isArray(f.version)) return done(f.version, 'library list (may be old)');
-    }
+    const f = typeof lib.fetchLatestBaileysVersion === 'function' ? await withTimeout(lib.fetchLatestBaileysVersion(), 8000) : null;
+    if (f && Array.isArray(f.version)) return { version: f.version, source: 'library list (OLD, no current number could be found)', tried };
   } catch (err) {
     /* use the built-in */
   }
-  return { version: null, source: 'built-in (may be old)' };
+  return { version: null, source: 'built-in (OLD)', tried };
 }
 
 // Sends one or more messages to the person's own WhatsApp (the "message yourself" chat). `text` is a string, or a list whose

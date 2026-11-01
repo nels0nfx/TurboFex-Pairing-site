@@ -174,20 +174,25 @@ test('the link card is the page\'s real title, description and picture (full wid
   assert.strictEqual(await sendDm(bad, null, dmMessages('X'), {}, async () => {}, down), false);
 });
 
-test('the WhatsApp Web version used for linking is the current one, even when the library\'s own lookup quietly fails', async () => {
+test('the WhatsApp Web version used for linking is the NEWEST one found, even when the library\'s own lookup is stale or fails', async () => {
   const { resolveVersion, _resetVersion } = require('../engine');
-  const swText = 'self.__x={\\"client_revision\\":1044015310,\\"other\\":1}';
-  const fetchOk = async () => ({ text: async () => swText });
-  const fetchBad = async () => { throw new Error('offline'); };
+  const sw = 'self.__x={\\"client_revision\\":1047999999,\\"other\\":1}';
+  const mk = (map) => async (url) => { const k = Object.keys(map).find((p) => url.includes(p)); if (!k || map[k] === null) throw new Error('offline'); return { text: async () => map[k] }; };
   _resetVersion();
-  let r = await resolveVersion({ fetchLatestWaWebVersion: async () => ({ version: [2, 3000, 111], isLatest: true }) }, fetchBad);
-  assert.deepStrictEqual(r.version, [2, 3000, 111]);
+  let r = await resolveVersion({ fetchLatestWaWebVersion: async () => ({ version: [2, 3000, 1035194821], isLatest: false, error: new Error('x') }), fetchLatestBaileysVersion: async () => ({ version: [2, 3000, 1043857760] }) }, mk({ 'sw.js': sw, 'check-update': null, 'web.whatsapp.com/': null, 'wppconnect': JSON.stringify([{ version: '2.3000.1046774239-alpha' }]) }));
+  assert.deepStrictEqual(r.version, [2, 3000, 1047999999], 'newest wins');
+  assert.strictEqual(r.source, 'sw.js');
   _resetVersion();
-  r = await resolveVersion({ fetchLatestWaWebVersion: async () => ({ version: [2, 3000, 1035194821], isLatest: false, error: new Error('x') }) }, fetchOk);
-  assert.deepStrictEqual(r.version, [2, 3000, 1044015310], 'the stale built-in number is not used when WhatsApp Web can be read');
-  assert.match(r.source, /whatsapp/i);
+  r = await resolveVersion({}, mk({ 'check-update': JSON.stringify({ currentVersion: '2.3000.1048000000' }), 'sw.js': null, 'web.whatsapp.com/': null, 'wppconnect': JSON.stringify([{ version: '2.3000.1046774239-alpha' }]) }));
+  assert.deepStrictEqual(r.version, [2, 3000, 1048000000]);
   _resetVersion();
-  r = await resolveVersion({}, fetchBad);
+  r = await resolveVersion({}, mk({ 'wppconnect': JSON.stringify([{ version: '2.3000.1046774239-alpha' }]) }));
+  assert.deepStrictEqual(r.version, [2, 3000, 1046774239], 'the public list is the last resort that still works');
+  _resetVersion();
+  r = await resolveVersion({ fetchLatestBaileysVersion: async () => ({ version: [2, 3000, 1043857760] }) }, mk({}));
+  assert.match(r.source, /OLD/);
+  _resetVersion();
+  r = await resolveVersion({}, mk({}));
   assert.strictEqual(r.version, null);
   _resetVersion();
 });
