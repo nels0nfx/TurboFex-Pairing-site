@@ -3,7 +3,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var MAX_SECONDS = 240;
   var job = null, poll = null, method = 'code', dmPolls = 0, lastCode = '';
-  var submitting = false, checking = false, reqId = 0;
+  var submitting = false, checking = false, reqId = 0, lastNumber = '';
   var snd = function (n) { if (window.tfxSound) window.tfxSound.play(n); };
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // lets :active (the press effect) work on iPhone Safari
@@ -327,7 +327,7 @@
   function reset() {
     stop(); idStop(); clearJob(); restoring = false; slowPoll = false; islandReset();
     $('step-done').classList.remove('used'); $('usedmsg').hidden = true; $('idtimer').classList.remove('used'); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
-    renderCode('');
+    renderCode(''); $('code').hidden = false; $('codemsg').hidden = true; $('qrmsg').hidden = true; $('retry').hidden = true; $('retry').disabled = false; $('status').parentNode.classList.remove('done');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
     $('prog').style.width = '100%'; $('timer').hidden = true;
@@ -356,7 +356,7 @@
     setText($('err1'), '');
     var number = '';
     if (method === 'code') { number = validNumber(); if (!number) { flash($('go'), 'shake', 500); return; } }
-    submitting = true; var mine = ++reqId, sent = method;
+    submitting = true; var mine = ++reqId, sent = method; lastNumber = number;
     busy(true);
     snd('press'); islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
@@ -377,6 +377,46 @@
       .catch(function () { if (mine === reqId) failSubmit('Could not reach the site. Check your internet connection and try again.'); });
   });
 
+  // an attempt ended (expired, refused, stopped): no empty box - say what happened and offer "Try again"
+  function ended(msg) {
+    var qr = method === 'qr';
+    renderCode(''); lastCode = ''; $('copycode').disabled = true; $('qrimg').hidden = true; $('qrskel').hidden = true;
+    $('code').hidden = true;
+    setText($('codemsg'), 'This code has expired or stopped. Press Try again to get a new one.');
+    setText($('qrmsg'), 'This QR code has expired or stopped. Press Try again to get a new one.');
+    $('codemsg').hidden = qr; $('qrmsg').hidden = !qr;
+    $('timer').hidden = true; $('prog').style.width = '0%';
+    $('status').textContent = 'This attempt ended.'; $('status').parentNode.classList.add('done');
+    $('retry-text').textContent = qr ? 'Try again – new QR code' : 'Try again – new code';
+    $('retry').classList.add('main'); $('retry').hidden = false; $('retry').disabled = false;
+    setText($('err2'), msg || '');
+    islandSet('bad', 'Linking failed');
+  }
+  // "Try again": drop the old attempt and ask for a new code / QR right here (same number, same screen)
+  function retry() {
+    if (submitting) return;
+    var old = job; stop(); clearJob(); job = null; lastCode = ''; checking = false; submitting = true; var mine = ++reqId, sent = method;
+    if (old) fetch('/api/cancel/' + old, { method: 'POST' }).catch(function () {});
+    snd('press'); islLock = false; islandSet('working', 'Connecting…');
+    $('status').parentNode.classList.remove('done'); $('retry').disabled = true; $('retry-text').textContent = 'Getting a new one…';
+    setText($('err2'), ''); $('codemsg').hidden = true; $('qrmsg').hidden = true; $('code').hidden = false; $('retry').classList.remove('main');
+    renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
+    $('prog').style.width = '100%'; $('timer').hidden = true;
+    $('status').textContent = sent === 'code' ? 'Requesting a new pairing code…' : 'Preparing a new QR code…';
+    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
+      .then(function (x) {
+        if (mine !== reqId) return;
+        submitting = false;
+        $('retry-text').textContent = 'Try again';
+        if (!x.ok) { ended(x.j.error || 'Something went wrong. Please try again.'); return; }
+        job = x.j.job; dmPolls = 0; saveJob(); $('retry').hidden = true;
+        poll = setInterval(check, 2000); check();
+      })
+      .catch(function () { if (mine === reqId) { submitting = false; ended('Could not reach the site. Check your internet connection and try again.'); } });
+  }
+  $('retry').addEventListener('click', retry);
+
   // ---------- progress ----------
   function check() {
     if (!job || checking) return;
@@ -384,7 +424,7 @@
     fetch('/api/job/' + job).then(function (r) { return r.json(); }).then(function (j) {
       checking = false;
       if (!job || job !== mine) return;
-      if (!j.state) { stop(); if (restoring) { restoring = false; return reset(); } clearJob(); return setText($('err2'), j.error || 'This attempt is no longer available. Start over.'); }
+      if (!j.state) { stop(); if (restoring) { restoring = false; return reset(); } clearJob(); return ended(j.error || 'This attempt is no longer available.'); }
 
       restoring = false;
       if ((j.state === 'code' || j.state === 'linking') && j.code && j.code !== lastCode) { lastCode = j.code; renderCode(j.code); $('copycode').disabled = false; }
@@ -393,6 +433,7 @@
         $('qrimg').hidden = false; $('qrskel').hidden = true;
       }
 
+      $('retry').hidden = !(j.state === 'code' || j.state === 'qr');
       if (j.state === 'starting') islandSet('working', method === 'code' ? 'Requesting your code…' : 'Preparing your QR…');
       if (j.state === 'code') islandSet('working', 'Enter the code in WhatsApp');
       if (j.state === 'qr') islandSet('working', 'Scan the QR code');
@@ -425,10 +466,7 @@
         if ((j.dm !== null || dmPolls > 12) && !slowPoll) { if (j.dm === null) dmNote(false); stop(); slowPoll = true; poll = setInterval(check, 4000); }   // keep watching (more slowly) for the bot using the ID
       } else if (j.state === 'failed') {
         stop(); clearJob();
-        renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrskel').hidden = false;
-        $('timer').hidden = true; $('prog').style.width = '0%';
-        $('status').textContent = 'This attempt ended.';
-        setText($('err2'), j.error || 'Linking failed. Please start over.');
+        ended(j.error);
       }
     }).catch(function () { checking = false; /* keep trying */ });
   }
@@ -438,7 +476,7 @@
       : 'Sending a copy to your WhatsApp…';
   }
 
-  $('cancel').addEventListener('click', reset);
+  $('cancel').addEventListener('click', function () { var old = job; if (old) fetch('/api/cancel/' + old, { method: 'POST' }).catch(function () {}); reset(); });
   $('again').addEventListener('click', reset);
   $('copycode').addEventListener('click', function () { if (lastCode) copy(lastCode.replace(/-/g, ''), $('copycode'), $('copycode').querySelector('span')); });
   $('copy').addEventListener('click', function () { copy($('sid').textContent, $('copy'), $('copy-text')); });

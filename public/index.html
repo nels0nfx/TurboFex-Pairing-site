@@ -138,6 +138,7 @@
     <div id="pane-code">
       <h2>Your pairing code</h2>
       <div class="codeRow" id="code" role="group" aria-label="Pairing code" aria-live="polite"></div>
+      <p class="codemsg" id="codemsg" role="status" hidden></p>
       <button id="copycode" class="ghost" type="button" disabled>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15 9V6.500A2.500 2.500 0 0 0 12.500 4h-6A2.500 2.500 0 0 0 4 6.500v6A2.500 2.500 0 0 0 6.500 15H9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
         <span>Copy code</span>
@@ -148,12 +149,12 @@
         <li><span class="n">3</span><span>Tap <b>Link with phone number instead</b>.</span></li>
         <li><span class="n">4</span><span>Type the code above.</span></li>
       </ol>
-      <p class="hint center codehelp">If WhatsApp says <b>Couldn't link device</b>, tap OK, press <b>Cancel</b> below and try the <b>QR code</b> instead.</p>
+      <p class="hint center codehelp">If WhatsApp says <b>Couldn't link device</b>, tap OK, then press <b>Try again</b> below for a fresh code. Still not working? Start over and use the <b>QR code</b> instead.</p>
     </div>
 
     <div id="pane-qr" hidden>
       <h2>Scan this QR code</h2>
-      <div class="qrbox"><div class="skel" id="qrskel" aria-hidden="true"></div><img id="qrimg" alt="QR code to scan with WhatsApp" width="280" height="280" hidden></div>
+      <div class="qrbox"><div class="skel" id="qrskel" aria-hidden="true"></div><p class="qrmsg" id="qrmsg" role="status" hidden></p><img id="qrimg" alt="QR code to scan with WhatsApp" width="280" height="280" hidden></div>
       <ol class="steps">
         <li><span class="n">1</span><span>On the phone you want to link, open <b>WhatsApp → Settings → Linked devices → Link a device</b>.</span></li>
         <li><span class="n">2</span><span>Scan this QR code. You need <b>a second screen</b> to show this page, such as a laptop or another phone.</span></li>
@@ -164,6 +165,10 @@
     <div class="status" aria-live="polite"><span class="spin dark" aria-hidden="true"></span><span id="status">Getting ready…</span></div>
     <div class="bar-t" aria-hidden="true"><i id="prog"></i></div>
     <p class="hint center" id="timer" hidden></p>
+    <button id="retry" class="ghost retry" type="button" hidden>
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="retry-text">Try again</span>
+    </button>
     <button id="cancel" class="link" type="button">Start over</button>
     <p id="err2" class="err box" role="alert" hidden></p>
   </section>

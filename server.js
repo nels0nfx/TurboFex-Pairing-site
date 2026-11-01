@@ -45,7 +45,7 @@ function createApp(opts = {}) {
   try { store.sweep(); } catch (err) { /* clear anything that expired while the site was off */ }
   const engine = opts.engine || require('./engine');
   const trustProxy = String(env.TRUST_PROXY || '') === '1';
-  const pairLimit = Number(env.PAIR_LIMIT) || 4;
+  const pairLimit = Number(env.PAIR_LIMIT) || 10;   // a few "Try again" taps must still work
   const maxJobs = Number(env.MAX_JOBS) || 15;
 
   const jobs = new Map(); // id -> job
@@ -203,6 +203,14 @@ function createApp(opts = {}) {
       if (active().length >= maxJobs) return send(res, 503, { error: 'The site is busy. Try again in a minute.' });
       const job = startJob(number, method);
       return send(res, 200, { job: job.id });
+    }
+
+    // 1b) "Try again" / "Start over": the page stops the attempt it no longer needs (the job id is random and only the page that started it knows it)
+    if (req.method === 'POST' && p.startsWith('/api/cancel/')) {
+      if (limited('cancel', ip, 30, 15 * 60 * 1000)) return send(res, 429, { error: 'Too many tries.' });
+      const job = jobs.get(p.slice('/api/cancel/'.length));
+      if (job && !job.doneAt) stopJob(job, 'Replaced by a new attempt.');
+      return send(res, 200, { ok: true });
     }
 
     // 2) the page asks how it is going

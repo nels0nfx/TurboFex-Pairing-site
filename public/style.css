@@ -643,12 +643,11 @@ html.android[data-theme] .island, html.android[data-theme] .island.scrolled { tr
 #step-number .collapse.off { margin-bottom: -14px; }
 
 /* the hero picture: one illustration per theme (phone + assistant robot + shield, ivory/champagne-gold or black/gold).
-   It has NO frame: no border, shadow or rounded box. Its edges fade into the page colour (mask), it runs the full width of the
+   It has NO frame: no border, shadow or rounded box, and no hazy corners (an oval mask clears all four corners), it runs the full width of the
    screen, and the headline sits right under its base, so it reads as part of the page. Only the picture for the active theme is
    downloaded at first; the other one is fetched quietly afterwards so switching themes is a smooth cross-fade. */
 .hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; margin: -6px calc(var(--gutter) * -1) -14px; isolation: isolate; pointer-events: none; transform: translateZ(0);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
-  -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%); mask-composite: intersect; }
+  -webkit-mask-image: radial-gradient(ellipse closest-side at 50% 50%, #000 70%, transparent 100%); mask-image: radial-gradient(ellipse closest-side at 50% 50%, #000 70%, transparent 100%); }
 /* Both pictures stay in the page the whole time (real <img> tags with a small and a full-size file, so a Retina phone gets the 1672px one
    and nothing is stretched). The light picture is always underneath; the dark one lies on top of it and is shown or hidden - so a theme
    change never leaves a moment with no picture. */
@@ -657,3 +656,11 @@ html.android[data-theme] .island, html.android[data-theme] .island.scrolled { tr
 [data-theme="dark"] .art-dark { opacity: 1; }
 /* the page itself: warm ivory / champagne in light, deep black with a soft gold glow in dark */
 [data-theme="light"] .decor::before { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 36% at 50% 0%, rgba(232, 205, 140, .30), transparent 72%), radial-gradient(70% 30% at 50% 100%, rgba(232, 205, 140, .22), transparent 72%); }
+
+/* the code / QR box never stays empty: when an attempt ends it says so, and "Try again" gets a new one */
+.codemsg { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 92px; margin: 0; padding: 18px 16px; background: #0B0B0B; color: #F1E6C8; border: 1px solid var(--gold); border-radius: 18px; font-size: 16px; line-height: 1.45; }
+[data-theme="light"] .codemsg { background: #FFFBF0; color: #3A2F14; }
+.qrmsg { margin: 0; padding: 0 10px; text-align: center; color: #3A2F14; font-size: 16px; line-height: 1.45; font-weight: 500; }
+.retry { margin-top: 18px; }
+.retry.main { background: var(--cta-bg); color: var(--cta-text); border-color: var(--cta-border); }
+.status.done .spin { display: none; }
