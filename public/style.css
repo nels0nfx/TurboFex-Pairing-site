@@ -537,27 +537,23 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
   .panel { padding: 26px 26px; }
 }
 /* ---------- light theme for the floating bar, hero and the black "ticket" boxes (everything follows the chosen theme) ---------- */
-[data-theme="light"] .island { color: #14110B; box-shadow: 0 0 0 1px rgba(154, 122, 50, .35), 0 0 16px rgba(201, 164, 92, .25), 0 12px 26px -10px rgba(138, 106, 43, .45), 0 22px 34px -18px rgba(11, 11, 11, .28); }
-[data-theme="light"] .island.scrolled { box-shadow: 0 0 0 1px rgba(154, 122, 50, .4), 0 0 20px rgba(201, 164, 92, .3), 0 16px 30px -10px rgba(138, 106, 43, .5), 0 28px 38px -16px rgba(11, 11, 11, .32); }
-[data-theme="light"] .glass { background: linear-gradient(180deg, rgba(255, 254, 250, .95), rgba(250, 246, 234, .95) 55%, rgba(243, 236, 218, .97));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 16px rgba(201, 164, 92, .2), inset 0 -10px 18px -12px rgba(154, 122, 50, .3); }
-[data-theme="light"] .glass::before { background: linear-gradient(180deg, rgba(255, 255, 255, .7), transparent); }
-[data-theme="light"] .glass::after { background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .85), rgba(255, 250, 235, .5), transparent); }
-[data-theme="light"] .bloom { background: radial-gradient(55% 85% at 50% 50%, rgba(214, 170, 80, .5), rgba(201, 164, 92, 0) 74%); }
-[data-theme="light"] .bloom.b2 { background: radial-gradient(40% 90% at 22% 50%, rgba(232, 190, 100, .45), transparent 70%), radial-gradient(40% 90% at 80% 50%, rgba(201, 164, 92, .4), transparent 70%); }
-[data-theme="light"] .flow { filter: drop-shadow(0 0 3px rgba(201, 164, 92, .8)); }
-[data-theme="light"] .flow .head { stroke: #9A6F1E; }
-[data-theme="light"] .flow .tail { stroke: #C9A45C; }
-[data-theme="light"] .flow .glowline { stroke: rgba(201, 164, 92, .45); }
-[data-theme="light"] .flow .echo { stroke: rgba(154, 122, 50, .65); }
-[data-theme="light"] .sparks i { background: #D4AE5F; box-shadow: 0 0 8px 2px rgba(201, 164, 92, .8); }
+/* light bar: clean and still - an ivory pill with one thin gold outline, a soft shadow, a dark logo tile and thin gold rings on the buttons.
+   No travelling light, glow, sparks, glass shine or blur (those belong to the dark bar). */
+[data-theme="light"] .island, [data-theme="light"] .island.scrolled { color: #14110B; box-shadow: 0 12px 26px -16px rgba(138, 106, 43, .38), 0 2px 6px -2px rgba(138, 106, 43, .18); }
+[data-theme="light"] .island.scrolled { box-shadow: 0 16px 30px -16px rgba(138, 106, 43, .5), 0 2px 6px -2px rgba(138, 106, 43, .22); }
+[data-theme="light"] .ring { animation: none; background: linear-gradient(180deg, #DCC48C, #BE9A52); }
+[data-theme="light"] .glass { inset: 1.5px; background: linear-gradient(180deg, #FFFDF8, #FBF4E6); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+[data-theme="light"] .glass::before, [data-theme="light"] .glass::after, [data-theme="light"] .bloom, [data-theme="light"] .flow, [data-theme="light"] .sparks { display: none; }
+[data-theme="light"] .logo { animation: none; box-shadow: none; }
+[data-theme="light"] .logo::before { display: none; }
+[data-theme="light"] .logo img { filter: none; }
 [data-theme="light"] .brand, [data-theme="light"] .word { color: #14110B; }
 [data-theme="light"] .tag { color: #8A6A2B; }
 [data-theme="light"] .vr { background: linear-gradient(transparent, rgba(154, 122, 50, .7), transparent); }
-[data-theme="light"] .badge, [data-theme="light"] a.navlink { color: #4A3811; background: rgba(201, 164, 92, .16); border-color: rgba(154, 122, 50, .55); }
+[data-theme="light"] .badge, [data-theme="light"] a.navlink { color: #4A3811; background: transparent; border-color: rgba(168, 134, 62, .7); animation: none; box-shadow: none; }
 [data-theme="light"] a.navlink svg { color: #8A6A2B; }
 [data-theme="light"] .bdot { background: #B8892F; box-shadow: 0 0 8px rgba(184, 137, 47, .8); }
-[data-theme="light"] .ibtn { color: #7A5A1E; background: rgba(201, 164, 92, .12); border-color: rgba(154, 122, 50, .5); }
+[data-theme="light"] .ibtn { color: #8A6A2B; background: transparent; border-color: rgba(168, 134, 62, .7); }
 [data-theme="light"] .ibtn:active { background: rgba(201, 164, 92, .3); border-color: #9A7A32; }
 [data-theme="light"] .ibtn:focus-visible, [data-theme="light"] .brand:focus-visible, [data-theme="light"] a.navlink:focus-visible { outline-color: #14110B; }
 @media (hover: hover) { [data-theme="light"] .ibtn:hover, [data-theme="light"] a.navlink:hover { background: rgba(201, 164, 92, .26); border-color: #9A7A32; } }
