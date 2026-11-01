@@ -8,7 +8,7 @@
   document.documentElement.setAttribute('data-theme', t);
   // the phone's status bar takes the colour of the page (the navigation floats below it)
   var m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', t === 'dark' ? '#0B0B0B' : '#F8F6F0');
+  if (m) m.setAttribute('content', t === 'dark' ? '#0B0B0B' : '#FAF3E6');
   // Android phones get a lighter floating bar (same look, cheaper to draw while scrolling)
   try { if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android'); } catch (e) { /* normal page */ }
   // older / low-memory phones, or a visitor who asked for less data: a lighter page (fewer glowing effects, no blur)

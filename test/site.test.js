@@ -316,3 +316,13 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(html) && !/ style=/.test(html), 'still no inline scripts or styles (CSP)');
   } finally { t.close(); }
 });
+
+test('hero has no feature badges and the hero picture has no frame', () => {
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../public/style.css'), 'utf8');
+  assert.ok(!/Instant setup|Deleted after use|class="chips"/.test(html));
+  assert.ok(!/\.chips/.test(css));
+  const rule = /\.hero-art \{[^}]*\}/.exec(css)[0];
+  assert.ok(!/border|box-shadow|overflow: hidden/.test(rule), 'no box around the picture');
+});
