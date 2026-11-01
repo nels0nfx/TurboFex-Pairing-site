@@ -13,8 +13,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
-// The WhatsApp messages the person receives: a short note, then the session ID ALONE (so one press-and-hold copies just the ID),
-// then our community links, each with its own small link card.
+// The WhatsApp messages the person receives (see dmMessages for the order).
 const LINKS = { whatsapp: 'https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', telegram: 'https://t.me/+7PwU2Vo9czE1NTRk' };
 const dmText = () =>
   `✅ *TurboFex linked!*\n\nYour session ID is in the next message. Press and hold it, then tap *Copy*.\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 5 minutes. Don't share it with anyone.`;
@@ -22,12 +21,9 @@ const dmText = () =>
 const bold = (s) => String(s).replace(/[A-Za-z]/g, (c) => String.fromCodePoint((c <= 'Z' ? 0x1d5d4 + c.charCodeAt(0) - 65 : 0x1d5ee + c.charCodeAt(0) - 97)));
 const communityText = () =>
   `${bold('Join the TurboFex community')} 🚀\n\n📣 ${bold('WhatsApp Channel')}\n${LINKS.whatsapp}\n\n✈️ ${bold('Telegram')}\n${LINKS.telegram}`;
-const dmMessages = (id) => [
-  dmText(),
-  id,
-  // both links together in ONE message; its big picture card (engine.js adds the picture) opens the WhatsApp Channel
-  { text: communityText(), linkPreview: { 'canonical-url': LINKS.whatsapp, 'matched-text': LINKS.whatsapp, title: 'Join the TurboFex community', description: 'WhatsApp Channel and Telegram', banner: true } },
-];
+// Order: the community links first (one message, both links, the WhatsApp Channel's own link card), then the note, and the
+// session ID LAST and alone (so it is the newest message and one long-press copies only it).
+const dmMessages = (id) => [{ text: communityText(), previewOf: LINKS.whatsapp }, dmText(), id];
 
 function createApp(opts = {}) {
   const env = opts.env || process.env;

@@ -3,7 +3,7 @@
 **Read this whole file first.** The owner sends it to every new AI so nobody has to ask the same questions again.
 **Your duty:** when the owner states a NEW preference, command or fact, add it to this file (keep the same layout), bump the "Last updated" line, and **keep it inside the site project and include it in the zip** (and mention in your reply what you added).
 
-Last updated: 2026-11-01 (pair site v2.5.1)
+Last updated: 2026-11-01 (pair site v2.6.0)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
 ## 1. Who the owner is and how to talk to them
@@ -22,7 +22,7 @@ Where this file lives: inside the pairing site project (the repo root of `nels0n
 - Live: https://turbofex-pair.onrender.com (Render FREE tier: sleeps when idle; the disk is wiped on every redeploy, which is fine because session IDs only live 5 minutes).
 - GitHub repo: `nels0nfx/TurboFex-Pairing-site`. Local clone on the owner's phone: `~/TurboFex-Pairing-site`.
 - What it does: people link WhatsApp by **pairing code or QR**, get a **session ID** (`TFX-XXXX-XXXX-XXXX`) shown on the page and also sent to their WhatsApp. The bot only needs `SESSION_ID`.
-- Stack: plain Node `http` server (`server.js`), `engine.js` (Baileys), `store.js` (encrypted one-time store), `qr.js`, `pairfix.js`; vanilla HTML/CSS/JS in `public/` (`index.html`, `style.css`, `app.js`, `sound.js`, `theme.js`); `assets/` holds the community card pictures; tests in `test/site.test.js` (run `node --test test/site.test.js` inside `pairsite/`).
+- Stack: plain Node `http` server (`server.js`), `engine.js` (Baileys), `store.js` (encrypted one-time store), `qr.js`, `pairfix.js`; vanilla HTML/CSS/JS in `public/` (`index.html`, `style.css`, `app.js`, `sound.js`, `theme.js`); `linkcard.js` builds the WhatsApp link card; tests in `test/site.test.js` (run `node --test test/site.test.js` inside `pairsite/`).
 - Routes: `/health` -> `{ok, version, sessionMinutes}`, `/api/pair`, `/api/job/:id`, `/api/session/:id`.
 - Version lives in `pairsite/package.json` and shows in the page's status bar.
 
@@ -61,19 +61,20 @@ cd ~/TurboFex-Pairing-site && rm -rf ~/tfx && mkdir -p ~/tfx && unzip -o ~/stora
   - WhatsApp Channel: https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w
   - Telegram: https://t.me/+7PwU2Vo9czE1NTRk
 
-## 6. The WhatsApp messages sent after linking
-1. A short note ("TurboFex linked! Your session ID is in the next message...").
-2. The **session ID ALONE** in its own message (so one long-press copies only the ID).
-3. **ONE message with BOTH community links together**, crisp bold heading (Unicode bold letters), with a **full-width picture card** (not the small square). The picture is `assets/community.jpg` (1200x630) and `assets/community-thumb.jpg`.
+## 6. The WhatsApp messages sent after linking (this ORDER is required by the owner)
+1. **ONE message with BOTH community links together**, crisp bold heading (Unicode bold letters). Its preview is the **real WhatsApp Channel link card**: the page's own title, description and picture, shown **full width** (not the small square). Never use a different or made-up picture (a custom banner was tried and rejected).
+2. A short note ("TurboFex linked! Your session ID is in the next message...").
+3. The **session ID LAST and ALONE** in its own message (newest message; one long-press copies only the ID).
 - The owner does NOT want the links split into separate messages.
-- If the card cannot be sent, the plain links are sent. Failures after message 2 must never affect the ID.
+- The card is read from the channel page's public tags (`linkcard.js`, JPEG pictures only, cached 1 hour). If the page can't be read, the plain links are sent with no card. Only the ID message matters for success; failures of the others never affect it.
+- Not testable in the AI sandbox (whatsapp.com is blocked there): ask the owner for a screenshot of the received messages.
 
 ## 7. How to test (what has been used)
 - Site: `node --test test/site.test.js`, plus Playwright (Chromium, phone-sized and desktop, dark and light) for: hero centring, island on top of content, slider/FAQ fit, overflow, console errors, sounds (with a fake AudioContext), refresh-continues flow.
 - **Cannot be tested in the AI sandbox:** real iPhone Safari (WebKit not available), real WhatsApp linking, WhatsApp interactive buttons, link previews, the live Render site. Say so, and ask the owner for screenshots or Render logs when something fails.
 
 ## 8. Version history (short)
-v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2.0.0 black/gold redesign -> v2.1.x design correction (hero centred, light mode everywhere) -> v2.2.x island visible on Safari, refresh continues, footer space -> v2.3.0 FAQ + side-by-side cards + soft sounds + low-end mode -> v2.4.0 separate session-ID message -> **v2.5.0 links together in one message with full-width picture card -> **v2.5.1** this notes file moved inside the site project.
+v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2.0.0 black/gold redesign -> v2.1.x design correction (hero centred, light mode everywhere) -> v2.2.x island visible on Safari, refresh continues, footer space -> v2.3.0 FAQ + side-by-side cards + soft sounds + low-end mode -> v2.4.0 separate session-ID message -> **v2.5.0 links together in one message with full-width picture card -> v2.5.1 this notes file moved inside the site project -> **v2.6.0** order: links first, note, session ID last; the card is the real WhatsApp Channel preview.
 
 ## 9. Open ideas the owner has not decided
 - Keep Render awake with a free pinger on `/health`.
