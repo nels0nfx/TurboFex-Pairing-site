@@ -173,7 +173,7 @@
   function stop() { if (poll) clearInterval(poll); poll = null; }
 
   // countdown for the finished session ID. The server sends how many seconds are left and also enforces it.
-  var idTimer = null, idEnd = 0;
+  var idTimer = null, idEnd = 0, slowPoll = false;
   function fmtLeft(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
   function idStop() { if (idTimer) clearInterval(idTimer); idTimer = null; idEnd = 0; }
   function idExpired() {
@@ -184,6 +184,17 @@
     $('sid').textContent = 'Expired';
     $('env').textContent = 'SESSION_ID=(expired)';
     $('copy').disabled = true; $('copyenv').disabled = true;
+  }
+  // the bot has logged in with this session ID: say so instead of "expired"
+  function idUsed() {
+    idStop(); clearJob(); stop();
+    $('step-done').classList.add('used'); $('usedmsg').hidden = false;
+    $('idtimer').textContent = 'Used by your bot. It cannot be used again.'; $('idtimer').classList.remove('gone', 'low'); $('idtimer').classList.add('used');
+    $('sid').classList.add('expired'); $('sid').setAttribute('aria-disabled', 'true'); $('sid').tabIndex = -1;
+    $('sid').textContent = 'Used'; $('env').textContent = 'SESSION_ID=(used)';
+    $('copy').disabled = true; $('copyenv').disabled = true;
+    $('dm').textContent = '';
+    islLock = false; islandSet('ok', 'Bot connected');
   }
   function idTick() {
     var left = Math.max(0, Math.ceil((idEnd - Date.now()) / 1000));
@@ -308,7 +319,8 @@
 
   // ---------- start ----------
   function reset() {
-    stop(); idStop(); clearJob(); restoring = false; islandReset(); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
+    stop(); idStop(); clearJob(); restoring = false; slowPoll = false; islandReset();
+    $('step-done').classList.remove('used'); $('usedmsg').hidden = true; $('idtimer').classList.remove('used'); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode('');
     $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('copycode').disabled = true;
@@ -391,6 +403,9 @@
         $('prog').style.width = Math.min(100, (left / MAX_SECONDS) * 100) + '%';
         $('timer').hidden = false;
         $('timer').textContent = 'This attempt expires in ' + Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2);
+      } else if (j.state === 'linked' && j.used) {
+        if ($('step-done').hidden) show('step-done');
+        idUsed();
       } else if (j.state === 'linked' && j.expired) {
         stop();
         if ($('step-done').hidden) show('step-done');
@@ -401,7 +416,7 @@
         idStart(j.idSecondsLeft);
         dmNote(j.dm);
         dmPolls++;
-        if (j.dm !== null || dmPolls > 12) { stop(); if (j.dm === null) dmNote(false); }
+        if ((j.dm !== null || dmPolls > 12) && !slowPoll) { if (j.dm === null) dmNote(false); stop(); slowPoll = true; poll = setInterval(check, 4000); }   // keep watching (more slowly) for the bot using the ID
       } else if (j.state === 'failed') {
         stop(); clearJob();
         renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrskel').hidden = false;

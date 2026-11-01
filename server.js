@@ -216,9 +216,10 @@ function createApp(opts = {}) {
       }
       // a finished ID is only shown while it is still valid (the server decides, not the page)
       const idLeft = job.idExp ? Math.max(0, Math.ceil((job.idExp - Date.now()) / 1000)) : 0;
-      const idExpired = job.state === 'linked' && idLeft === 0;
-      if (idExpired) job.sessionId = null;
-      return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, idSecondsLeft: idLeft, expired: idExpired, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
+      const used = !!job.usedAt; // the bot has already logged in with this ID
+      const idExpired = job.state === 'linked' && idLeft === 0 && !used;
+      if (idExpired || used) job.sessionId = null;
+      return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, idSecondsLeft: idLeft, expired: idExpired, used, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
     // 3) the bot downloads its login with the session ID
@@ -228,6 +229,9 @@ function createApp(opts = {}) {
       if (!normalizeId(id)) return send(res, 400, { error: 'That is not a session ID.' });
       const creds = store.take(id); // checks the expiry itself and marks the ID as used
       if (!creds) return send(res, 404, { error: 'Session ID not found, expired, or already used.' });
+      // tell the page that waits for it: this ID has now been used by the bot
+      const canon = normalizeId(id);
+      for (const j of jobs.values()) if (j.sessionId && normalizeId(j.sessionId) === canon) { j.usedAt = Date.now(); j.sessionId = null; }
       return send(res, 200, creds);
     }
 
