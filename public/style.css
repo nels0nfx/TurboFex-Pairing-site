@@ -256,28 +256,6 @@ h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(34px, 9.4vw, 
 .chips li { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px 9px 11px; border: 1px solid var(--gold-soft); border-radius: 14px; background: var(--surface); font-size: 14px; line-height: 1.2; }
 .chips svg { color: var(--gold); flex: none; }
 
-/* the hero picture: a drawn skyline behind one centred scene (TF tile standing on a podium with a glowing ring round its base).
-   Everything in the scene is sized in --u units and centred on the same vertical line, so it scales as one piece. */
-.hero-art { --u: 1px; order: -1; position: relative; height: 214px; border-radius: var(--r-card); overflow: hidden; isolation: isolate; border: 1px solid rgba(201, 164, 92, .5);
-  background: radial-gradient(60% 70% at 50% 50%, rgba(201, 164, 92, .26), transparent 72%), linear-gradient(180deg, #14110A, #060606);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 18px 40px -18px rgba(201, 164, 92, .45); }
-.skyline { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; opacity: .8; z-index: 0; -webkit-mask-image: linear-gradient(180deg, transparent 4%, #000 55%); mask-image: linear-gradient(180deg, transparent 4%, #000 55%); }
-.sk-light { display: none; }
-.scene { position: absolute; left: 50%; bottom: calc(14 * var(--u)); translate: -50% 0; width: calc(260 * var(--u)); height: calc(176 * var(--u)); z-index: 1; }
-.scene > * { position: absolute; left: 50%; translate: -50% 0; margin: 0; }
-.glow { bottom: calc(6 * var(--u)); width: calc(240 * var(--u)); height: calc(170 * var(--u)); border-radius: 50%; background: radial-gradient(closest-side, rgba(240, 200, 110, .36), rgba(240, 200, 110, 0)); animation: orbitglow 5s ease-in-out infinite; }
-.podium { bottom: 0; width: calc(240 * var(--u)); height: calc(40 * var(--u)); z-index: 1; }
-.podium b { position: absolute; left: 50%; translate: -50% 0; border-radius: 50%; border: 1.5px solid rgba(232, 205, 140, .8); background: linear-gradient(180deg, #2A2214, #0B0B0B); box-shadow: 0 0 12px rgba(201, 164, 92, .45); }
-.podium b:nth-child(1) { bottom: 0; width: calc(240 * var(--u)); height: calc(40 * var(--u)); }
-.podium b:nth-child(2) { bottom: calc(8 * var(--u)); width: calc(184 * var(--u)); height: calc(30 * var(--u)); }
-.podium b:nth-child(3) { bottom: calc(15 * var(--u)); width: calc(128 * var(--u)); height: calc(22 * var(--u)); background: radial-gradient(closest-side, rgba(240, 200, 110, .5), #1A150A); }
-.scene .tile { display: grid; place-items: center; bottom: calc(27 * var(--u)); width: calc(92 * var(--u)); height: calc(92 * var(--u)); border-radius: calc(26 * var(--u)); z-index: 2; border: 2px solid #E8CD8C;
-  background: radial-gradient(circle at 50% 30%, #3A2F18, #0E0C08 78%); box-shadow: 0 0 0 4px rgba(201, 164, 92, .16), 0 0 calc(30 * var(--u)) rgba(232, 195, 110, .45); }
-.scene .tile img { display: block; width: calc(60 * var(--u)); height: auto; margin: 0; }
-.orbit { bottom: calc(-6 * var(--u)); width: calc(252 * var(--u)); height: calc(68 * var(--u)); border-radius: 50%; border: 2px solid rgba(255, 226, 150, .9); box-shadow: 0 0 14px rgba(240, 205, 120, .6); pointer-events: none; animation: orbitglow 4.500s ease-in-out infinite; }
-.orbit.back { z-index: 1; clip-path: inset(0 0 50% 0); opacity: .6; }
-.orbit.front { z-index: 3; clip-path: inset(50% 0 0 0); }
-@keyframes orbitglow { 0%, 100% { filter: brightness(.85); } 50% { filter: brightness(1.25); } }
 
 .stage { max-width: 680px; margin: 0 auto; scroll-margin-top: 100px; }
 .stage > .card { box-shadow: var(--card-shadow), 0 0 0 1px rgba(201, 164, 92, .1), 0 36px 70px -34px rgba(201, 164, 92, .38); }
@@ -500,7 +478,6 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
   .isl-actions { gap: 6px; }
 }
 @media (max-width: 345px) {
-  .hero-art { --u: .86px; height: 190px; }
   .badge .bt { display: none; }
   .badge, a.navlink { padding: 8px; }
 }
@@ -515,7 +492,7 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 }
 @media (min-width: 760px) {
   .hero { grid-template-columns: 1.05fr 1fr; align-items: center; gap: 40px; text-align: left; margin-bottom: 38px; }
-  .hero-art { order: 0; height: 300px; --u: 1.35px; }
+  .hero-art { order: 0; }
   .sub { margin: 0; }
   .hr { margin-left: 0; }
   .chips { justify-content: flex-start; }
@@ -605,15 +582,6 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 [data-theme="light"] .mi:focus-visible { outline-color: #14110B; }
 [data-theme="light"] .menu .secure { color: #8A6A2B; border-top-color: rgba(154, 122, 50, .3); }
 [data-theme="light"] .menu .secure span { color: #3A2F14; }
-[data-theme="light"] .hero-art { border-color: rgba(154, 122, 50, .5); box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 20px 40px -22px rgba(138, 106, 43, .45);
-  background: radial-gradient(60% 70% at 50% 52%, rgba(201, 164, 92, .3), transparent 72%), linear-gradient(180deg, #FFFDF6, #F1E9D3); }
-[data-theme="light"] .sk-dark { display: none; }
-[data-theme="light"] .sk-light { display: block; opacity: .9; }
-[data-theme="light"] .glow { background: radial-gradient(closest-side, rgba(214, 170, 80, .42), rgba(214, 170, 80, 0)); }
-[data-theme="light"] .podium b { background: linear-gradient(180deg, #FFFFFF, #EADFC2); border-color: #B38C42; box-shadow: 0 6px 12px -6px rgba(138, 106, 43, .5); }
-[data-theme="light"] .podium b:nth-child(3) { background: radial-gradient(closest-side, rgba(214, 170, 80, .55), #F6EED8); }
-[data-theme="light"] .orbit { border-color: rgba(176, 130, 40, .95); box-shadow: 0 0 12px rgba(201, 164, 92, .6); }
-[data-theme="light"] .scene .tile { box-shadow: 0 0 0 4px rgba(201, 164, 92, .22), 0 14px 26px -8px rgba(60, 44, 12, .5), 0 0 calc(24 * var(--u)) rgba(201, 164, 92, .4); }
 [data-theme="light"] .codeRow, [data-theme="light"] .sid { background: #FFFBF0; }
 [data-theme="light"] .sid { color: #7A5A1E; }
 [data-theme="light"] .ch { background: rgba(201, 164, 92, .14); color: #7A5A1E; border-color: rgba(154, 122, 50, .5); }
@@ -623,10 +591,10 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 [data-theme="light"] .cbtn:hover { background: #FFFBF0; }
 
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-html.theming *, html.theming *::before, html.theming *::after { transition: background-color .3s ease, color .3s ease, border-color .3s ease, box-shadow .3s ease, fill .3s ease, stroke .3s ease, filter .3s ease !important; transition-delay: 0s !important; }
+html.theming *, html.theming *::before, html.theming *::after { transition: opacity .45s ease, background-color .3s ease, color .3s ease, border-color .3s ease, box-shadow .3s ease, fill .3s ease, stroke .3s ease, filter .3s ease !important; transition-delay: 0s !important; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .3s; animation-timing-function: ease; }
 @media (prefers-reduced-motion: reduce) {
-  .glow, .orbit, .sdot { animation: none !important; }
+  .sdot { animation: none !important; }
   .ring, .glass::after, .flow rect, .sparks i, .bloom, .logo, .logo::before, .badge, .bdot, .pulse i, .cta::before, .cta::after, .ghost::before, .ghost::after, .ibtn::before, .ibtn::after { animation: none !important; }
   .flow .tail, .flow .head, .flow .glowline, .sparks i, .glass::after, .cta::before, .ghost::before, .ibtn::before { opacity: 0 !important; }
   .bloom { opacity: .5; }
@@ -639,11 +607,10 @@ html.theming *, html.theming *::before, html.theming *::after { transition: back
 
 /* lighter page for low-end phones (class "lite" is set in theme.js): the island keeps working, only the decorative glow is simplified */
 html.lite .bloom, html.lite .sparks { display: none; }
-html.lite .ring, html.lite .glow, html.lite .orbit, html.lite .glass::after, html.lite .scene .tile { animation: none !important; }
+html.lite .ring, html.lite .glass::after { animation: none !important; }
 html.lite .glass, html.lite .menu, html.lite .island, html.lite .card, html.lite .panel { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 html.lite .island, html.lite .island.scrolled { box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 8px 16px -8px rgba(0, 0, 0, .55); }
 html.lite .panel, html.lite .card, html.lite .hero-art, html.lite .statusbar { box-shadow: none; }
-html.lite .skyline { opacity: .6; }
 
 /* the ID was used by the bot: a clear success message, the setup steps and the warning are no longer needed */
 .usedmsg { margin: 4px 0 14px; padding: 14px 16px; text-align: center; border-radius: var(--r-card); border: 1px solid #4FD68A; background: rgba(79, 214, 138, .1); color: var(--text); line-height: 1.5; }
@@ -677,3 +644,18 @@ html.android[data-theme] .island, html.android[data-theme] .island.scrolled { tr
 #step-number .cta { min-height: 52px; margin-top: 14px; }
 #step-number .assure { margin-top: 12px; font-size: 13.5px; }
 #step-number .collapse.off { margin-bottom: -14px; }
+
+/* the hero picture: one illustration per theme (phone + assistant robot + shield, in ivory/gold or in charcoal/gold),
+   fitted exactly to the box (same 16:9 shape as the pictures). Only the picture for the active theme is downloaded
+   at first; the other one is fetched quietly afterwards so switching themes is a smooth cross-fade. */
+.hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-card); overflow: hidden; isolation: isolate; border: 1px solid rgba(201, 164, 92, .5);
+  background: #17140F; box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 18px 40px -18px rgba(201, 164, 92, .45); }
+.art { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; background-repeat: no-repeat; opacity: 0; transition: opacity .45s ease; pointer-events: none; }
+[data-theme="dark"] .art-dark, [data-theme="light"] .art-light { opacity: 1; }
+[data-theme="dark"] .art-dark, .hero-art.both .art-dark { background-image: url(/hero-dark-800.webp); }
+[data-theme="light"] .art-light, .hero-art.both .art-light { background-image: url(/hero-light-800.webp); }
+@media (min-width: 700px) {
+  [data-theme="dark"] .art-dark, .hero-art.both .art-dark { background-image: url(/hero-dark-1200.webp); }
+  [data-theme="light"] .art-light, .hero-art.both .art-light { background-image: url(/hero-light-1200.webp); }
+}
+[data-theme="light"] .hero-art { background: #F4EBD5; border-color: rgba(154, 122, 50, .5); box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 20px 40px -22px rgba(138, 106, 43, .45); }

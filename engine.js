@@ -33,6 +33,39 @@ async function dressCard(sock, lib, item, fetchFn) {
   return card ? { ...rest, linkPreview: card } : rest;
 }
 
+// WhatsApp only accepts new links from a recent WhatsApp Web version. The library's built-in number goes stale (issue
+// WhiskeySockets/Baileys#2679: "Couldn't link device" on the phone). So: ask WhatsApp for the current one, and if the
+// library's own lookup quietly fails (it then hands back the stale built-in number), read it ourselves from WhatsApp Web.
+let versionCache = null; // { at, version, source }
+async function resolveVersion(lib, fetchFn = globalThis.fetch, log = () => {}) {
+  if (versionCache && Date.now() - versionCache.at < 10 * 60 * 1000) return versionCache;
+  const done = (version, source) => (versionCache = { at: Date.now(), version, source });
+  try {
+    if (typeof lib.fetchLatestWaWebVersion === 'function') {
+      const f = await withTimeout(lib.fetchLatestWaWebVersion(), 8000);
+      if (f && Array.isArray(f.version) && f.isLatest !== false && !f.error) return done(f.version, 'library');
+    }
+  } catch (err) {
+    log('version lookup (library) failed:', err.message);
+  }
+  try {
+    const r = await withTimeout(fetchFn('https://web.whatsapp.com/sw.js', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' } }), 8000);
+    const m = /\\?"client_revision\\?":\s*(\d+)/.exec(await r.text());
+    if (m) return done([2, 3000, Number(m[1])], 'web.whatsapp.com');
+  } catch (err) {
+    log('version lookup (WhatsApp Web) failed:', err.message);
+  }
+  try {
+    if (typeof lib.fetchLatestBaileysVersion === 'function') {
+      const f = await withTimeout(lib.fetchLatestBaileysVersion(), 8000);
+      if (f && Array.isArray(f.version)) return done(f.version, 'library list (may be old)');
+    }
+  } catch (err) {
+    /* use the built-in */
+  }
+  return { version: null, source: 'built-in (may be old)' };
+}
+
 // Sends one or more messages to the person's own WhatsApp (the "message yourself" chat). `text` is a string, or a list whose
 // items are a string or { text, linkPreview } (a small card shown under a link).
 // Never throws: the page shows the ID anyway. The session ID is the LAST message; this returns true when it went out.
@@ -105,13 +138,9 @@ function start(number, hooks, opts = {}) {
     const { state, saveCreds } = await lib.useMultiFileAuthState(workDir);
 
     let version = {};
-    try {
-      const fetcher = lib.fetchLatestWaWebVersion || lib.fetchLatestBaileysVersion;
-      const found = fetcher ? await withTimeout(fetcher(), 10000) : null;
-      if (found && Array.isArray(found.version)) version = { version: found.version };
-    } catch (err) {
-      // use the built-in version
-    }
+    const vr = await resolveVersion(lib, opts.fetch || globalThis.fetch, log);
+    if (vr.version) version = { version: vr.version };
+    log('WhatsApp Web version', vr.version ? vr.version.join('.') : '(library built-in)', '-', vr.source);
 
     const restartCode = (lib.DisconnectReason && lib.DisconnectReason.restartRequired) || 515;
     let asked = false;
@@ -229,4 +258,4 @@ function start(number, hooks, opts = {}) {
   return { cancel: () => finish(null) };
 }
 
-module.exports = { start, sendDm, dressCard };
+module.exports = { start, sendDm, dressCard, resolveVersion, _resetVersion: () => { versionCache = null; } };

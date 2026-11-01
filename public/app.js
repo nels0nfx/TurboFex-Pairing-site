@@ -476,6 +476,22 @@
     sl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var k = Math.max(0, Math.min(1, cur + (e.key === 'ArrowRight' ? 1 : -1))); btns[k].click(); } });
   })();
 
+  // hero picture: once the page is idle, quietly fetch the picture of the OTHER theme too, so switching themes cross-fades smoothly
+  (function () {
+    var art = $('hero-art');
+    if (!art || !window.Image) return;
+    function warm() {
+      var big = window.matchMedia && window.matchMedia('(min-width: 700px)').matches, w = big ? 1200 : 800, left = 2;
+      ['dark', 'light'].forEach(function (n) {
+        var im = new Image();
+        im.onload = im.onerror = function () { if (--left === 0) art.classList.add('both'); };
+        im.src = '/hero-' + n + '-' + w + '.webp';
+      });
+    }
+    function later() { if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 4000 }); else setTimeout(warm, 2500); }
+    if (document.readyState === 'complete') later(); else window.addEventListener('load', later);   // only after the page (and the active picture) has finished loading
+  })();
+
   // status bar: asks the site itself (/health) whether it is running, and which version
   (function () {
     var dot = $('st-dot'), txt = $('st-server'), min = $('st-min');

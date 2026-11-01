@@ -174,6 +174,24 @@ test('the link card is the page\'s real title, description and picture (full wid
   assert.strictEqual(await sendDm(bad, null, dmMessages('X'), {}, async () => {}, down), false);
 });
 
+test('the WhatsApp Web version used for linking is the current one, even when the library\'s own lookup quietly fails', async () => {
+  const { resolveVersion, _resetVersion } = require('../engine');
+  const swText = 'self.__x={\\"client_revision\\":1044015310,\\"other\\":1}';
+  const fetchOk = async () => ({ text: async () => swText });
+  const fetchBad = async () => { throw new Error('offline'); };
+  _resetVersion();
+  let r = await resolveVersion({ fetchLatestWaWebVersion: async () => ({ version: [2, 3000, 111], isLatest: true }) }, fetchBad);
+  assert.deepStrictEqual(r.version, [2, 3000, 111]);
+  _resetVersion();
+  r = await resolveVersion({ fetchLatestWaWebVersion: async () => ({ version: [2, 3000, 1035194821], isLatest: false, error: new Error('x') }) }, fetchOk);
+  assert.deepStrictEqual(r.version, [2, 3000, 1044015310], 'the stale built-in number is not used when WhatsApp Web can be read');
+  assert.match(r.source, /whatsapp/i);
+  _resetVersion();
+  r = await resolveVersion({}, fetchBad);
+  assert.strictEqual(r.version, null);
+  _resetVersion();
+});
+
 test('expiry: IDs last 5 minutes by default, are refused after that even before any clean-up, and survive a restart', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ttl-test-'));
   const st = makeStore({ dir, secret: 's1' });
@@ -289,7 +307,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     assert.strictEqual(h.ok, true);
     assert.strictEqual(h.version, require('../package.json').version);
     assert.strictEqual(h.sessionMinutes, 5);
-    for (const f of ['/skyline.svg', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    for (const f of ['/hero-dark-800.webp', '/hero-light-1200.webp', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(html) && !/ style=/.test(html), 'still no inline scripts or styles (CSP)');
   } finally { t.close(); }
 });
