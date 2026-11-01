@@ -664,3 +664,16 @@ html.android .flow .echo, html.android .flow .glowline { animation: none; }
 html.android .logo, html.android .badge, html.android .island .logo::before { animation: none; }
 html.android .sparks i:nth-child(n+4) { display: none; }
 html.android[data-theme] .island, html.android[data-theme] .island.scrolled { transition: border-radius .5s var(--ease-out); box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 10px 20px -10px rgba(201, 164, 92, .5), 0 14px 22px -14px rgba(0, 0, 0, .7) !important; }
+
+/* the "Choose connection method" card: tighter, so it is not so tall (only this first card; the next steps keep their size) */
+#step-number { padding: 20px 18px 16px; }
+#step-number h2.hd { font-size: 22px; margin-bottom: 14px; }
+#step-number .tab { min-height: 46px; }
+#step-number .info { margin: 14px 0 14px; font-size: 15px; line-height: 1.45; gap: 10px; }
+#step-number .info > span { min-height: 2.9em; }
+#step-number label { font-size: 15px; margin-bottom: 7px; }
+#step-number input { height: 50px; font-size: 17px; }
+#step-number .hint { margin-top: 8px; font-size: 13px; line-height: 1.45; }
+#step-number .cta { min-height: 52px; margin-top: 14px; }
+#step-number .assure { margin-top: 12px; font-size: 13.5px; }
+#step-number .collapse.off { margin-bottom: -14px; }

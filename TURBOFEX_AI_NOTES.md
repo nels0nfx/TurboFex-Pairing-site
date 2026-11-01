@@ -3,7 +3,7 @@
 **Read this whole file first.** The owner sends it to every new AI so nobody has to ask the same questions again.
 **Your duty:** when the owner states a NEW preference, command or fact, add it to this file (keep the same layout), bump the "Last updated" line, and **keep it inside the site project and include it in the zip** (and mention in your reply what you added).
 
-Last updated: 2026-11-01 (pair site v2.8.0)
+Last updated: 2026-11-01 (pair site v2.8.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
 ## 1. Who the owner is and how to talk to them
