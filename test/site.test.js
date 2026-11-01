@@ -138,24 +138,28 @@ test('page and assets are served with safe headers', async () => {
   s.close();
 });
 
-test('the WhatsApp messages: a note, the session ID ALONE, then the two community links', () => {
+test('the WhatsApp messages: a note, the session ID ALONE, then both community links together in ONE message', () => {
   const ms = dmMessages('TFX-ABCD-EFGH-JKLM');
+  assert.strictEqual(ms.length, 3);
   assert.match(ms[0], /TurboFex linked/);
   assert.match(ms[0], /SESSION_ID/);
   assert.ok(!ms[0].includes('TFX-ABCD'), 'the note does not repeat the ID');
   assert.strictEqual(ms[1], 'TFX-ABCD-EFGH-JKLM', 'the ID is alone in its own message so one long-press copies only it');
-  assert.ok(ms[2].text.includes('https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w') && ms[2].linkPreview['canonical-url']);
-  assert.ok(ms[3].text.includes('https://t.me/+7PwU2Vo9czE1NTRk') && ms[3].linkPreview['canonical-url']);
+  assert.ok(ms[2].text.includes('https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w') && ms[2].text.includes('https://t.me/+7PwU2Vo9czE1NTRk'), 'both links in one message');
+  assert.strictEqual(ms[2].linkPreview['matched-text'], 'https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w');
+  assert.ok(ms[2].text.includes('𝗝𝗼𝗶𝗻'), 'crisp bold heading');
 });
 
-test('sendDm sends every message in order, falls back to a plain link when a card fails, and reports false if the ID was not sent', async () => {
-  const { sendDm } = require('../engine');
+test('the card gets the full-width picture, and sendDm sends everything in order and survives a failed card', async () => {
+  const { sendDm, dressBanner } = require('../engine');
+  const lib = { prepareWAMessageMedia: async (c, o) => { assert.strictEqual(o.mediaTypeOverride, 'thumbnail-link'); assert.ok(Buffer.isBuffer(c.image) && c.image.length > 10000); return { imageMessage: { big: true } }; } };
+  const dressed = await dressBanner({ waUploadToServer: () => {} }, lib, dmMessages('X')[2]);
+  assert.ok(Buffer.isBuffer(dressed.linkPreview.jpegThumbnail) && dressed.linkPreview.highQualityThumbnail.big && !('banner' in dressed.linkPreview));
   const sent = [];
-  const sock = { user: { id: '2348012345678:5@s.whatsapp.net' }, sendMessage: async (j, c) => { if (c.linkPreview && c.text.includes('t.me')) throw new Error('card'); sent.push(c); } };
-  const ok = await sendDm(sock, null, dmMessages('TFX-ABCD-EFGH-JKLM'), {}, async () => {});
+  const sock = { user: { id: '2348012345678:5@s.whatsapp.net' }, waUploadToServer: () => {}, sendMessage: async (j, c) => { if (c.linkPreview) throw new Error('card'); sent.push(c); } };
+  const ok = await sendDm(sock, null, dmMessages('TFX-ABCD-EFGH-JKLM'), lib, async () => {});
   assert.strictEqual(ok, true);
-  assert.deepStrictEqual(sent.map((c) => c.text), [dmText(), 'TFX-ABCD-EFGH-JKLM', sent[2].text, sent[3].text]);
-  assert.ok(sent[3].text.includes('t.me') && !sent[3].linkPreview, 'plain link after the card failed');
+  assert.deepStrictEqual(sent.map((c) => c.text), [dmText(), 'TFX-ABCD-EFGH-JKLM', dmMessages('X')[2].text]);
   const bad = { user: { id: '1@s.whatsapp.net' }, sendMessage: async () => { throw new Error('no'); } };
   assert.strictEqual(await sendDm(bad, null, dmMessages('X'), {}, async () => {}), false);
 });

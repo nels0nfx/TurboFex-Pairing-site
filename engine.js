@@ -24,6 +24,26 @@ function loadLib() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
+// Gives a card the big picture: a small inline copy plus the full-size picture sent to WhatsApp, so the preview is shown
+// full width instead of as a small square. If anything goes wrong the card is simply shown without the picture.
+async function dressBanner(sock, lib, item) {
+  const lp = item && item.linkPreview;
+  if (!lp || !lp.banner) return item;
+  const info = { ...lp };
+  delete info.banner;
+  try {
+    info.jpegThumbnail = fs.readFileSync(path.join(__dirname, 'assets', 'community-thumb.jpg'));
+    const full = fs.readFileSync(path.join(__dirname, 'assets', 'community.jpg'));
+    if (typeof lib.prepareWAMessageMedia === 'function' && typeof sock.waUploadToServer === 'function') {
+      const { imageMessage } = await withTimeout(lib.prepareWAMessageMedia({ image: full }, { upload: sock.waUploadToServer, mediaTypeOverride: 'thumbnail-link' }), 8000);
+      if (imageMessage) info.highQualityThumbnail = imageMessage;
+    }
+  } catch (err) {
+    console.log('[pair] the big link picture could not be added:', err.message);
+  }
+  return { ...item, linkPreview: info };
+}
+
 // Sends one or more messages to the person's own WhatsApp (the "message yourself" chat). `text` is a string, or a list whose
 // items are a string or { text, linkPreview } (a small card shown under a link).
 // Never throws: the page shows the ID anyway. Returns true when the first TWO messages (the note and the session ID) went out;
@@ -38,7 +58,7 @@ async function sendDm(sock, creds, text, lib = {}, nap = sleep) {
     for (let i = 0; i < items.length; i++) {
       try {
         try {
-          await withTimeout(sock.sendMessage(jid, items[i]), 12000);
+          await withTimeout(sock.sendMessage(jid, await dressBanner(sock, lib, items[i])), 20000);
         } catch (err) {
           if (!items[i].linkPreview) throw err;
           await withTimeout(sock.sendMessage(jid, { text: items[i].text }), 12000); // the card failed: send the plain link
@@ -220,4 +240,4 @@ function start(number, hooks, opts = {}) {
   return { cancel: () => finish(null) };
 }
 
-module.exports = { start, sendDm };
+module.exports = { start, sendDm, dressBanner };

@@ -18,11 +18,15 @@ const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 const LINKS = { whatsapp: 'https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', telegram: 'https://t.me/+7PwU2Vo9czE1NTRk' };
 const dmText = () =>
   `✅ *TurboFex linked!*\n\nYour session ID is in the next message. Press and hold it, then tap *Copy*.\n\nAdd it to your bot as *SESSION_ID*, then start the bot.\nIt works once and expires in 5 minutes. Don't share it with anyone.`;
+// crisp heading letters (bold sans-serif) that look sharp in WhatsApp
+const bold = (s) => String(s).replace(/[A-Za-z]/g, (c) => String.fromCodePoint((c <= 'Z' ? 0x1d5d4 + c.charCodeAt(0) - 65 : 0x1d5ee + c.charCodeAt(0) - 97)));
+const communityText = () =>
+  `${bold('Join the TurboFex community')} 🚀\n\n📣 ${bold('WhatsApp Channel')}\n${LINKS.whatsapp}\n\n✈️ ${bold('Telegram')}\n${LINKS.telegram}`;
 const dmMessages = (id) => [
   dmText(),
   id,
-  { text: `📣 *Join the TurboFex WhatsApp Channel*\n${LINKS.whatsapp}`, linkPreview: { 'canonical-url': LINKS.whatsapp, 'matched-text': LINKS.whatsapp, title: 'TurboFex on WhatsApp', description: 'News, updates and tips from TurboFex.' } },
-  { text: `✈️ *Join us on Telegram*\n${LINKS.telegram}`, linkPreview: { 'canonical-url': LINKS.telegram, 'matched-text': LINKS.telegram, title: 'TurboFex on Telegram', description: 'Community and support for TurboFex.' } },
+  // both links together in ONE message; its big picture card (engine.js adds the picture) opens the WhatsApp Channel
+  { text: communityText(), linkPreview: { 'canonical-url': LINKS.whatsapp, 'matched-text': LINKS.whatsapp, title: 'Join the TurboFex community', description: 'WhatsApp Channel and Telegram', banner: true } },
 ];
 
 function createApp(opts = {}) {
@@ -266,7 +270,7 @@ function createApp(opts = {}) {
   return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) try { j.handle.cancel(); } catch (e) {} server.close(); } };
 }
 
-module.exports = { createApp, dmText, dmMessages };
+module.exports = { createApp, dmText, dmMessages, bold };
 
 if (require.main === module) {
   process.on('unhandledRejection', (e) => console.error('Unhandled:', e));
