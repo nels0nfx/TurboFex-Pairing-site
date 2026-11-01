@@ -312,7 +312,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     assert.strictEqual(h.ok, true);
     assert.strictEqual(h.version, require('../package.json').version);
     assert.strictEqual(h.sessionMinutes, 5);
-    for (const f of ['/hero-dark-800.webp', '/hero-light-1200.webp', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    for (const f of ['/hero-dark-836.webp', '/hero-light-1672.webp', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(html) && !/ style=/.test(html), 'still no inline scripts or styles (CSP)');
   } finally { t.close(); }
 });

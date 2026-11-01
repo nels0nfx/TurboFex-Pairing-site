@@ -13,6 +13,7 @@
   --ease: cubic-bezier(.2, .7, .2, 1);
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --bar-h: 64px;
+  --theme-t: .38s;
   --r-card: 24px;
 
   /* theme tokens: light (default values) */
@@ -587,9 +588,9 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 [data-theme="light"] .cbtn:hover { background: #FFFBF0; }
 
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-html.theming *, html.theming *::before, html.theming *::after { transition: opacity .45s ease, background-color .3s ease, color .3s ease, border-color .3s ease, box-shadow .3s ease, fill .3s ease, stroke .3s ease, filter .3s ease !important; transition-delay: 0s !important; }
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: .3s; animation-timing-function: ease; }
+html.theming *, html.theming *::before, html.theming *::after { transition: opacity var(--theme-t) ease, background-color var(--theme-t) ease, color var(--theme-t) ease, border-color var(--theme-t) ease, box-shadow var(--theme-t) ease, fill var(--theme-t) ease, stroke var(--theme-t) ease, filter var(--theme-t) ease !important; transition-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce) {
+  html.theming *, html.theming *::before, html.theming *::after { transition: none !important; }
   .sdot { animation: none !important; }
   .ring, .glass::after, .flow rect, .sparks i, .bloom, .logo, .logo::before, .badge, .bdot, .pulse i, .cta::before, .cta::after, .ghost::before, .ghost::after, .ibtn::before, .ibtn::after { animation: none !important; }
   .flow .tail, .flow .head, .flow .glowline, .sparks i, .glass::after, .cta::before, .ghost::before, .ibtn::before { opacity: 0 !important; }
@@ -645,16 +646,14 @@ html.android[data-theme] .island, html.android[data-theme] .island.scrolled { tr
    It has NO frame: no border, shadow or rounded box. Its edges fade into the page colour (mask), it runs the full width of the
    screen, and the headline sits right under its base, so it reads as part of the page. Only the picture for the active theme is
    downloaded at first; the other one is fetched quietly afterwards so switching themes is a smooth cross-fade. */
-.hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; margin: -6px calc(var(--gutter) * -1) -14px; isolation: isolate; pointer-events: none;
+.hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; margin: -6px calc(var(--gutter) * -1) -14px; isolation: isolate; pointer-events: none; transform: translateZ(0);
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%);
   -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 12%, #000 80%, transparent 100%); mask-composite: intersect; }
-.art { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; background-repeat: no-repeat; opacity: 0; transition: opacity .45s ease; pointer-events: none; }
-[data-theme="dark"] .art-dark, [data-theme="light"] .art-light { opacity: 1; }
-[data-theme="dark"] .art-dark, .hero-art.both .art-dark { background-image: url(/hero-dark-800.webp); }
-[data-theme="light"] .art-light, .hero-art.both .art-light { background-image: url(/hero-light-800.webp); }
-@media (min-width: 700px) {
-  [data-theme="dark"] .art-dark, .hero-art.both .art-dark { background-image: url(/hero-dark-1200.webp); }
-  [data-theme="light"] .art-light, .hero-art.both .art-light { background-image: url(/hero-light-1200.webp); }
-}
+/* Both pictures stay in the page the whole time (real <img> tags with a small and a full-size file, so a Retina phone gets the 1672px one
+   and nothing is stretched). The light picture is always underneath; the dark one lies on top of it and is shown or hidden - so a theme
+   change never leaves a moment with no picture. */
+.art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.art-dark { opacity: 0; }
+[data-theme="dark"] .art-dark { opacity: 1; }
 /* the page itself: warm ivory / champagne in light, deep black with a soft gold glow in dark */
 [data-theme="light"] .decor::before { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 36% at 50% 0%, rgba(232, 205, 140, .30), transparent 72%), radial-gradient(70% 30% at 50% 100%, rgba(232, 205, 140, .22), transparent 72%); }

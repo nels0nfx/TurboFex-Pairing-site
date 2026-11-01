@@ -16,6 +16,10 @@
     themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
     themeBtn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   }
+  function artReady() {   // both hero pictures decoded and ready to paint (never waits more than half a second)
+    var imgs = [].slice.call(document.querySelectorAll('.art')), wait = new Promise(function (r) { setTimeout(r, 500); });
+    return Promise.race([Promise.all(imgs.map(function (i) { return i.decode ? i.decode().catch(function () {}) : null; })), wait]);
+  }
   themeBtn.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     function apply() {
@@ -25,13 +29,14 @@
       syncTheme();
     }
     if (reduced) { apply(); return; }
-    if (document.startViewTransition) {                  // whole page cross-fades (gradients included)
-      try { document.startViewTransition(apply); return; } catch (e) { /* fall through */ }
-    }
-    root.classList.add('theming');                       // fallback: colours fade
-    apply();
+    // One mechanism only: every colour, border, shadow and the hero picture fade over the same time (--theme-t) in the live page.
+    // (The browser's whole-page snapshot cross-fade was removed: it photographs the page, and on phones the hero could be missing from the photo = a blink.)
     clearTimeout(themeBtn._t);
-    themeBtn._t = setTimeout(function () { root.classList.remove('theming'); }, 350);
+    artReady().then(function () {                        // the new hero picture is decoded first, so it can never pop in late
+      root.classList.add('theming');
+      apply();
+      themeBtn._t = setTimeout(function () { root.classList.remove('theming'); }, 520);
+    });
   });
   syncTheme();
 
@@ -474,22 +479,6 @@
     sl.addEventListener('scroll', function () { if (t) return; t = requestAnimationFrame(function () { t = 0; var i = where(); if (i !== cur) mark(i); }); }, { passive: true });
     btns.forEach(function (b, k) { b.addEventListener('click', function () { snd('tab'); var c = sl.children[k]; sl.scrollTo({ left: c.offsetLeft - sl.children[0].offsetLeft, behavior: reduced ? 'auto' : 'smooth' }); mark(k); }); });
     sl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var k = Math.max(0, Math.min(1, cur + (e.key === 'ArrowRight' ? 1 : -1))); btns[k].click(); } });
-  })();
-
-  // hero picture: once the page is idle, quietly fetch the picture of the OTHER theme too, so switching themes cross-fades smoothly
-  (function () {
-    var art = $('hero-art');
-    if (!art || !window.Image) return;
-    function warm() {
-      var big = window.matchMedia && window.matchMedia('(min-width: 700px)').matches, w = big ? 1200 : 800, left = 2;
-      ['dark', 'light'].forEach(function (n) {
-        var im = new Image();
-        im.onload = im.onerror = function () { if (--left === 0) art.classList.add('both'); };
-        im.src = '/hero-' + n + '-' + w + '.webp';
-      });
-    }
-    function later() { if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 4000 }); else setTimeout(warm, 2500); }
-    if (document.readyState === 'complete') later(); else window.addEventListener('load', later);   // only after the page (and the active picture) has finished loading
   })();
 
   // status bar: asks the site itself (/health) whether it is running, and which version
