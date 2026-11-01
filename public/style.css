@@ -653,3 +653,14 @@ html.lite .skyline { opacity: .6; }
 .idtimer.used { color: #2E9E64; }
 [data-theme="dark"] .idtimer.used { color: #6FE3A2; }
 #step-done.used #copy, #step-done.used .label, #step-done.used #sid { display: none; }
+
+/* smoother floating bar, mostly for Android: its own graphics layer, no live blur behind it, and its animations rest while you scroll */
+.island { transform: translateZ(0); backface-visibility: hidden; }
+.glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.scrolling .island *, html.scrolling .island *::before, html.scrolling .island *::after { animation-play-state: paused !important; }
+html.android .bloom { filter: none; }
+html.android .flow { filter: none; }
+html.android .flow .echo, html.android .flow .glowline { animation: none; }
+html.android .logo, html.android .badge, html.android .island .logo::before { animation: none; }
+html.android .sparks i:nth-child(n+4) { display: none; }
+html.android[data-theme] .island, html.android[data-theme] .island.scrolled { transition: border-radius .5s var(--ease-out); box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 10px 20px -10px rgba(201, 164, 92, .5), 0 14px 22px -14px rgba(0, 0, 0, .7) !important; }

@@ -36,10 +36,11 @@
   syncTheme();
 
   // floating navigation: a deeper shadow once the page has scrolled, and the menu closes when you scroll
-  var bar = $('island'), ticking = false;
+  var bar = $('island'), ticking = false, scrollT = 0;
   function onScroll() {
     if (ticking) return; ticking = true;
     requestAnimationFrame(function () {
+      root.classList.add('scrolling'); clearTimeout(scrollT); scrollT = setTimeout(function () { root.classList.remove('scrolling'); }, 160);   // animations rest while the page moves
       bar.classList.toggle('scrolled', window.scrollY > 4);
       if (menuIsOpen && Math.abs(window.scrollY - menuAt) > 30) menuOpen(false);
       ticking = false;
@@ -477,7 +478,7 @@
 
   // status bar: asks the site itself (/health) whether it is running, and which version
   (function () {
-    var dot = $('st-dot'), txt = $('st-server'), ver = $('st-ver'), min = $('st-min');
+    var dot = $('st-dot'), txt = $('st-server'), min = $('st-min');
     $('yr').textContent = new Date().getFullYear();
     function set(ok) {
       dot.className = 'sdot ' + (ok ? 'on' : 'off'); txt.className = ok ? 'on' : 'off';
@@ -488,7 +489,6 @@
       fetch('/health', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
         if (!d || !d.ok) return set(false);
         set(true);
-        if (d.version) ver.textContent = 'TurboFex Pair v' + d.version;
         if (d.sessionMinutes) min.textContent = d.sessionMinutes;
       }).catch(function () { set(false); });
     }
