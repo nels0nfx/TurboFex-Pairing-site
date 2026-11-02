@@ -295,7 +295,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
   const t = await boot();
   try {
     const html = await (await fetch(t.base + '/')).text();
-    for (const id of ['connect', 'how', 'security', 'st-server', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const id of ['connect', 'how', 'security', 'm-sound', 'm-music']) assert.ok(html.includes(`id="${id}"`), id);
     for (const word of ['Linked devices', 'Link a device', 'Security tips']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
     const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
@@ -334,4 +334,22 @@ test('refresh stays at the top; FAQ cards are a one-per-screen slider; no circle
   assert.ok(/window\.scrollTo\(0, 0\)/.test(js) && !/if \(!location\.hash\) \{\s*toConnect/.test(js));
   assert.ok(/\.info-grid > \.panel \{ flex: 0 0 100%/.test(css) && /scroll-snap-type: x mandatory/.test(css));
   assert.ok(!/radial-gradient\(ellipse closest-side/.test(css));
+});
+
+test('v2.13: no status bar, music file served with byte ranges', async () => {
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  await new Promise((r) => app.server.listen(0, r));
+  const port = app.server.address().port;
+  try {
+    const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
+    assert.ok(!html.includes('st-server') && !html.includes('Server: '));
+    assert.ok(html.includes('id="m-music"'));
+    const full = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`);
+    assert.equal(full.status, 200); assert.equal(full.headers.get('content-type'), 'audio/mp4');
+    const total = (await full.arrayBuffer()).byteLength;
+    const part = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`, { headers: { Range: 'bytes=0-1' } });
+    assert.equal(part.status, 206); assert.equal(part.headers.get('content-range'), `bytes 0-1/${total}`);
+    const bad = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`, { headers: { Range: `bytes=${total + 5}-` } });
+    assert.equal(bad.status, 416);
+  } finally { app.close(); }
 });

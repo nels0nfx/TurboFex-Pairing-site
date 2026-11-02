@@ -294,6 +294,9 @@
   }
   num.addEventListener('input', function () {
     num.value = num.value.replace(/[^\d\s()+.\-]/g, '');
+    // never let the person type past the longest number of the country: extra digits are simply not accepted
+    var guard = 0;
+    while (guard++ < 40 && num.value && P.analyze(num.value, iso).state === 'toolong') num.value = num.value.slice(0, -1).replace(/[\s().\-]+$/, '');
     var a = showCount();
     // a full international number (+234 801...) turns into the national part once its country is known: the field then shows only what is left to type
     if (/^\s*(\+|00)/.test(num.value) && a.national && P.byIso(iso) && (a.state === 'valid' || a.state === 'incomplete')) {
@@ -550,23 +553,36 @@
     sl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var k = Math.max(0, Math.min(1, cur + (e.key === 'ArrowRight' ? 1 : -1))); btns[k].click(); } });
   })();
 
-  // status bar: asks the site itself (/health) whether it is running, and which version
+  $('yr').textContent = new Date().getFullYear();
+
+  // background music: an original soft ambient loop, started by the first tap (browsers do not allow sound before one), quiet, pausable from the menu
   (function () {
-    var dot = $('st-dot'), txt = $('st-server'), min = $('st-min');
-    $('yr').textContent = new Date().getFullYear();
-    function set(ok) {
-      dot.className = 'sdot ' + (ok ? 'on' : 'off'); txt.className = ok ? 'on' : 'off';
-      txt.textContent = 'Server: ' + (ok ? 'Online' : 'Offline');
+    var KEY = 'tfx-music', vol = 0.3, au = null, want = true, started = false, fade = 0;
+    try { if (localStorage.getItem(KEY) === 'off') want = false; } catch (e) {}
+    function label() { $('m-music').setAttribute('aria-checked', want ? 'true' : 'false'); $('m-music-t').textContent = 'Music: ' + (want ? 'On' : 'Off'); }
+    function ramp(to, done) {
+      clearInterval(fade); if (!au) return;
+      fade = setInterval(function () {
+        var d = to - au.volume;
+        if (Math.abs(d) < 0.02) { au.volume = to; clearInterval(fade); if (done) done(); return; }
+        au.volume = Math.max(0, Math.min(1, au.volume + (d > 0 ? 0.02 : -0.03)));
+      }, 60);
     }
-    function look() {
-      if (!window.fetch) return;
-      fetch('/health', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-        if (!d || !d.ok) return set(false);
-        set(true);
-        if (d.sessionMinutes) min.textContent = d.sessionMinutes;
-      }).catch(function () { set(false); });
+    function play() {
+      if (!want || document.hidden) return;
+      if (!au) { au = new Audio('/tfx-ambient.m4a'); au.loop = true; au.preload = 'auto'; au.volume = 0; }
+      var p = au.play();
+      if (p && p.then) p.then(function () { started = true; ramp(vol); }).catch(function () { started = false; });
+      else { started = true; ramp(vol); }
     }
-    look();
-    setInterval(function () { if (!document.hidden) look(); }, 60000);
+    function stop() { if (au && !au.paused) ramp(0, function () { au.pause(); }); }
+    ['pointerdown', 'touchend', 'keydown', 'click'].forEach(function (t) { document.addEventListener(t, function () { if (!started && want) setTimeout(play, 0); }, true); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { if (au && !au.paused) { clearInterval(fade); au.pause(); } } else if (want && started) play(); });
+    $('m-music').addEventListener('click', function () {
+      want = !want; try { localStorage.setItem(KEY, want ? 'on' : 'off'); } catch (e) {}
+      label(); if (want) play(); else stop();
+    });
+    label();
+    if (!(navigator.connection && navigator.connection.saveData)) play(); // works at once where the browser allows it
   })();
 })();
