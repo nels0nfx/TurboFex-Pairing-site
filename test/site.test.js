@@ -326,3 +326,12 @@ test('hero has no feature badges and the hero picture has no frame', () => {
   const rule = /\.hero-art \{[^}]*\}/.exec(css)[0];
   assert.ok(!/border|box-shadow|overflow: hidden/.test(rule), 'no box around the picture');
 });
+
+test('refresh stays at the top; FAQ cards are a one-per-screen slider; no circle mask on the hero', () => {
+  const fs = require('fs'), path = require('path');
+  const js = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../public/style.css'), 'utf8');
+  assert.ok(/window\.scrollTo\(0, 0\)/.test(js) && !/if \(!location\.hash\) \{\s*toConnect/.test(js));
+  assert.ok(/\.info-grid > \.panel \{ flex: 0 0 100%/.test(css) && /scroll-snap-type: x mandatory/.test(css));
+  assert.ok(!/radial-gradient\(ellipse closest-side/.test(css));
+});

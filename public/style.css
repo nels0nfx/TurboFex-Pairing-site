@@ -454,25 +454,16 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 .faq-t h2 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; color: var(--gold); font-family: var(--serif); font-size: 32px; line-height: 1; letter-spacing: .02em; }
 .faq-t h2 svg { flex: none; }
 .faq-t p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
-/* phones: How to connect and Security tips sit side by side, both fully on screen (compact type so neither feels cramped) */
+/* phones: How to connect and Security tips are a swipe slider - one card fills the width of the screen, both cards have the same size */
 @media (max-width: 699.98px) {
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; margin: 0; }
-  .info-grid > .panel { min-width: 0; padding: 16px 12px; }
-  .info-grid .panel h3 { font-size: 16px; gap: 8px; margin-bottom: 12px; }
-  .info-grid .panel h3 .num { width: 28px; height: 28px; }
-  .info-grid .how li { margin-bottom: 10px; }
-  .info-grid .how li, .info-grid .checks li { font-size: 14px; line-height: 1.4; gap: 8px; }
-  .info-grid .checks li { padding-left: 22px; }
-  .info-grid .how .n { width: 24px; height: 24px; font-size: 12px; }
-  .info-grid .how em { font-size: 12.5px; }
-  .info-grid .about { font-size: 13px; line-height: 1.5; }
-  #info-dots { display: none; }
-}
-/* very narrow phones (under 340px): two cards would be too cramped, so they become a swipeable row */
-@media (max-width: 339.98px) {
-  .info-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; padding: 6px 0 10px; gap: 12px; }
+  .info-grid { display: flex; align-items: stretch; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px; margin: 0; padding: 4px 2px 10px; }
   .info-grid::-webkit-scrollbar { display: none; }
-  .info-grid > .panel { flex: 0 0 90%; scroll-snap-align: start; scroll-snap-stop: always; }
+  .info-grid > .panel { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; padding: 20px 18px; }
+  .info-grid .panel h3 { font-size: 19px; gap: 10px; margin-bottom: 14px; }
+  .info-grid .how li { margin-bottom: 11px; }
+  .info-grid .how li, .info-grid .checks li { font-size: 15.5px; line-height: 1.45; gap: 10px; }
+  .info-grid .how em { font-size: 13.5px; }
+  .info-grid .about { font-size: 14px; line-height: 1.55; }
   #info-dots { display: flex; }
 }
 .dots { display: flex; justify-content: center; gap: 4px; margin: 0 0 18px; }
@@ -551,11 +542,11 @@ html.android .island { transition: border-radius .5s var(--ease-out); }
 #step-number .collapse.off { margin-bottom: -14px; }
 
 /* the hero picture: one illustration per theme (phone + assistant robot + shield, ivory/champagne-gold or black/gold).
-   It has NO frame: no border, shadow or rounded box, and no hazy corners (an oval mask clears all four corners), it runs the full width of the
+   It has NO frame: no border, shadow or rounded box, and no oval or circle mask (it showed as a ring while switching themes): the two pictures end in the page colours, only the top and bottom edges fade, it runs the full width of the
    screen, and the headline sits right under its base, so it reads as part of the page. Only the picture for the active theme is
    downloaded at first; the other one is fetched quietly afterwards so switching themes is a smooth cross-fade. */
 .hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; margin: -6px calc(var(--gutter) * -1) -14px; isolation: isolate; pointer-events: none; transform: translateZ(0);
-  -webkit-mask-image: radial-gradient(ellipse closest-side at 50% 50%, #000 70%, transparent 100%); mask-image: radial-gradient(ellipse closest-side at 50% 50%, #000 70%, transparent 100%); }
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%); }
 /* Both pictures stay in the page the whole time (real <img> tags with a small and a full-size file, so a Retina phone gets the 1672px one
    and nothing is stretched). The light picture is always underneath; the dark one lies on top of it and is shown or hidden - so a theme
    change never leaves a moment with no picture. */
@@ -572,3 +563,24 @@ html.android .island { transition: border-radius .5s var(--ease-out); }
 .retry { margin-top: 18px; }
 .retry.main { background: var(--cta-bg); color: var(--cta-text); border-color: var(--cta-border); }
 .status.done .spin { display: none; }
+
+/* light mode floating bar: ivory pill with a gold edge, still and clean (dark mode keeps the black pill) */
+[data-theme="light"] .island, [data-theme="light"] .island.scrolled { color: #14110B; box-shadow: 0 12px 26px -16px rgba(138, 106, 43, .45), 0 2px 6px -2px rgba(138, 106, 43, .2); }
+[data-theme="light"] .ring { background: linear-gradient(180deg, #E3C98A, #B8923F); }
+[data-theme="light"] .glass { inset: 1.5px; background: linear-gradient(180deg, #FFFDF8, #FAF2E2); }
+[data-theme="light"] .brand, [data-theme="light"] .word { color: #14110B; }
+[data-theme="light"] .vr { background: rgba(154, 122, 50, .55); }
+[data-theme="light"] .badge, [data-theme="light"] a.navlink { color: #5A4515; border-color: rgba(168, 134, 62, .75); background: transparent; }
+[data-theme="light"] a.navlink svg { color: #8A6A2B; }
+@media (hover: hover) { [data-theme="light"] a.navlink:hover, [data-theme="light"] .ibtn:hover { background: rgba(201, 164, 92, .18); border-color: #9A7A32; } }
+[data-theme="light"] .ibtn { color: #8A6A2B; border-color: rgba(168, 134, 62, .75); }
+[data-theme="light"] .menubtn { border-color: transparent; }
+[data-theme="light"] .ibtn:active { background: rgba(201, 164, 92, .3); }
+[data-theme="light"] .ibtn:focus-visible, [data-theme="light"] .brand:focus-visible, [data-theme="light"] a.navlink:focus-visible { outline-color: #14110B; }
+[data-theme="light"] .stat { color: #3A2F14; }
+[data-theme="light"] .island[data-state="ok"] .stat { color: #14110B; }
+[data-theme="light"] .island[data-state="bad"] .stat { color: #8A3128; }
+[data-theme="light"] .pulse i { background: #B8892F; box-shadow: none; }
+[data-theme="light"] .pulse i + i { background: transparent; border-color: #B8892F; }
+[data-theme="light"] .island[data-state="ok"] .s-ok { color: #8A6A2B; }
+[data-theme="light"] .island[data-state="bad"] .s-bad { color: #C0554A; }

@@ -467,7 +467,7 @@
   $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
 
-  // opening or refreshing the page: go to the connection section and carry on with an unfinished attempt
+  // opening or refreshing the page: stay at the top and carry on with an unfinished attempt
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { /* fine */ }
   (function () {
     var saved = null;
@@ -481,11 +481,7 @@
       show('step-wait');
       poll = setInterval(check, 2000); check();
     }
-    if (!location.hash) {
-      toConnect(false); var y0 = window.pageYOffset;
-      // pictures and fonts can shift things a little when they finish loading: re-aim once, but only if the visitor has not moved the page yet
-      window.addEventListener('load', function () { if (Math.abs(window.pageYOffset - y0) < 4) toConnect(false); });
-    }
+    if (!location.hash) window.scrollTo(0, 0);   // opening or refreshing always starts at the top
   })();
 
   // the How to connect / Security tips slider: dots follow the swipe and can be tapped
