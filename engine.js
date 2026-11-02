@@ -224,18 +224,32 @@ function start(number, hooks, opts = {}) {
           asked = true;
           const t0 = Date.now();
           try {
+            // optional (VERIFY_WHATSAPP=1): ask WhatsApp itself whether the number has an account. Only an explicit "no" stops the attempt;
+            // if WhatsApp cannot answer on this not-yet-linked connection, nothing is claimed and the real pairing request decides.
+            if (opts.verify && typeof s.onWhatsApp === 'function') {
+              try {
+                const found = await Promise.race([s.onWhatsApp(number + '@s.whatsapp.net'), new Promise((r) => setTimeout(() => r(null), 5000))]);
+                if (Array.isArray(found) && found[0] && found[0].exists === false) {
+                  log('number is not on WhatsApp');
+                  return finish(hooks.onFail, 'That number is not registered on WhatsApp. Check the number and try again.');
+                }
+                log('number check:', Array.isArray(found) && found[0] ? 'registered' : 'could not be checked');
+              } catch (err) {
+                log('number check failed:', err.message);
+              }
+            }
             const raw = await s.requestPairingCode(number);
             await nap(2500); // WhatsApp's refusal, if any, arrives a moment later
             if (finished) return;
             if (lastIqError && lastIqError.at >= t0 - 500) {
-              log('code refused', lastIqError.code, lastIqError.text);
-              return finish(hooks.onFail, `WhatsApp refused the pairing code (${lastIqError.code || '?'} ${lastIqError.text || ''}). Check the number and try again.`);
+              log('code refused', lastIqError.code, lastIqError.text);   // the details stay in the server log only
+              return finish(hooks.onFail, lastIqError.code === '429' || lastIqError.code === 429 ? 'WhatsApp is limiting pairing requests right now. Please wait a few minutes and try again.' : 'WhatsApp did not accept this number for pairing. Check the number and try again.');
             }
             log('code shown');
             hooks.onCode(String(raw).match(/.{1,4}/g).join('-'));
           } catch (err) {
-            log('no code:', err.message);
-            return finish(hooks.onFail, `Could not get a pairing code: ${err.message}`);
+            log('no code:', err.message);                    // the details stay in the server log only
+            return finish(hooks.onFail, 'Could not get a pairing code from WhatsApp right now. Please try again in a minute.');
           }
         }
 

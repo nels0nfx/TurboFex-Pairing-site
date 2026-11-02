@@ -23,20 +23,17 @@
   themeBtn.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     function apply() {
+      root.classList.add('switching');                   // no element animates its own colours during the switch
       root.setAttribute('data-theme', next);
+      setTimeout(function () { root.classList.remove('switching'); }, 120);
       var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute('content', next === 'dark' ? '#0B0B0B' : '#FAF3E6');
       try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
       syncTheme();
     }
     if (reduced) { apply(); return; }
-    // One mechanism only: every colour, border, shadow and the hero picture fade over the same time (--theme-t) in the live page.
-    // (The browser's whole-page snapshot cross-fade was removed: it photographs the page, and on phones the hero could be missing from the photo = a blink.)
-    clearTimeout(themeBtn._t);
-    artReady().then(function () {                        // the new hero picture is decoded first, so it can never pop in late
-      root.classList.add('theming');
-      apply();
-      themeBtn._t = setTimeout(function () { root.classList.remove('theming'); }, 520);
-    });
+    // Everything (text, backgrounds, borders, hero picture) switches in the same instant. A colour fade makes the text and the background
+    // cross each other half-way (grey on grey = unreadable) and nested fades make inherited text lag behind, so there is no fade.
+    artReady().then(apply);                              // the new hero picture is decoded first, so it can never pop in late
   });
   syncTheme();
 
@@ -261,34 +258,88 @@
   // turn the slide animation on only after the first paint, so the page does not animate on load
   requestAnimationFrame(function () { requestAnimationFrame(function () { tabs.classList.add('ready'); }); });
 
-  // ---------- phone number: international formatting ----------
-  function digitsOf(v) { var d = String(v).replace(/\D/g, ''); if (d.indexOf('00') === 0) d = d.slice(2); return d.slice(0, 15); }
-  function group(d) {
-    var parts = [], i = 0, sizes = [3, 3, 3];
-    sizes.forEach(function (n) { if (i < d.length) { parts.push(d.substr(i, n)); i += n; } });
-    if (i < d.length) parts.push(d.slice(i));
-    return parts.join(' ');
+  // ---------- phone number: country, digits left, checks ----------
+  var P = window.TFX_PHONE, num = $('number'), iso = '', lastCountry = '';
+  // the likely country: the phone's time zone first, then the language region (no tracking, nothing is sent anywhere)
+  var TZ = { 'Africa/Lagos': 'NG', 'Africa/Accra': 'GH', 'Africa/Johannesburg': 'ZA', 'Africa/Nairobi': 'KE', 'Africa/Kampala': 'UG', 'Africa/Dar_es_Salaam': 'TZ', 'Africa/Addis_Ababa': 'ET', 'Africa/Kigali': 'RW', 'Africa/Lusaka': 'ZM', 'Africa/Harare': 'ZW', 'Africa/Douala': 'CM', 'Africa/Abidjan': 'CI', 'Africa/Dakar': 'SN', 'Africa/Cairo': 'EG', 'Africa/Casablanca': 'MA', 'Africa/Algiers': 'DZ', 'Africa/Tunis': 'TN', 'Africa/Luanda': 'AO', 'Africa/Maputo': 'MZ', 'Africa/Windhoek': 'NA', 'Africa/Gaborone': 'BW', 'Africa/Khartoum': 'SD', 'Africa/Freetown': 'SL', 'Africa/Monrovia': 'LR', 'Africa/Lome': 'TG', 'Africa/Porto-Novo': 'BJ',
+    'America/New_York': 'US', 'America/Chicago': 'US', 'America/Denver': 'US', 'America/Los_Angeles': 'US', 'America/Phoenix': 'US', 'America/Toronto': 'CA', 'America/Vancouver': 'CA', 'America/Mexico_City': 'MX', 'America/Sao_Paulo': 'BR', 'America/Argentina/Buenos_Aires': 'AR', 'America/Bogota': 'CO', 'America/Santiago': 'CL', 'America/Lima': 'PE', 'America/Caracas': 'VE', 'America/Jamaica': 'JM',
+    'Europe/London': 'GB', 'Europe/Dublin': 'IE', 'Europe/Paris': 'FR', 'Europe/Berlin': 'DE', 'Europe/Madrid': 'ES', 'Europe/Rome': 'IT', 'Europe/Amsterdam': 'NL', 'Europe/Brussels': 'BE', 'Europe/Lisbon': 'PT', 'Europe/Zurich': 'CH', 'Europe/Vienna': 'AT', 'Europe/Stockholm': 'SE', 'Europe/Oslo': 'NO', 'Europe/Copenhagen': 'DK', 'Europe/Helsinki': 'FI', 'Europe/Warsaw': 'PL', 'Europe/Prague': 'CZ', 'Europe/Athens': 'GR', 'Europe/Istanbul': 'TR', 'Europe/Moscow': 'RU', 'Europe/Kiev': 'UA', 'Europe/Kyiv': 'UA', 'Europe/Bucharest': 'RO',
+    'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Asia/Karachi': 'PK', 'Asia/Dhaka': 'BD', 'Asia/Colombo': 'LK', 'Asia/Kathmandu': 'NP', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Qatar': 'QA', 'Asia/Kuwait': 'KW', 'Asia/Tehran': 'IR', 'Asia/Baghdad': 'IQ', 'Asia/Amman': 'JO', 'Asia/Beirut': 'LB', 'Asia/Jerusalem': 'IL', 'Asia/Shanghai': 'CN', 'Asia/Hong_Kong': 'HK', 'Asia/Taipei': 'TW', 'Asia/Tokyo': 'JP', 'Asia/Seoul': 'KR', 'Asia/Singapore': 'SG', 'Asia/Kuala_Lumpur': 'MY', 'Asia/Jakarta': 'ID', 'Asia/Bangkok': 'TH', 'Asia/Ho_Chi_Minh': 'VN', 'Asia/Manila': 'PH', 'Asia/Almaty': 'KZ', 'Asia/Tashkent': 'UZ', 'Asia/Kabul': 'AF',
+    'Australia/Sydney': 'AU', 'Australia/Melbourne': 'AU', 'Australia/Perth': 'AU', 'Australia/Brisbane': 'AU', 'Pacific/Auckland': 'NZ' };
+  function detectCountry() {
+    try { var z = Intl.DateTimeFormat().resolvedOptions().timeZone; if (z && TZ[z]) return TZ[z]; } catch (e) { /* no Intl */ }
+    try { var ls = navigator.languages || [navigator.language]; for (var i = 0; i < ls.length; i++) { var m = /[-_]([A-Za-z]{2})$/.exec(ls[i] || ''); if (m && P.byIso(m[1])) return m[1].toUpperCase(); } } catch (e) { /* no language */ }
+    return '';
   }
-  var num = $('number');
+  function setCountry(code, silent) {
+    var c = P.byIso(code); iso = c ? c.iso : '';
+    $('cflag').textContent = c ? P.flag(c.iso) : '🌍';
+    $('cdial').textContent = c ? '+' + c.dial : '+';
+    $('cpick').setAttribute('aria-label', c ? 'Country: ' + c.name + ' +' + c.dial + '. Change' : 'Choose country');
+    if (!silent) showCount();
+  }
+  function lengthText(c) { return c.min === c.max ? c.min + ' digits' : c.min + '–' + c.max + ' digits'; }
+  // live state while typing: how many digits are still needed, and whether the number is valid for the country
+  function showCount() {
+    var box = $('phone'), hint = $('numhint'), out = $('ccount'), c = P.byIso(iso), a = P.analyze(num.value, iso);
+    box.classList.remove('bad', 'good'); hint.classList.remove('ok', 'bad');
+    if (a.countryChanged && a.countryChanged !== iso) { setCountry(a.countryChanged, true); c = P.byIso(iso); }
+    if (!c) { out.textContent = 'Choose your country, then type your number without the country code.'; return a; }
+    if (a.state === 'empty') out.textContent = c.name + ' numbers have ' + lengthText(c) + ' (without +' + c.dial + ').';
+    else if (a.state === 'incomplete') out.textContent = a.national.length + ' digit' + (a.national.length === 1 ? '' : 's') + ' · ' + a.remaining + ' more needed for ' + c.name + '.';
+    else if (a.state === 'toolong') { out.textContent = a.message; hint.classList.add('bad'); box.classList.add('bad'); }
+    else if (a.state === 'invalid') { out.textContent = a.message; hint.classList.add('bad'); box.classList.add('bad'); }
+    else { out.textContent = '✓ Valid ' + c.name + ' number: +' + a.e164; hint.classList.add('ok'); box.classList.add('good'); }
+    return a;
+  }
   num.addEventListener('input', function () {
-    var before = num.value, caret = num.selectionStart == null ? before.length : num.selectionStart;
-    var digitsBeforeCaret = digitsOf(before.slice(0, caret)).length;
-    var d = digitsOf(before), out = group(d);
-    num.value = out;
-    // keep the caret next to the same digit
-    var pos = 0, seen = 0;
-    while (pos < out.length && seen < digitsBeforeCaret) { if (/\d/.test(out[pos])) seen++; pos++; }
-    try { num.setSelectionRange(pos, pos); } catch (e) { /* not supported */ }
-    if (d.length) { setText($('numerr'), ''); num.removeAttribute('aria-invalid'); }
+    num.value = num.value.replace(/[^\d\s()+.\-]/g, '');
+    var a = showCount();
+    // a full international number (+234 801...) turns into the national part once its country is known: the field then shows only what is left to type
+    if (/^\s*(\+|00)/.test(num.value) && a.national && P.byIso(iso) && (a.state === 'valid' || a.state === 'incomplete')) {
+      num.value = a.national.replace(/(\d{3})(?=\d)/g, '$1 ').replace(/ (\d{1,2})$/, '$1');
+      a = showCount();
+    }
+    if (a.state === 'valid' || a.state === 'incomplete' || a.state === 'empty') { setText($('numerr'), ''); num.removeAttribute('aria-invalid'); }
   });
+  // the number the server gets: international digits + the country (the server checks everything again)
   function validNumber() {
-    var d = digitsOf(num.value), msg = '';
-    if (!d) msg = 'Enter your WhatsApp number.';
-    else if (d.charAt(0) === '0') msg = 'Start with your country code, not 0. For Nigeria, 0801 234 5678 becomes 234 801 234 5678.';
-    else if (d.length < 8) msg = 'That number looks too short. Include the country code.';
+    var a = P.analyze(num.value, iso), msg = '';
+    if (!iso && a.state !== 'valid') msg = 'Choose your country first.';
+    else if (a.state === 'empty') msg = 'Enter your WhatsApp number.';
+    else if (a.state === 'incomplete') msg = 'That number is too short for ' + (P.byIso(a.iso) || { name: 'this country' }).name + ': ' + a.remaining + ' more digit' + (a.remaining === 1 ? '' : 's') + ' needed.';
+    else if (a.state !== 'valid') msg = a.message || 'That number is not valid for the selected country.';
     if (msg) { setText($('numerr'), msg); num.setAttribute('aria-invalid', 'true'); num.focus(); return null; }
-    return d;
+    lastCountry = a.iso;
+    return a.e164;
   }
+  // country picker (a searchable sheet)
+  function fillList(q) {
+    var ul = $('cul'), t = String(q || '').trim().toLowerCase().replace(/^\+/, ''), n = 0; ul.innerHTML = '';
+    P.COUNTRIES.slice().sort(function (x, y) { return x.name.localeCompare(y.name); }).forEach(function (c) {
+      if (t && c.name.toLowerCase().indexOf(t) < 0 && c.dial.indexOf(t) !== 0 && c.iso.toLowerCase() !== t) return;
+      var li = document.createElement('li'); li.setAttribute('role', 'option'); li.setAttribute('data-iso', c.iso); li.setAttribute('aria-selected', c.iso === iso ? 'true' : 'false'); li.tabIndex = 0;
+      var f = document.createElement('span'); f.className = 'cflag'; f.textContent = P.flag(c.iso);
+      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.name;
+      var dl = document.createElement('span'); dl.className = 'dl'; dl.textContent = '+' + c.dial;
+      li.appendChild(f); li.appendChild(nm); li.appendChild(dl); ul.appendChild(li); n++;
+    });
+    if (!n) { var no = document.createElement('li'); no.className = 'none'; no.textContent = 'No country found'; ul.appendChild(no); }
+  }
+  function sheet(open) {
+    $('csheet').hidden = !open; $('cpick').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { $('csearch').value = ''; fillList(''); setTimeout(function () { $('csearch').focus(); var s = $('cul').querySelector('[aria-selected="true"]'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'center' }); }, 30); }
+    else $('cpick').focus();
+  }
+  $('cpick').addEventListener('click', function () { if (!submitting) sheet(true); });
+  $('csheet-bg').addEventListener('click', function () { sheet(false); });
+  $('csheet-x').addEventListener('click', function () { sheet(false); });
+  $('csearch').addEventListener('input', function () { fillList(this.value); });
+  function pick(li) { if (!li || !li.getAttribute('data-iso')) return; setCountry(li.getAttribute('data-iso')); sheet(false); num.focus(); }
+  $('cul').addEventListener('click', function (e) { pick(e.target.closest('li')); });
+  $('cul').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e.target.closest('li')); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('csheet').hidden) sheet(false); });
+  setCountry(detectCountry(), true); showCount();
 
   // ---------- code cells ----------
   function renderCode(code) {
@@ -321,7 +372,7 @@
   }
   function busy(on) {
     var b = $('go'); b.classList.toggle('busy', on); b.setAttribute('aria-busy', on ? 'true' : 'false'); b.disabled = on;
-    tabs.classList.toggle('locked', on); $('number').readOnly = on;
+    tabs.classList.toggle('locked', on); $('number').readOnly = on; $('cpick').disabled = on;
   }
   function idleLabel() { swapText($('go-text'), method === 'code' ? 'Generate pairing code' : 'Show QR code'); }
   function failSubmit(msg) {
@@ -342,7 +393,7 @@
     busy(true);
     snd('press'); islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
-    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number }) })
+    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number, country: lastCountry }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
         if (mine !== reqId) return;
@@ -385,7 +436,7 @@
     renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('prog').style.width = '100%'; $('timer').hidden = true;
     $('status').textContent = sent === 'code' ? 'Requesting a new pairing code…' : 'Preparing a new QR code…';
-    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber }) })
+    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber, country: lastCountry }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
         if (mine !== reqId) return;
@@ -467,7 +518,7 @@
   $('sid').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('sid').click(); } });
   renderCode('');
 
-  // opening or refreshing the page: stay at the top and carry on with an unfinished attempt
+  // opening or refreshing the page: an unfinished attempt is picked up and shown; otherwise the page starts at the top
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { /* fine */ }
   (function () {
     var saved = null;
@@ -480,8 +531,10 @@
       idleLabel();
       show('step-wait');
       poll = setInterval(check, 2000); check();
-    }
-    if (!location.hash) window.scrollTo(0, 0);   // opening or refreshing always starts at the top
+      // an unfinished attempt: refreshing brings you straight back to it
+      toConnect(false); var y0 = window.pageYOffset;
+      window.addEventListener('load', function () { if (Math.abs(window.pageYOffset - y0) < 4) toConnect(false); });
+    } else if (!location.hash) window.scrollTo(0, 0);   // nothing unfinished: opening or refreshing starts at the top
   })();
 
   // the How to connect / Security tips slider: dots follow the swipe and can be tapped

@@ -94,7 +94,9 @@ function createApp(opts = {}) {
       req.on('error', reject);
     });
 
-  const cleanNumber = (raw) => String(raw || '').replace(/\D/g, '');
+  const phone = require('./phone');
+  const numberLimit = Number(env.NUMBER_LIMIT) || 5;   // pairing attempts per phone number per 15 minutes
+  const hashSecret = crypto.randomBytes(8).toString('hex');
 
   function startJob(number, method) {
     const id = crypto.randomBytes(16).toString('hex');
@@ -150,7 +152,7 @@ function createApp(opts = {}) {
         job.code = null;
         done();
       },
-    }, { method });
+    }, { method, verify: String(env.VERIFY_WHATSAPP || '') === '1' });
     job.timer = setTimeout(() => {
       if (job.state === 'linked' || job.state === 'failed') return;
       stopJob(job, 'Time ran out. Start again.' + (job.method === 'code' ? ' Enter the code quickly.' : ''));
@@ -194,9 +196,11 @@ function createApp(opts = {}) {
       const method = body.method === 'qr' ? 'qr' : 'code';
       let number = '';
       if (method === 'code') {
-        number = cleanNumber(body.number);
-        if (number.length < 8 || number.length > 15) return send(res, 400, { error: 'Enter the full number with the country code, digits only.' });
-        if (String(body.number).trim().startsWith('0')) return send(res, 400, { error: 'Start with the country code (for example 234…), not 0.' });
+        const v = phone.check(body.number, body.country, env);
+        if (!v.ok) return send(res, 400, { error: v.error, state: v.state });
+        number = v.e164;
+        // abuse guard: one number can only be tried so often (counted by a one-way hash, the number itself is never kept)
+        if (limited('num', phone.hashOf(number, hashSecret), numberLimit, 15 * 60 * 1000)) return send(res, 429, { error: 'Too many attempts for this number. Please wait a few minutes before trying again.' });
         // the same number asking again means the person started over: stop the old attempt instead of blocking them
         for (const j of active()) if (j.number === number) stopJob(j, 'Replaced by a new attempt.');
       }
@@ -275,7 +279,7 @@ function createApp(opts = {}) {
   }, 30 * 1000);
   sweeper.unref();
 
-  return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) try { j.handle.cancel(); } catch (e) {} server.close(); } };
+  return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
 }
 
 module.exports = { createApp, dmText, dmMessages, bold };

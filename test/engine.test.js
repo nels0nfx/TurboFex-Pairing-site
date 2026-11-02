@@ -123,5 +123,38 @@ test('a refused pairing code is reported', async () => {
   engine.start('2348011112222', { onCode() {}, onFail: (m) => (fail = m) }, { method: 'code', lib, fast: true, logger: {} });
   await until(() => fail);
   restore();
-  assert.match(fail, /refused/);
+  assert.match(fail, /did not accept/);
+  assert.ok(!/400|bad-request/.test(fail), 'no internal WhatsApp error text is shown');
+});
+
+test('connection failure while asking for the code: a plain message, no internal error text', async () => {
+  const lib = fakeLib((sock) => {
+    sock.requestPairingCode = async () => { throw new Error('Connection Closed at Baileys/lib/Socket/socket.js:123'); };
+    up(sock, { qr: '2@x' });
+  });
+  let fail = null, code = null;
+  const restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', lib, fast: true, logger: {} });
+  await until(() => fail);
+  restore();
+  assert.strictEqual(code, null, 'no code is shown');
+  assert.match(fail, /Could not get a pairing code/);
+  assert.ok(!/Baileys|socket\.js|Connection Closed/.test(fail));
+});
+
+test('VERIFY_WHATSAPP: a number WhatsApp says has no account stops before any code; "could not check" does not block', async () => {
+  const mk = (answer) => fakeLib((sock) => { sock.onWhatsApp = async () => answer(); up(sock, { qr: '2@x' }); });
+  let fail = null, code = null;
+  let restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', verify: true, lib: mk(() => [{ exists: false, jid: 'x' }]), fast: true, logger: {} });
+  await until(() => fail || code); restore();
+  assert.strictEqual(code, null); assert.match(fail, /not registered on WhatsApp/);
+  fail = null; code = null; restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', verify: true, lib: mk(() => { throw new Error('not-authorized'); }), fast: true, logger: {} });
+  await until(() => fail || code); restore();
+  assert.strictEqual(fail, null, 'a failed check is not treated as "no account"'); assert.ok(code);
+  fail = null; code = null; restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', lib: mk(() => [{ exists: false }]), fast: true, logger: {} });
+  await until(() => fail || code); restore();
+  assert.ok(code && !fail, 'without VERIFY_WHATSAPP the check is not made');
 });

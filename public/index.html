@@ -105,11 +105,14 @@
         <div class="collapse" id="numwrap">
          <div class="inner">
           <label for="number">WhatsApp number</label>
-          <div class="field">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6.6 3.5h2.8l1.4 3.8-1.9 1.3a11 11 0 0 0 5.5 5.5l1.3-1.9 3.8 1.4v2.8a2 2 0 0 1-2.2 2A15.500 15.500 0 0 1 4.600 5.700a2 2 0 0 1 2-2.200z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            <input id="number" name="number" type="tel" inputmode="tel" autocomplete="tel" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="234 801 234 5678" maxlength="22" aria-describedby="numhint numerr">
+          <div class="phone" id="phone">
+            <button id="cpick" class="cpick" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Choose country">
+              <span class="cflag" id="cflag" aria-hidden="true">🌍</span><span class="cdial" id="cdial">+</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <input id="number" name="number" type="tel" inputmode="tel" autocomplete="tel-national" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="801 234 5678" maxlength="24" aria-describedby="numhint numerr">
           </div>
-          <p id="numhint" class="hint">Country code first · No + sign or leading zero.<br><span class="ex">Nigeria 234 · UK 44 · USA 1 · Ghana 233 · South Africa 27</span></p>
+          <p id="numhint" class="hint" aria-live="polite"><span id="ccount">Choose your country, then type your number without the country code.</span></p>
           <p id="numerr" class="err" role="alert" hidden></p>
          </div>
         </div>
@@ -253,6 +256,15 @@
   </div>
   <p class="copy">© <span id="yr">2026</span> TurboFex. All rights reserved.</p>
 </footer>
+<div class="sheet" id="csheet" hidden>
+  <div class="sheet-bg" id="csheet-bg"></div>
+  <div class="sheet-box" role="dialog" aria-modal="true" aria-label="Choose your country">
+    <div class="sheet-head"><b>Choose your country</b><button type="button" id="csheet-x" class="sheet-x" aria-label="Close">✕</button></div>
+    <input id="csearch" type="search" placeholder="Search country or code (e.g. Nigeria, +234)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search countries">
+    <ul id="cul" class="cul" role="listbox"></ul>
+  </div>
+</div>
+<script src="/countries.js"></script>
 <script src="/sound.js"></script>
 <script src="/app.js"></script>
 </body>
