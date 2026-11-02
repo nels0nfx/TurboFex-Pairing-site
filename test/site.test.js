@@ -285,9 +285,9 @@ test('navigation: one floating pill with logo, wordmark, theme and menu buttons;
     assert.ok(html.includes('TURBOFEX') && html.includes('/logo-gold.png'));
     const css = await (await fetch(t.base + '/style.css')).text();
     assert.ok(/\.island \{[^}]*position: fixed/.test(css));
-    assert.ok(/@keyframes run18/.test(css) && /@keyframes bloom/.test(css) && /@keyframes spark/.test(css) && /@keyframes breathe/.test(css));
+    assert.ok(!/@keyframes (run18|bloom|spark)/.test(css) && !/class="(bloom|flow|sparks)/.test(html), 'the bar has no moving light, glow or sparks');
     const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-    assert.ok(/\.flow rect, \.sparks i, \.bloom/.test(rm) && /animation: none !important/.test(rm), 'ambient animation off for reduced motion');
+    assert.ok(/animation: none !important/.test(rm), 'ambient animation off for reduced motion');
   } finally { t.close(); }
 });
 
@@ -296,7 +296,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
   try {
     const html = await (await fetch(t.base + '/')).text();
     for (const id of ['connect', 'how', 'security', 'st-server', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
-    for (const word of ['Linked devices', 'Link a device', 'Security tips', 'POWERED BY INNOVATION']) assert.ok(html.includes(word), word);
+    for (const word of ['Linked devices', 'Link a device', 'Security tips']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
     const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
     for (const u of own) assert.ok(html.includes(`href="${u}"`), 'community link ' + u);

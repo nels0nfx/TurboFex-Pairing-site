@@ -80,82 +80,37 @@ button { cursor: pointer; -webkit-user-select: none; user-select: none; }
 .island { --isl-r: 999px; position: fixed; z-index: 60; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 0; right: 0; margin: 0 auto;
   width: min(calc(100% - 2 * max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))), 760px);
   border-radius: var(--isl-r); color: #fff; isolation: isolate;
-  /* it floats: a close dark shadow, a warm gold shadow underneath and a faint gold aura */
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 18px rgba(232, 205, 140, .28), 0 14px 30px -10px rgba(201, 164, 92, .5), 0 26px 38px -16px rgba(0, 0, 0, .9);
+  /* the same clean black pill in light and dark: one thin gold outline, a soft shadow, nothing moving, no glow */
+  box-shadow: 0 12px 26px -16px rgba(11, 11, 11, .7);
   transition: border-radius .5s var(--ease-out), box-shadow .5s var(--ease-out); }
-.island.scrolled { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 22px rgba(232, 205, 140, .34), 0 18px 34px -10px rgba(201, 164, 92, .55), 0 30px 40px -16px rgba(0, 0, 0, .95); }
+.island.scrolled { box-shadow: 0 16px 30px -16px rgba(11, 11, 11, .85); }
 .island[data-state="working"], .island[data-state="ok"], .island[data-state="bad"] { --isl-r: 30px; }
 
-/* the gold edge: a metallic gradient that slowly slides along the outline, so the light changes as it goes round */
-.ring { position: absolute; inset: 0; border-radius: inherit; z-index: -2; pointer-events: none;
-  background: linear-gradient(112deg, #FFF3CF 0%, #E0BC72 11%, #8A6A2B 24%, #F2D998 37%, #B38C42 50%, #FFF0C0 62%, #C9A45C 76%, #7C5E24 88%, #FFE9B0 100%) 0 0 / 320% 100%;
-  animation: edgeflow 11s ease-in-out infinite alternate; }
-.glass { position: absolute; inset: 2px; border-radius: calc(var(--isl-r) - 2px); z-index: -1; pointer-events: none; overflow: hidden;
-  background: linear-gradient(180deg, rgba(38, 33, 24, .88), rgba(9, 9, 9, .94) 48%, rgba(3, 3, 3, .96));
-  -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
-  box-shadow: inset 0 1px 0 rgba(255, 240, 200, .35), inset 0 0 18px rgba(232, 205, 140, .22), inset 0 -12px 20px -12px rgba(201, 164, 92, .35); transition: border-radius .5s var(--ease-out); }
-/* a soft moving reflection across the glass */
-.glass::after { content: ""; position: absolute; top: -20%; bottom: -20%; left: -35%; width: 35%; transform: skewX(-20deg) translateX(0); opacity: 0;
-  background: linear-gradient(100deg, transparent, rgba(255, 240, 200, .22), rgba(255, 255, 255, .1), transparent); animation: gloss 8s ease-in-out infinite 1.500s; }
-.glass::before { content: ""; position: absolute; left: 6%; right: 6%; top: 0; height: 45%; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: linear-gradient(180deg, rgba(255, 240, 200, .13), transparent); }
-@keyframes edgeflow { from { background-position: 0 0; } to { background-position: 100% 0; } }
-@keyframes gloss { 0% { transform: skewX(-20deg) translateX(0); opacity: 0; } 8% { opacity: 1; } 42% { opacity: 1; } 50%, 100% { transform: skewX(-20deg) translateX(420%); opacity: 0; } }
+/* the outline: one thin, still gold line (the pill's border) */
+.ring { position: absolute; inset: 0; border-radius: inherit; z-index: -2; pointer-events: none; background: linear-gradient(180deg, rgba(232, 205, 140, .8), rgba(176, 142, 70, .62)); }
+.glass { position: absolute; inset: 1px; border-radius: calc(var(--isl-r) - 1px); z-index: -1; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg, #1A1710, #0B0B0B 70%); transition: border-radius .5s var(--ease-out); }
 
-/* gold bloom: two layers that swell and fade in turn, drifting a little, so the glow looks alive */
-.bloom { position: absolute; inset: -24px -30px; border-radius: 999px; z-index: -3; pointer-events: none;
-  background: radial-gradient(55% 85% at 50% 50%, rgba(232, 195, 110, .6), rgba(201, 164, 92, .0) 74%); filter: blur(12px); opacity: .45; animation: bloom 6s ease-in-out infinite; will-change: transform, opacity; }
-.bloom.b2 { inset: -18px -22px; background: radial-gradient(40% 90% at 22% 50%, rgba(255, 226, 150, .55), transparent 70%), radial-gradient(40% 90% at 80% 50%, rgba(232, 190, 100, .5), transparent 70%); animation: bloom2 8s ease-in-out infinite; opacity: .2; }
-@keyframes bloom { 0%, 100% { opacity: .38; transform: scale(.96); } 50% { opacity: .95; transform: scale(1.06); } }
-@keyframes bloom2 { 0%, 100% { opacity: .85; transform: translateX(-14px) scale(1.02); } 50% { opacity: .15; transform: translateX(14px) scale(.97); } }
-
-/* the travelling light: a bright head with a fading tail that runs round the whole outline at an even speed.
-   The rectangles are sized to the pill by a few lines of script (see app.js). */
-.flow { position: absolute; left: -9px; top: -9px; width: calc(100% + 18px); height: calc(100% + 18px); overflow: visible; pointer-events: none; z-index: 1; filter: drop-shadow(0 0 4px rgba(240, 215, 150, .85)); }
-.flow rect { fill: none; stroke-linecap: round; }
-.flow .echo { stroke: rgba(232, 205, 140, .6); stroke-width: 1; stroke-dasharray: 24 9 6 15 30 16; animation: echo 24s linear infinite, echoglow 5s ease-in-out infinite; }
-.flow .glowline { stroke: rgba(255, 226, 150, .5); stroke-width: 7; stroke-dasharray: 26 74; animation: run26 7s linear infinite; }
-.flow .tail { stroke: #F0D48A; stroke-width: 3; stroke-dasharray: 18 82; animation: run18 7s linear infinite; }
-.flow .head { stroke: #FFFBEA; stroke-width: 3.500; stroke-dasharray: 3.500 96.500; animation: run3 7s linear infinite; }
-@keyframes run26 { from { stroke-dashoffset: 26; } to { stroke-dashoffset: -74; } }
-@keyframes run18 { from { stroke-dashoffset: 18; } to { stroke-dashoffset: -82; } }
-@keyframes run3 { from { stroke-dashoffset: 3.500; } to { stroke-dashoffset: -96.500; } }
-@keyframes echo { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 100; } }
-@keyframes echoglow { 0%, 100% { opacity: .35; } 50% { opacity: .95; } }
-
-/* tiny gold sparks that drift up now and then */
-.sparks i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #FFF0C0; box-shadow: 0 0 8px 2px rgba(240, 205, 120, .9); opacity: 0; pointer-events: none; animation: spark 7s ease-in-out infinite; }
-.sparks i:nth-child(1) { left: 10%; top: -7px; animation-delay: .8s; }
-.sparks i:nth-child(2) { left: 31%; bottom: -8px; animation-delay: 3.200s; animation-duration: 8s; }
-.sparks i:nth-child(3) { left: 52%; top: -9px; animation-delay: 5.400s; animation-duration: 7.500s; width: 3px; height: 3px; }
-.sparks i:nth-child(4) { left: 70%; bottom: -7px; animation-delay: 1.900s; animation-duration: 9s; }
-.sparks i:nth-child(5) { left: 88%; top: -8px; animation-delay: 4.300s; animation-duration: 8.500s; }
-.sparks i:nth-child(6) { left: -6px; top: 40%; animation-delay: 6.600s; animation-duration: 9.500s; width: 3px; height: 3px; }
-.sparks i:nth-child(7) { right: -6px; top: 55%; animation-delay: 2.600s; animation-duration: 10s; }
-@keyframes spark { 0%, 70%, 100% { opacity: 0; transform: translate(0, 0) scale(.5); } 78% { opacity: 1; transform: translate(3px, -6px) scale(1); } 92% { opacity: .5; } 98% { opacity: 0; transform: translate(9px, -20px) scale(.6); } }
 
 .isl-main { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: var(--bar-h); padding: 8px 10px 8px 10px; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; color: #FFFFFF; border-radius: 999px; transition: transform .28s var(--ease-out), opacity .2s; }
 .brand:active { transform: scale(.97); transition-duration: .08s, .2s; }
 @media (hover: hover) { .brand:hover { opacity: .9; } }
-.logo { position: relative; flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 50% 35%, #2A2416, #0B0B0B 75%); border: 1px solid rgba(232, 205, 140, .55); animation: logoglow 4.500s ease-in-out infinite; }
-.logo::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; z-index: -1; background: radial-gradient(circle, rgba(240, 205, 120, .75), rgba(201, 164, 92, 0) 68%); opacity: .4; animation: breathe 4.500s ease-in-out infinite; }
-.logo img { display: block; width: 28px; height: auto; position: relative; filter: drop-shadow(0 0 5px rgba(255, 225, 150, .75)); }
-@keyframes breathe { 0%, 100% { opacity: .25; transform: scale(.82); } 50% { opacity: .95; transform: scale(1.18); } }
-@keyframes logoglow { 0%, 100% { box-shadow: 0 0 6px rgba(232, 205, 140, .18), inset 0 0 6px rgba(232, 205, 140, .1); } 50% { box-shadow: 0 0 18px rgba(240, 210, 130, .55), inset 0 0 12px rgba(232, 205, 140, .3); } }
+.logo { position: relative; flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: radial-gradient(circle at 50% 35%, #2A2416, #0B0B0B 75%); border: 1px solid rgba(232, 205, 140, .65); }
+.logo img { display: block; width: 28px; height: auto; position: relative; }
 .word { white-space: nowrap; font-weight: 700; font-size: 15px; letter-spacing: .2em; color: #FFFFFF; }
-.badge { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(232, 205, 140, .45); background: rgba(201, 164, 92, .1); color: #FFF3D2; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .1em; padding: 5px 11px 5px 9px; line-height: 1.2; animation: badgeglow 3.200s ease-in-out infinite; }
+.badge { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(232, 205, 140, .7); background: transparent; color: #E8CD8C; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .1em; padding: 5px 11px 5px 9px; line-height: 1.2; }
 .bdot { width: 7px; height: 7px; border-radius: 50%; background: #F2D98E; box-shadow: 0 0 10px 1px rgba(240, 210, 130, .95); animation: dot 2.200s ease-in-out infinite; }
 @keyframes dot { 0%, 100% { opacity: .55; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.15); } }
-@keyframes badgeglow { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 205, 140, 0), 0 0 6px rgba(232, 205, 140, .1); border-color: rgba(232, 205, 140, .35); } 50% { box-shadow: 0 0 0 3px rgba(232, 205, 140, .07), 0 0 14px rgba(240, 210, 130, .45); border-color: rgba(255, 232, 170, .85); } }
 .isl-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 
 /* the same gold light on every button: a bright band that slides along the edge, and a soft glow that breathes inside */
-.cta::before, .ghost::before, .ibtn::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
+.cta::before, .ghost::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
   background: linear-gradient(105deg, transparent 36%, rgba(255, 244, 210, .95) 50%, transparent 64%) 0 0 / 260% 100% no-repeat;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   animation: edge 5.500s ease-in-out infinite; }
-.ghost::before { animation-delay: 1.800s; } .ibtn::before { animation-duration: 6.500s; animation-delay: .6s; } .menubtn::before { animation-delay: 2.400s; }
-.cta::after, .ghost::after, .ibtn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: innerglow 4.200s ease-in-out infinite; }
+.ghost::before { animation-delay: 1.800s; }
+.cta::after, .ghost::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: innerglow 4.200s ease-in-out infinite; }
 .cta.busy::after { animation: sweep 1.300s ease-in-out infinite; }
 .cta:disabled::before, .ghost:disabled::before, .cta.busy::before, .cta:disabled::after, .ghost:disabled::after { animation: none; opacity: 0; }
 .ghost { position: relative; }
@@ -171,20 +126,19 @@ button { cursor: pointer; -webkit-user-select: none; user-select: none; }
 /* header: brand, tagline, Pair link */
 .isl-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .wm { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.1; }
-.tag { display: none; margin-top: 4px; font-size: 8.5px; font-weight: 500; letter-spacing: .24em; color: #E8CD8C; white-space: nowrap; }
-.vr { display: none; flex: none; width: 1px; height: 30px; background: linear-gradient(transparent, rgba(232, 205, 140, .8), transparent); }
-@media (min-width: 520px) { .tag { display: block; } .vr { display: block; } }
-a.navlink { text-decoration: none; cursor: pointer; font-size: 14px; letter-spacing: .04em; padding: 7px 15px 7px 11px; color: #FFF3D2; transition: transform .2s var(--ease-out), background-color .2s, border-color .2s; }
-a.navlink svg { color: #F2D98E; flex: none; }
+.vr { display: block; flex: none; width: 1px; height: 34px; margin: 0 2px; background: rgba(232, 205, 140, .55); }
+a.navlink { text-decoration: none; cursor: pointer; font-size: 14px; letter-spacing: .04em; padding: 7px 15px 7px 11px; color: #E8CD8C; transition: transform .2s var(--ease-out), background-color .2s, border-color .2s; }
+a.navlink svg { color: #E8CD8C; flex: none; }
 a.navlink:active { transform: scale(.94); }
 @media (hover: hover) { a.navlink:hover { background: rgba(201, 164, 92, .22); border-color: #E8CD8C; } }
 a.navlink:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; box-shadow: none; }
 
 /* round buttons */
-.ibtn { position: relative; flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; background: rgba(201, 164, 92, .06); color: #E8CD8C;
-  border: 1px solid rgba(201, 164, 92, .35); border-radius: 50%; transition: transform .22s var(--ease-out), background-color .22s, border-color .22s, box-shadow .25s; }
-.ibtn:active { transform: scale(.88); background: rgba(201, 164, 92, .22); border-color: #E8CD8C; box-shadow: 0 0 0 5px rgba(201, 164, 92, .14); transition-duration: .07s, .1s, .1s, .1s; }
-@media (hover: hover) { .ibtn:hover { background: rgba(201, 164, 92, .16); border-color: #E8CD8C; box-shadow: 0 0 0 4px rgba(201, 164, 92, .12); } }
+.ibtn { position: relative; flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; background: transparent; color: #E8CD8C;
+  border: 1px solid rgba(232, 205, 140, .7); border-radius: 50%; transition: transform .22s var(--ease-out), background-color .22s, border-color .22s; }
+.menubtn { border-color: transparent; }
+.ibtn:active { transform: scale(.9); background: rgba(201, 164, 92, .2); transition-duration: .07s, .1s, .1s; }
+@media (hover: hover) { .ibtn:hover { background: rgba(201, 164, 92, .14); } }
 .ibtn:focus-visible, .brand:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; box-shadow: none; }
 .themebtn svg { position: absolute; transition: opacity .25s ease, transform .4s var(--ease-out); }
 .themebtn .i-sun { opacity: 0; transform: rotate(-70deg) scale(.6); }
@@ -216,9 +170,6 @@ a.navlink:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; box-s
 .island[data-state="ok"] .stat { color: #FFFFFF; }
 .island[data-state="bad"] .stat { color: #F6D2CC; }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
-/* the glow picks up the state */
-.island[data-state="working"] .bloom { opacity: .65; animation-duration: 3.200s; }
-.island[data-state="bad"] .bloom { background: radial-gradient(60% 90% at 50% 50%, rgba(214, 120, 105, .3), rgba(214, 120, 105, 0) 72%); animation: none; opacity: .5; }
 
 /* menu panel */
 .menu { position: absolute; top: calc(100% + 10px); right: 0; width: min(260px, 100%); padding: 8px; border-radius: 22px; z-index: 5;
@@ -537,35 +488,7 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
   .panel { padding: 26px 26px; }
 }
 /* ---------- light theme for the floating bar, hero and the black "ticket" boxes (everything follows the chosen theme) ---------- */
-/* light bar: clean and still - an ivory pill with one thin gold outline, a soft shadow, a dark logo tile and thin gold rings on the buttons.
-   No travelling light, glow, sparks, glass shine or blur (those belong to the dark bar). */
-[data-theme="light"] .island, [data-theme="light"] .island.scrolled { color: #14110B; box-shadow: 0 12px 26px -16px rgba(138, 106, 43, .38), 0 2px 6px -2px rgba(138, 106, 43, .18); }
-[data-theme="light"] .island.scrolled { box-shadow: 0 16px 30px -16px rgba(138, 106, 43, .5), 0 2px 6px -2px rgba(138, 106, 43, .22); }
-[data-theme="light"] .ring { animation: none; background: linear-gradient(180deg, #DCC48C, #BE9A52); }
-[data-theme="light"] .glass { inset: 1.5px; background: linear-gradient(180deg, #FFFDF8, #FBF4E6); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-[data-theme="light"] .glass::before, [data-theme="light"] .glass::after, [data-theme="light"] .bloom, [data-theme="light"] .flow, [data-theme="light"] .sparks { display: none; }
-[data-theme="light"] .logo { animation: none; box-shadow: none; }
-[data-theme="light"] .logo::before { display: none; }
-[data-theme="light"] .logo img { filter: none; }
-[data-theme="light"] .brand, [data-theme="light"] .word { color: #14110B; }
-[data-theme="light"] .tag { color: #8A6A2B; }
-[data-theme="light"] .vr { background: linear-gradient(transparent, rgba(154, 122, 50, .7), transparent); }
-[data-theme="light"] .badge, [data-theme="light"] a.navlink { color: #4A3811; background: transparent; border-color: rgba(168, 134, 62, .7); animation: none; box-shadow: none; }
-[data-theme="light"] a.navlink svg { color: #8A6A2B; }
-[data-theme="light"] .bdot { background: #B8892F; box-shadow: 0 0 8px rgba(184, 137, 47, .8); }
-[data-theme="light"] .ibtn { color: #8A6A2B; background: transparent; border-color: rgba(168, 134, 62, .7); }
-[data-theme="light"] .ibtn:active { background: rgba(201, 164, 92, .3); border-color: #9A7A32; }
-[data-theme="light"] .ibtn:focus-visible, [data-theme="light"] .brand:focus-visible, [data-theme="light"] a.navlink:focus-visible { outline-color: #14110B; }
-@media (hover: hover) { [data-theme="light"] .ibtn:hover, [data-theme="light"] a.navlink:hover { background: rgba(201, 164, 92, .26); border-color: #9A7A32; } }
-[data-theme="light"] .ghost::before, [data-theme="light"] .ibtn::before { background-image: linear-gradient(105deg, transparent 36%, rgba(154, 106, 30, .95) 50%, transparent 64%); }
-[data-theme="light"] .stat { color: #3A2F14; }
-[data-theme="light"] .island[data-state="ok"] .stat { color: #14110B; }
-[data-theme="light"] .island[data-state="bad"] .stat { color: #8A3128; }
-[data-theme="light"] .pulse i { background: #B8892F; }
-[data-theme="light"] .pulse i + i { background: transparent; border-color: #B8892F; }
-[data-theme="light"] .pulse i:first-child { box-shadow: 0 0 10px rgba(184, 137, 47, .8); }
-[data-theme="light"] .island[data-state="ok"] .s-ok { color: #8A6A2B; }
-[data-theme="light"] .island[data-state="bad"] .s-bad { color: #C0554A; }
+[data-theme="light"] .ghost::before { background-image: linear-gradient(105deg, transparent 36%, rgba(154, 106, 30, .95) 50%, transparent 64%); }
 [data-theme="light"] .menu { background: linear-gradient(180deg, rgba(255, 254, 250, .98), rgba(246, 240, 224, .98)); border-color: rgba(154, 122, 50, .5);
   box-shadow: 0 18px 38px -12px rgba(60, 44, 12, .35), 0 0 0 1px rgba(255, 255, 255, .6), 0 0 24px -6px rgba(201, 164, 92, .3); }
 [data-theme="light"] .mi { color: #14110B; }
@@ -588,21 +511,15 @@ html.theming *, html.theming *::before, html.theming *::after { transition: opac
 @media (prefers-reduced-motion: reduce) {
   html.theming *, html.theming *::before, html.theming *::after { transition: none !important; }
   .sdot { animation: none !important; }
-  .ring, .glass::after, .flow rect, .sparks i, .bloom, .logo, .logo::before, .badge, .bdot, .pulse i, .cta::before, .cta::after, .ghost::before, .ghost::after, .ibtn::before, .ibtn::after { animation: none !important; }
-  .flow .tail, .flow .head, .flow .glowline, .sparks i, .glass::after, .cta::before, .ghost::before, .ibtn::before { opacity: 0 !important; }
-  .bloom { opacity: .5; }
-  .bloom.b2 { opacity: .3; }
-  .logo::before { opacity: .45; }
+  .bdot, .pulse i, .cta::before, .cta::after, .ghost::before, .ghost::after { animation: none !important; }
+  .cta::before, .ghost::before { opacity: 0 !important; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
   .cta:active, .ghost:active, .tab:active, .link:active, .brand:active, .sid[role="button"]:active { transform: none; }
   .spin { animation-duration: 1.6s !important; animation-iteration-count: infinite !important; }
 }
 
 /* lighter page for low-end phones (class "lite" is set in theme.js): the island keeps working, only the decorative glow is simplified */
-html.lite .bloom, html.lite .sparks { display: none; }
-html.lite .ring, html.lite .glass::after { animation: none !important; }
 html.lite .glass, html.lite .menu, html.lite .island, html.lite .card, html.lite .panel { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-html.lite .island, html.lite .island.scrolled { box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 8px 16px -8px rgba(0, 0, 0, .55); }
 html.lite .panel, html.lite .card, html.lite .statusbar { box-shadow: none; }
 
 /* the ID was used by the bot: a clear success message, the setup steps and the warning are no longer needed */
@@ -618,12 +535,7 @@ html.lite .panel, html.lite .card, html.lite .statusbar { box-shadow: none; }
 .island { transform: translateZ(0); backface-visibility: hidden; }
 .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
 html.scrolling .island *, html.scrolling .island *::before, html.scrolling .island *::after { animation-play-state: paused !important; }
-html.android .bloom { filter: none; }
-html.android .flow { filter: none; }
-html.android .flow .echo, html.android .flow .glowline { animation: none; }
-html.android .logo, html.android .badge, html.android .island .logo::before { animation: none; }
-html.android .sparks i:nth-child(n+4) { display: none; }
-html.android[data-theme] .island, html.android[data-theme] .island.scrolled { transition: border-radius .5s var(--ease-out); box-shadow: 0 0 0 1px rgba(154, 122, 50, .5), 0 10px 20px -10px rgba(201, 164, 92, .5), 0 14px 22px -14px rgba(0, 0, 0, .7) !important; }
+html.android .island { transition: border-radius .5s var(--ease-out); }
 
 /* the "Choose connection method" card: tighter, so it is not so tall (only this first card; the next steps keep their size) */
 #step-number { padding: 20px 18px 16px; }
