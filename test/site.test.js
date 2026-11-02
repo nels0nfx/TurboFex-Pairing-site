@@ -353,3 +353,22 @@ test('v2.13: no status bar, music file served with byte ranges', async () => {
     assert.equal(bad.status, 416);
   } finally { app.close(); }
 });
+
+test('v2.14: About and Terms pages are served and linked', async () => {
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  await new Promise((r) => app.server.listen(0, r));
+  const base = `http://127.0.0.1:${app.server.address().port}`;
+  try {
+    for (const [u, word] of [['/about', 'About'], ['/terms', 'Terms and']]) {
+      const r = await fetch(base + u); const h = await r.text();
+      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js'));
+      assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), 'no inline script or style (CSP)');
+    }
+    assert.equal((await fetch(base + '/about.html')).status, 200);
+    assert.equal((await fetch(base + '/page.js')).status, 200);
+    const home = await (await fetch(base + '/')).text();
+    for (const id of ['m-about', 'm-terms']) assert.ok(home.includes(`id="${id}"`));
+    assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));
+  } finally { app.close(); }
+});
+

@@ -112,3 +112,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `server.js` serves `.m4a` with byte-range support (`sendAudio`): iPhone Safari refuses to play audio without 206 answers. Cached 1 day.
 - Lesson: unit tests do not run app.js; a syntax slip there only shows in a browser test (run `v213.js`-style Playwright checks).
 - Version history add: **v2.13.0** digit limit + status bar removed + background music.
+
+## 11. v2.14.0 - About and Terms pages
+- `public/about.html` and `public/terms.html` (clean addresses `/about` and `/terms` via the `PAGES` map in `server.js`), small shared script `public/page.js` (theme button + year; theme itself comes from `theme.js`). Styles are at the end of `style.css` (`.docpage`, `.dbar`, `.doc`, `.docsec`). No inline scripts/styles (CSP).
+- Linked from the footer (About, Terms) and the menu (`#m-about`, `#m-terms`).
+- The wording only states what the site really does; if the security model changes (expiry, storage, number handling) UPDATE both pages. Not lawyer-reviewed; no company name, address or country law was invented.
+- Version history add: **v2.14.0** About + Terms pages.

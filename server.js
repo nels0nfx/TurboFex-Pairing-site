@@ -261,7 +261,8 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const name = p === '/' ? 'index.html' : p.slice(1);
+      const PAGES = { '/about': 'about.html', '/terms': 'terms.html' }; // clean addresses for the two text pages
+      const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)]) {
         try {
           const buf = fs.readFileSync(path.join(PUBLIC, name));
