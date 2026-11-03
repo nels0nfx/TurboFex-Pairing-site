@@ -123,3 +123,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 12. v2.15.0 - Privacy Policy
 - `public/privacy.html` at `/privacy` (same plain-text style as About/Terms, NO boxes). Linked from footer, menu (`#m-privacy`), About, Terms. Every statement must stay true: if what the site stores, logs or sends changes, update the Privacy Policy, Terms section 5 and About together. Not lawyer-reviewed.
 - Version history add: **v2.15.0** Privacy Policy.
+
+## 13. v2.15.1 - music on every page
+- Music code moved out of `app.js` into `public/music.js`, loaded by index, about, terms and privacy. The position in the loop is kept in sessionStorage (`tfx-music-pos`) so the next page continues from the same spot. Menu item `#m-music` on home, round button `#d-music` on the text pages. Strict browsers (iPhone Safari) need one tap per new page before sound; the only full fix would be loading pages without a full reload (not done).
+- Version history add: **v2.15.1** music on all pages.

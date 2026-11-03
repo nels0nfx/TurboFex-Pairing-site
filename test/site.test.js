@@ -361,11 +361,11 @@ test('v2.14: About and Terms pages are served and linked', async () => {
   try {
     for (const [u, word] of [['/about', 'About'], ['/terms', 'Terms and'], ['/privacy', 'Privacy']]) {
       const r = await fetch(base + u); const h = await r.text();
-      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js'));
+      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js') && h.includes('/music.js') && h.includes('id="d-music"'), 'music on every page');
       assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), 'no inline script or style (CSP)');
     }
     assert.equal((await fetch(base + '/about.html')).status, 200);
-    assert.equal((await fetch(base + '/page.js')).status, 200);
+    assert.equal((await fetch(base + '/page.js')).status, 200); assert.equal((await fetch(base + '/music.js')).status, 200);
     const home = await (await fetch(base + '/')).text();
     for (const id of ['m-about', 'm-terms', 'm-privacy']) assert.ok(home.includes(`id="${id}"`));
     assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));
