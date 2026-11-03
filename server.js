@@ -164,7 +164,7 @@ function createApp(opts = {}) {
         job.code = null;
         done();
       },
-    }, { method, verify: String(env.VERIFY_WHATSAPP || '') === '1' });
+    }, { method, verify: String(env.VERIFY_WHATSAPP || '') === '1', customCode: String(env.CUSTOM_CODE || '') !== '0' });
     job.timer = setTimeout(() => {
       if (job.state === 'linked' || job.state === 'failed') return;
       stopJob(job, 'Time ran out. Start again.' + (job.method === 'code' ? ' Enter the code quickly.' : ''));

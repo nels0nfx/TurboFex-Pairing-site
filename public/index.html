@@ -207,35 +207,63 @@
     <span class="faq-line l" aria-hidden="true"></span>
     <div class="faq-t">
       <h2><svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><path d="M5 5h22a1.500 1.500 0 0 1 1.500 1.500v14A1.500 1.500 0 0 1 27 22h-9l-7 6v-6H5a1.500 1.500 0 0 1-1.500-1.500v-14A1.500 1.500 0 0 1 5 5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 11.500c0-1.200 1-2 2.200-2s2.100.8 2.100 1.800c0 1.600-2 1.500-2 3" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"/><circle cx="12.300" cy="16.800" r="1" fill="currentColor"/><path d="M18 12.500h2.500M22.500 12.500H24" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"/></svg><span>FAQ</span></h2>
-      <p>Get started with TurboFex below</p>
+      <p>Quick answers about linking</p>
     </div>
     <span class="faq-line r" aria-hidden="true"></span>
   </div>
-  <section class="info-grid" id="info-slider" aria-label="How to connect and security tips" tabindex="-1">
-    <article class="panel" id="how">
-      <h3><span class="num"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 9.500a13 13 0 0 1 18 0M6 13a8.500 8.500 0 0 1 12 0M9 16.400a4 4 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="1.900" stroke-linecap="round"/><circle cx="12" cy="19.500" r="1.400" fill="currentColor"/></svg></span>How to connect</h3>
-      <ol class="how">
-        <li><span class="n">1</span><span>Open <b>WhatsApp</b> on your phone.</span></li>
-        <li><span class="n">2</span><span>Go to <b>Linked devices</b>. <em>Android: tap the ⋮ menu. iPhone: open Settings.</em></span></li>
-        <li><span class="n">3</span><span>Tap <b>Link a device</b>.</span></li>
-        <li><span class="n">4</span><span>Choose <b>Link with phone number instead</b>, or scan the QR code shown here.</span></li>
-        <li><span class="n">5</span><span>Enter the pairing code (or finish scanning) and wait for <b>Linked successfully</b>.</span></li>
-      </ol>
-    </article>
-    <article class="panel" id="security">
-      <h3><span class="num"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>Security tips</h3>
-      <ul class="checks">
-        <li>Never share your pairing code or session ID.</li>
-        <li>Only pair on this official TurboFex site.</li>
-        <li>Keep your WhatsApp secure: in Linked devices, remove any device you don't recognise.</li>
-      </ul>
-      <p class="about"><b>What does pairing do?</b> It links your WhatsApp to your TurboFex bot as a linked device, the same way WhatsApp Web works. You can unlink it any time from Linked devices in WhatsApp.</p>
-    </article>
+  <section class="faqlist" id="faq-list" aria-label="Frequently asked questions">
+    <details class="qa" open>
+      <summary>How do I link my WhatsApp?</summary>
+      <div class="ans">
+        <ol>
+          <li>Open <b>WhatsApp</b> on your phone.</li>
+          <li>Go to <b>Linked devices</b>. On Android tap the ⋮ menu, on iPhone open Settings.</li>
+          <li>Tap <b>Link a device</b>.</li>
+          <li>Choose <b>Link with phone number instead</b>, or scan the QR code shown here.</li>
+          <li>Enter the pairing code (or finish scanning) and wait for <b>Linked successfully</b>.</li>
+        </ol>
+      </div>
+    </details>
+    <details class="qa">
+      <summary>Pairing code or QR code, which one?</summary>
+      <div class="ans"><p>The pairing code is easiest when WhatsApp and this page are on the same phone. The QR code is best when you open this page on a computer or another screen and scan it with your phone. If one does not work, try the other.</p></div>
+    </details>
+    <details class="qa">
+      <summary>Which number do I enter?</summary>
+      <div class="ans"><p>The number of the WhatsApp account you want to link. Choose your country, then type the number without the country code. The page counts the digits for you and will not accept more than your country allows.</p></div>
+    </details>
+    <details class="qa">
+      <summary>What is the session ID?</summary>
+      <div class="ans"><p>A one-time ID that looks like <b>TFX-XXXX-XXXX-XXXX</b>. It is shown here and also sent to your WhatsApp chat. Give it to the TurboFex bot. It works once and expires after 5 minutes.</p></div>
+    </details>
+    <details class="qa">
+      <summary>What does pairing do?</summary>
+      <div class="ans"><p>It links your WhatsApp to your TurboFex bot as a linked device, the same way WhatsApp Web works. You can unlink it any time from Linked devices in WhatsApp.</p></div>
+    </details>
+    <details class="qa">
+      <summary>Is it safe?</summary>
+      <div class="ans">
+        <ul>
+          <li>Never share your pairing code or session ID with anyone.</li>
+          <li>Only pair on this official TurboFex site.</li>
+          <li>In Linked devices, remove any device you do not recognise.</li>
+          <li>Your session is stored encrypted and removed after the ID is used or after 5 minutes. Read the <a href="/privacy">Privacy Policy</a>.</li>
+        </ul>
+      </div>
+    </details>
+    <details class="qa">
+      <summary>WhatsApp says “Couldn’t link device” or the code does not work</summary>
+      <div class="ans"><p>Check that the number and country are right, then tap <b>Try again</b> for a fresh code. Wait a few minutes if WhatsApp says it is limiting requests. If it still fails, switch to the QR code.</p></div>
+    </details>
+    <details class="qa">
+      <summary>Do I need to keep this page open?</summary>
+      <div class="ans"><p>Yes, until you see your session ID. If you refresh by mistake, the page takes you back to your unfinished attempt.</p></div>
+    </details>
+    <details class="qa">
+      <summary>How do I unlink the bot?</summary>
+      <div class="ans"><p>Open WhatsApp, go to Linked devices, tap the TurboFex device and log out. The bot loses access right away.</p></div>
+    </details>
   </section>
-  <div class="dots" id="info-dots" role="group" aria-label="Choose a section">
-    <button type="button" class="dot on" data-i="0" aria-label="How to connect" aria-current="true"></button>
-    <button type="button" class="dot" data-i="1" aria-label="Security tips"></button>
-  </div>
 </main>
 
 <footer>
@@ -244,7 +272,7 @@
       <span class="logo sm"><img src="/logo-gold.png" alt="" width="26" height="18"></span>
       <div><b>TURBOFEX</b><small>More power. More possibilities.</small></div>
     </div>
-    <nav class="foot-links" aria-label="Footer"><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Help</a><a href="#security">Security</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
+    <nav class="foot-links" aria-label="Footer"><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Help</a><a href="#faq">FAQ</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
   </div>
   <div class="community">
     <span class="c-h">Join our community</span>

@@ -127,3 +127,12 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 13. v2.15.1 - music on every page
 - Music code moved out of `app.js` into `public/music.js`, loaded by index, about, terms and privacy. The position in the loop is kept in sessionStorage (`tfx-music-pos`) so the next page continues from the same spot. Menu item `#m-music` on home, round button `#d-music` on the text pages. Strict browsers (iPhone Safari) need one tap per new page before sound; the only full fix would be loading pages without a full reload (not done).
 - Version history add: **v2.15.1** music on all pages.
+
+## 14. v2.16.0 - custom pairing code
+- `engine.js` `makeCustomCode()` = `TFX` + 5 random characters from `23456789ABCDEFGHJKMNPQRSTVWXYZ` (WhatsApp-style alphabet, no 0/1/I/L/O/U), passed as the 2nd argument of `requestPairingCode(number, code)`. If the call throws, or WhatsApp answers with an IQ error, ONE normal code is asked for instead (the refusal is forgotten first). The log says `code shown (TurboFex code)` or `(normal code)`. Switch off with env `CUSTOM_CODE=0` (server passes `customCode`). NOT verified against real WhatsApp / Baileys 7.0.0-rc14 (docs only confirm the option in a Baileys fork). Keep the code random: it must stay as hard to guess as a normal one.
+- Version history add: **v2.16.0** custom pairing code.
+
+## 15. v2.17.0 - FAQ list, theme follows the phone
+- The owner REMOVED the two boxes How to connect / Security tips (and the slider + dots). Do not bring them back. The FAQ is `section.faqlist` with `<details class="qa">` items, plain with thin lines only (no cards/boxes). The how-to-link and security content lives inside the FAQ answers; footer link `#faq`.
+- `theme.js`: saved choice (`tfx-theme`, only written by the sun/moon button) wins; otherwise `prefers-color-scheme` decides, and a live change of the phone setting is followed (event `tfx-theme` re-syncs the toggle). DEFAULT dark only if the browser cannot say.
+- Version history add: **v2.17.0** FAQ list + system theme (includes v2.16.0 custom code).

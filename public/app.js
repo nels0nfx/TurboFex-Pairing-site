@@ -36,6 +36,7 @@
     artReady().then(apply);                              // the new hero picture is decoded first, so it can never pop in late
   });
   syncTheme();
+  window.addEventListener('tfx-theme', syncTheme);   // the phone's own light/dark setting changed
 
   // floating navigation: a deeper shadow once the page has scrolled, and the menu closes when you scroll
   var bar = $('island'), ticking = false, scrollT = 0;
@@ -538,19 +539,6 @@
       toConnect(false); var y0 = window.pageYOffset;
       window.addEventListener('load', function () { if (Math.abs(window.pageYOffset - y0) < 4) toConnect(false); });
     } else if (!location.hash) window.scrollTo(0, 0);   // nothing unfinished: opening or refreshing starts at the top
-  })();
-
-  // the How to connect / Security tips slider: dots follow the swipe and can be tapped
-  (function () {
-    var sl = $('info-slider'), dots = $('info-dots');
-    if (!sl || !dots) return;
-    var btns = [].slice.call(dots.querySelectorAll('.dot')), cur = 0;
-    function mark(i) { cur = i; btns.forEach(function (b, k) { b.classList.toggle('on', k === i); if (k === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
-    function where() { var cards = sl.children, best = 0, d = 1e9; for (var k = 0; k < cards.length; k++) { var x = Math.abs(cards[k].offsetLeft - sl.scrollLeft - cards[0].offsetLeft); if (x < d) { d = x; best = k; } } return best; }
-    var t = 0;
-    sl.addEventListener('scroll', function () { if (t) return; t = requestAnimationFrame(function () { t = 0; var i = where(); if (i !== cur) mark(i); }); }, { passive: true });
-    btns.forEach(function (b, k) { b.addEventListener('click', function () { snd('tab'); var c = sl.children[k]; sl.scrollTo({ left: c.offsetLeft - sl.children[0].offsetLeft, behavior: reduced ? 'auto' : 'smooth' }); mark(k); }); });
-    sl.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var k = Math.max(0, Math.min(1, cur + (e.key === 'ArrowRight' ? 1 : -1))); btns[k].click(); } });
   })();
 
   $('yr').textContent = new Date().getFullYear();

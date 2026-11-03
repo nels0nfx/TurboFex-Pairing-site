@@ -14,5 +14,6 @@
     try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
     sync();
   });
+  window.addEventListener('tfx-theme', sync);
   sync();
 })();

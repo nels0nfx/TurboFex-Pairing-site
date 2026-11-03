@@ -295,8 +295,8 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
   const t = await boot();
   try {
     const html = await (await fetch(t.base + '/')).text();
-    for (const id of ['connect', 'how', 'security', 'm-sound', 'm-music']) assert.ok(html.includes(`id="${id}"`), id);
-    for (const word of ['Linked devices', 'Link a device', 'Security tips']) assert.ok(html.includes(word), word);
+    for (const id of ['connect', 'faq', 'faq-list', 'm-sound', 'm-music']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const word of ['Linked devices', 'Link a device', 'Never share your pairing code']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
     const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
     for (const u of own) assert.ok(html.includes(`href="${u}"`), 'community link ' + u);
@@ -327,12 +327,13 @@ test('hero has no feature badges and the hero picture has no frame', () => {
   assert.ok(!/border|box-shadow|overflow: hidden/.test(rule), 'no box around the picture');
 });
 
-test('refresh stays at the top; FAQ cards are a one-per-screen slider; no circle mask on the hero', () => {
+test('refresh stays at the top; the FAQ is plain open/close questions (no cards, no slider); no circle mask on the hero', () => {
   const fs = require('fs'), path = require('path');
   const js = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
   const css = fs.readFileSync(path.join(__dirname, '../public/style.css'), 'utf8');
   assert.ok(/window\.scrollTo\(0, 0\)/.test(js) && !/if \(!location\.hash\) \{\s*toConnect/.test(js));
-  assert.ok(/\.info-grid > \.panel \{ flex: 0 0 100%/.test(css) && /scroll-snap-type: x mandatory/.test(css));
+  assert.ok(!/info-grid|info-slider|info-dots/.test(css + js), 'the two-card slider is gone');
+  assert.ok(/\.qa \{ border-bottom/.test(css) && !/\.qa \{[^}]*(background|box-shadow|border-radius)/.test(css), 'FAQ items have no box');
   assert.ok(!/radial-gradient\(ellipse closest-side/.test(css));
 });
 
@@ -370,5 +371,19 @@ test('v2.14: About and Terms pages are served and linked', async () => {
     for (const id of ['m-about', 'm-terms', 'm-privacy']) assert.ok(home.includes(`id="${id}"`));
     assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));
   } finally { app.close(); }
+});
+
+test('v2.17: the FAQ replaces How to connect + Security tips and covers both; the theme follows the phone', async () => {
+  const fs2 = require('fs');
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  await new Promise((r) => app.server.listen(0, r));
+  try {
+    const html = await (await fetch(`http://127.0.0.1:${app.server.address().port}/`)).text();
+    assert.ok(!html.includes('id="how"') && !html.includes('id="security"') && !html.includes('Security tips') && !html.includes('href="#security"'));
+    assert.ok((html.match(/<details class="qa"/g) || []).length >= 8);
+    for (const w of ['Linked devices', 'Link a device', 'Never share your pairing code', 'session ID', 'Try again']) assert.ok(html.includes(w), w);
+  } finally { app.close(); }
+  const th = fs2.readFileSync(path.join(__dirname, '../public/theme.js'), 'utf8');
+  assert.ok(/prefers-color-scheme: dark/.test(th) && /addEventListener\('change'/.test(th), 'follows the phone setting, also live');
 });
 

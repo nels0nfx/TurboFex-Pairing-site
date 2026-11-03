@@ -158,3 +158,53 @@ test('VERIFY_WHATSAPP: a number WhatsApp says has no account stops before any co
   await until(() => fail || code); restore();
   assert.ok(code && !fail, 'without VERIFY_WHATSAPP the check is not made');
 });
+
+test('custom pairing code: TFX + 5 random characters is asked for first; the shown code is what the library returned', async () => {
+  const asked = [];
+  const lib = fakeLib((sock) => {
+    sock.requestPairingCode = async (n, c) => { asked.push(c); return c || 'ABCDEFGH'; };
+    up(sock, { qr: '2@x' });
+  });
+  let code = null, fail = null;
+  const restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', lib, fast: true, logger: {} });
+  await until(() => code || fail); restore();
+  assert.strictEqual(fail, null);
+  assert.match(asked[0], /^TFX[2-9A-HJKMNP-TV-Z]{5}$/);
+  assert.strictEqual(code, asked[0].slice(0, 4) + '-' + asked[0].slice(4));
+  const set = new Set(Array.from({ length: 200 }, () => engine.makeCustomCode()));
+  assert.ok(set.size > 190, 'the 5 characters are random');
+});
+
+test('custom pairing code: the library throws or WhatsApp refuses it -> one normal code is asked for, the visitor sees no error', async () => {
+  for (const mode of ['throws', 'refused']) {
+    const asked = [];
+    const lib = fakeLib((sock) => {
+      sock.requestPairingCode = async (n, c) => {
+        asked.push(c);
+        if (c && mode === 'throws') throw new Error('Custom pairing code must be 8 characters');
+        if (c && mode === 'refused') sock.ws.emit('CB:iq,type:error', { content: [{ tag: 'error', attrs: { code: '400', text: 'bad-request' } }] });
+        return c ? 'WXYZ1234' : 'NORMAL12';
+      };
+      up(sock, { qr: '2@x' });
+    });
+    let code = null, fail = null;
+    const restore = quiet();
+    engine.start('2348011112222', { onCode: (c) => (code = c), onFail: (m) => (fail = m) }, { method: 'code', lib, fast: true, logger: {} });
+    await until(() => code || fail, 6000); restore();
+    assert.strictEqual(fail, null, mode);
+    assert.strictEqual(code, 'NORM-AL12', mode);
+    assert.strictEqual(asked.length, 2, mode);
+    assert.strictEqual(asked[1], undefined, 'the second request is a normal one');
+  }
+});
+
+test('custom pairing code can be switched off (customCode: false)', async () => {
+  const asked = [];
+  const lib = fakeLib((sock) => { sock.requestPairingCode = async (n, c) => { asked.push(c); return 'ABCDEFGH'; }; up(sock, { qr: '2@x' }); });
+  let code = null;
+  const restore = quiet();
+  engine.start('2348011112222', { onCode: (c) => (code = c), onFail() {} }, { method: 'code', customCode: false, lib, fast: true, logger: {} });
+  await until(() => code); restore();
+  assert.deepStrictEqual(asked, [undefined]);
+});

@@ -6,6 +6,15 @@ const os = require('os');
 const path = require('path');
 const pairfix = require('./pairfix'); // WhatsApp's new step after a QR scan ("Couldn't link device" without it)
 
+// A pairing code is 8 characters. Ours is "TFX" + 5 random ones, taken from the letters/numbers WhatsApp's own codes use
+// (no 0, 1, I, L, O, U), so it cannot be guessed more easily than a normal one in the few minutes it lives.
+const CODE_CHARS = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+function makeCustomCode() {
+  let c = 'TFX';
+  for (let i = 0; i < 5; i++) c += CODE_CHARS[require('crypto').randomInt(CODE_CHARS.length)];
+  return c;
+}
+
 let libPromise = null;
 function loadLib() {
   if (!libPromise) {
@@ -238,14 +247,31 @@ function start(number, hooks, opts = {}) {
                 log('number check failed:', err.message);
               }
             }
-            const raw = await s.requestPairingCode(number);
+            // our own code (TFX + 5 random characters). If the library or WhatsApp does not accept it, one normal code is asked for instead,
+            // so the visitor never sees an error because of the custom code.
+            let custom = opts.customCode !== false, raw, t0b = Date.now();
+            try {
+              raw = custom ? await s.requestPairingCode(number, makeCustomCode()) : await s.requestPairingCode(number);
+            } catch (err) {
+              if (!custom) throw err;
+              log('custom code not accepted, asking for a normal one:', err.message);
+              custom = false; t0b = Date.now();
+              raw = await s.requestPairingCode(number);
+            }
             await nap(2500); // WhatsApp's refusal, if any, arrives a moment later
             if (finished) return;
-            if (lastIqError && lastIqError.at >= t0 - 500) {
+            if (custom && lastIqError && lastIqError.at >= t0b - 500) {
+              log('custom code refused', lastIqError.code, lastIqError.text, '- asking for a normal one');
+              custom = false; lastIqError = null; t0b = Date.now(); // forget the refusal of our own code
+              raw = await s.requestPairingCode(number);
+              await nap(2500);
+              if (finished) return;
+            }
+            if (lastIqError && lastIqError.at >= t0b - 500) {
               log('code refused', lastIqError.code, lastIqError.text);   // the details stay in the server log only
               return finish(hooks.onFail, lastIqError.code === '429' || lastIqError.code === 429 ? 'WhatsApp is limiting pairing requests right now. Please wait a few minutes and try again.' : 'WhatsApp did not accept this number for pairing. Check the number and try again.');
             }
-            log('code shown');
+            log('code shown', custom ? '(TurboFex code)' : '(normal code)');
             hooks.onCode(String(raw).match(/.{1,4}/g).join('-'));
           } catch (err) {
             log('no code:', err.message);                    // the details stay in the server log only
@@ -281,4 +307,4 @@ function start(number, hooks, opts = {}) {
   return { cancel: () => finish(null) };
 }
 
-module.exports = { start, sendDm, dressCard, resolveVersion, _resetVersion: () => { versionCache = null; } };
+module.exports = { makeCustomCode, start, sendDm, dressCard, resolveVersion, _resetVersion: () => { versionCache = null; } };

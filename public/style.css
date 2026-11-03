@@ -386,20 +386,6 @@ footer p { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
 footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 
 /* how-to, security, status */
-.info-grid { display: grid; gap: 14px; margin: 24px auto 0; }
-.panel { background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-card); padding: 20px 18px; box-shadow: var(--card-shadow); scroll-margin-top: 100px; }
-.panel h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-family: var(--serif); font-size: 19px; line-height: 1.2; }
-.num { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold-text); }
-.how { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-.how li { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 11px; font-size: 15px; line-height: 1.5; }
-.how li:last-child { margin-bottom: 0; }
-.how .n { flex: none; width: 24px; height: 24px; margin-top: 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold-text); font-size: 13px; font-weight: 700; }
-.how em { display: block; font-style: normal; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
-.checks { list-style: none; margin: 0; padding: 0; }
-.checks li { position: relative; padding: 0 0 0 28px; margin: 0 0 11px; font-size: 15px; line-height: 1.5; }
-.checks li::before { content: ""; position: absolute; left: 3px; top: .38em; width: 14px; height: 8px; border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(-45deg) scale(.9); }
-.about { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.55; }
-.about b { color: var(--gold-text); }
 
 @media (max-width: 420px) {
   .card { padding: 24px 18px 22px; }
@@ -445,29 +431,9 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 .faq-t h2 { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; color: var(--gold-text); font-family: var(--serif); font-size: 32px; line-height: 1; letter-spacing: .02em; }
 .faq-t h2 svg { flex: none; }
 .faq-t p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
-/* phones: How to connect and Security tips are a swipe slider - one card fills the width of the screen, both cards have the same size */
-@media (max-width: 699.98px) {
-  .info-grid { display: flex; align-items: stretch; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px; margin: 0; padding: 4px 2px 10px; }
-  .info-grid::-webkit-scrollbar { display: none; }
-  .info-grid > .panel { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: center; scroll-snap-stop: always; padding: 20px 18px; }
-  .info-grid .panel h3 { font-size: 19px; gap: 10px; margin-bottom: 14px; }
-  .info-grid .how li { margin-bottom: 11px; }
-  .info-grid .how li, .info-grid .checks li { font-size: 15.5px; line-height: 1.45; gap: 10px; }
-  .info-grid .how em { font-size: 13.5px; }
-  .info-grid .about { font-size: 14px; line-height: 1.55; }
-  #info-dots { display: flex; }
-}
-.dots { display: flex; justify-content: center; gap: 4px; margin: 0 0 18px; }
-.dot { appearance: none; border: 0; background: none; padding: 10px 6px; cursor: pointer; position: relative; }
-.dot::before { content: ""; display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--line); border: 1px solid var(--card-border); transition: width .3s var(--ease-out), background .3s, border-color .3s; }
-.dot.on::before { width: 24px; background: var(--gold); border-color: var(--gold); }
-.dot:focus-visible { outline: 2px solid var(--gold); outline-offset: 0; border-radius: 8px; }
-@media (min-width: 700px) { .dots { display: none; } }
 @media (min-width: 700px) {
   main { padding-top: 40px; }
   .card { padding: 34px 34px 30px; }
-  .info-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
-  .panel { padding: 26px 26px; }
 }
 /* ---------- light theme for the floating bar, hero and the black "ticket" boxes (everything follows the chosen theme) ---------- */
 [data-theme="light"] .ghost::before { background-image: linear-gradient(105deg, transparent 36%, rgba(154, 106, 30, .95) 50%, transparent 64%); }
@@ -499,8 +465,8 @@ footer p.copy { font-size: 13px; margin-top: 6px; opacity: .85; }
 }
 
 /* lighter page for low-end phones (class "lite" is set in theme.js): the island keeps working, only the decorative glow is simplified */
-html.lite .glass, html.lite .menu, html.lite .island, html.lite .card, html.lite .panel { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-html.lite .panel, html.lite .card { box-shadow: none; }
+html.lite .glass, html.lite .menu, html.lite .island, html.lite .card { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.lite .card { box-shadow: none; }
 
 /* the ID was used by the bot: a clear success message, the setup steps and the warning are no longer needed */
 .usedmsg { margin: 4px 0 14px; padding: 14px 16px; text-align: center; border-radius: var(--r-card); border: 1px solid #4FD68A; background: rgba(79, 214, 138, .1); color: var(--text); line-height: 1.5; }
@@ -632,3 +598,21 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .docfoot .foot-links { justify-content: center; flex-wrap: wrap; }
 .dtools { display: flex; align-items: center; gap: 10px; }
 #d-music[aria-pressed="false"] { opacity: .45; }
+
+/* FAQ: plain questions that open and close, no boxes - only thin lines between them */
+.faqlist { max-width: 760px; margin: 0 auto 8px; text-align: left; }
+.qa { border-bottom: 1px solid var(--line); }
+.qa:first-child { border-top: 1px solid var(--line); }
+.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 2px; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--text); -webkit-tap-highlight-color: transparent; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary::after { content: ""; flex: none; width: 10px; height: 10px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); margin: -4px 4px 0 0; transition: transform .25s var(--ease-out); }
+.qa[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
+.qa summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+.qa .ans { padding: 0 2px 18px; color: var(--muted); font-size: 15.5px; line-height: 1.65; }
+.qa .ans p { margin: 0; }
+.qa .ans b { color: var(--text); }
+.qa .ans a { color: var(--gold-text); text-underline-offset: 3px; }
+.qa .ans ol, .qa .ans ul { margin: 0; padding-left: 22px; }
+.qa .ans li { margin: 0 0 8px; padding-left: 2px; }
+.qa .ans li:last-child { margin-bottom: 0; }
+.qa .ans li::marker { color: var(--gold-text); font-weight: 600; }
