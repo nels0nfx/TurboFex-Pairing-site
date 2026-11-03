@@ -502,12 +502,15 @@ html.android .island { transition: border-radius .5s var(--ease-out); }
    downloaded at first; the other one is fetched quietly afterwards so switching themes is a smooth cross-fade. */
 .hero-art { order: -1; position: relative; aspect-ratio: 16 / 9; margin: -6px calc(var(--gutter) * -1) -14px; isolation: isolate; pointer-events: none; transform: translateZ(0);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%); }
-/* Both pictures stay in the page the whole time (real <img> tags with a small and a full-size file, so a Retina phone gets the 1672px one
-   and nothing is stretched). The light picture is always underneath; the dark one lies on top of it and is shown or hidden - so a theme
-   change never leaves a moment with no picture. */
+/* Both pictures stay in the page (real <img> tags with a small and a full-size file, so a Retina phone gets the 1672px one and nothing is stretched),
+   but only the picture of the CURRENT theme is ever visible. (Before, the light one lay underneath, so on a refresh in dark mode it could show for a
+   moment before the dark one arrived = the blink.) The hero stays empty - the page colour - until that one picture is decoded, then it fades in once. */
 .art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .art-dark { opacity: 0; }
 [data-theme="dark"] .art-dark { opacity: 1; }
+[data-theme="dark"] .art-light { opacity: 0; }
+html.art-wait .art { opacity: 0 !important; }
+html.art-fade .art { transition: opacity .5s ease; }
 /* the page itself: warm ivory / champagne in light, deep black with a soft gold glow in dark */
 [data-theme="light"] .decor::before { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 36% at 50% 0%, rgba(232, 205, 140, .30), transparent 72%), radial-gradient(70% 30% at 50% 100%, rgba(232, 205, 140, .22), transparent 72%); }
 
@@ -599,20 +602,25 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .dtools { display: flex; align-items: center; gap: 10px; }
 #d-music[aria-pressed="false"] { opacity: .45; }
 
-/* FAQ: plain questions that open and close, no boxes - only thin lines between them */
-.faqlist { max-width: 760px; margin: 0 auto 8px; text-align: left; }
-.qa { border-bottom: 1px solid var(--line); }
+/* FAQ: plain questions that open and close (one at a time), no boxes - numbers, thin lines, a round gold arrow */
+.faqlist { max-width: 760px; margin: 0 auto 8px; text-align: left; counter-reset: q; }
+.qa { border-bottom: 1px solid var(--line); counter-increment: q; }
 .qa:first-child { border-top: 1px solid var(--line); }
-.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 14px 2px; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--text); -webkit-tap-highlight-color: transparent; }
+.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 14px 2px; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--text); -webkit-tap-highlight-color: transparent; transition: color .2s ease; }
 .qa summary::-webkit-details-marker { display: none; }
-.qa summary::after { content: ""; flex: none; width: 10px; height: 10px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); margin: -4px 4px 0 0; transition: transform .25s var(--ease-out); }
-.qa[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
-.qa summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
-.qa .ans { padding: 0 2px 18px; color: var(--muted); font-size: 15.5px; line-height: 1.65; }
+.qa summary::before { content: counter(q, decimal-leading-zero); flex: none; min-width: 26px; font: 600 13px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .04em; color: var(--gold-text); opacity: .8; }
+.qa summary::after { content: ""; flex: none; margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold-soft); background: center / 14px 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23C9A45C' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); transition: transform .3s var(--ease-out), background-color .2s ease, border-color .2s ease; }
+[data-theme="light"] .qa summary::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%238A6A2B' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.qa[open] summary { color: var(--gold-text); }
+.qa[open] summary::after { transform: rotate(180deg); background-color: var(--gold-faint); border-color: var(--gold); }
+@media (hover: hover) { .qa summary:hover { color: var(--gold-text); } .qa summary:hover::after { border-color: var(--gold); } }
+.qa summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
+.qa .ans { margin: 0 0 18px 40px; padding: 2px 0 2px 16px; border-left: 2px solid var(--gold-soft); color: var(--muted); font-size: 15.5px; line-height: 1.65; animation: qaopen .3s var(--ease-out); }
+@keyframes qaopen { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .qa .ans p { margin: 0; }
 .qa .ans b { color: var(--text); }
 .qa .ans a { color: var(--gold-text); text-underline-offset: 3px; }
-.qa .ans ol, .qa .ans ul { margin: 0; padding-left: 22px; }
+.qa .ans ol, .qa .ans ul { margin: 0; padding-left: 20px; }
 .qa .ans li { margin: 0 0 8px; padding-left: 2px; }
 .qa .ans li:last-child { margin-bottom: 0; }
 .qa .ans li::marker { color: var(--gold-text); font-weight: 600; }

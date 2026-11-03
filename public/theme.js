@@ -10,6 +10,8 @@
   var chosen = t === 'light' || t === 'dark';
   if (!chosen) t = system();
   document.documentElement.setAttribute('data-theme', t);
+  // the hero picture stays hidden until it is decoded (app.js reveals it); this timer is only a safety net if that script never runs
+  document.documentElement.classList.add('art-wait'); setTimeout(function () { document.documentElement.classList.remove('art-wait'); }, 3000);
   var m = document.querySelector('meta[name="theme-color"]');
   if (m) m.setAttribute('content', t === 'dark' ? '#0B0B0B' : '#FAF3E6');
   // the phone switches between light and dark (sunset, schedule, quick settings) while the page is open: follow it, unless the visitor chose

@@ -136,3 +136,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - The owner REMOVED the two boxes How to connect / Security tips (and the slider + dots). Do not bring them back. The FAQ is `section.faqlist` with `<details class="qa">` items, plain with thin lines only (no cards/boxes). The how-to-link and security content lives inside the FAQ answers; footer link `#faq`.
 - `theme.js`: saved choice (`tfx-theme`, only written by the sun/moon button) wins; otherwise `prefers-color-scheme` decides, and a live change of the phone setting is followed (event `tfx-theme` re-syncs the toggle). DEFAULT dark only if the browser cannot say.
 - Version history add: **v2.17.0** FAQ list + system theme (includes v2.16.0 custom code).
+
+## 16. v2.17.1 - hero blink on refresh, FAQ one-at-a-time
+- Root cause of the refresh blink: the light `<img>` was always visible underneath the dark one, so in dark mode it showed first (smaller file) until the dark one arrived. Now `[data-theme=dark] .art-light {opacity:0}` and the hero is hidden (`html.art-wait`, set in theme.js, removed in app.js after `decode()`, safety timers 1.8s/3s) then fades once (`art-fade`). Do NOT make the other theme's picture visible again.
+- FAQ: only one `details.qa` open at a time (toggle listener in app.js); numbered questions via CSS counter, round gold arrow (data-URI svg, gold differs per theme), still no boxes.
+- Version history add: **v2.17.1**.

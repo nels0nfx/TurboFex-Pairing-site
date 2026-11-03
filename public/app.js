@@ -541,5 +541,29 @@
     } else if (!location.hash) window.scrollTo(0, 0);   // nothing unfinished: opening or refreshing starts at the top
   })();
 
+  // hero picture: stays empty until the picture of the current theme is decoded, then fades in once (no flash of the other theme's picture)
+  (function () {
+    var done = false;
+    function reveal() {
+      if (done) return; done = true;
+      root.classList.add('art-fade'); root.classList.remove('art-wait');
+      setTimeout(function () { root.classList.remove('art-fade'); }, 600);
+    }
+    var img = document.querySelector('.art-' + (root.getAttribute('data-theme') === 'light' ? 'light' : 'dark'));
+    if (!img) return reveal();
+    setTimeout(reveal, 1800);                             // slow network: do not wait for ever
+    if (img.complete && img.naturalWidth) return reveal();
+    if (img.decode) img.decode().then(reveal, reveal); else img.addEventListener('load', reveal);
+  })();
+
+  // FAQ: opening one question closes the one that was open
+  (function () {
+    var list = $('faq-list'); if (!list) return;
+    list.addEventListener('toggle', function (e) {
+      var d = e.target; if (!d || !d.open || !d.classList.contains('qa')) return;
+      [].forEach.call(list.querySelectorAll('details.qa[open]'), function (o) { if (o !== d) o.open = false; });
+    }, true);
+  })();
+
   $('yr').textContent = new Date().getFullYear();
 })();
