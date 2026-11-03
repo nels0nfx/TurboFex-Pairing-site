@@ -118,3 +118,4 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Linked from the footer (About, Terms) and the menu (`#m-about`, `#m-terms`).
 - The wording only states what the site really does; if the security model changes (expiry, storage, number handling) UPDATE both pages. Not lawyer-reviewed; no company name, address or country law was invented.
 - Version history add: **v2.14.0** About + Terms pages.
+- v2.14.1: the owner does NOT want About/Terms in cards or boxes: `.docsec` is plain text on the page background (no border, background, shadow, boxed buttons). Do not put them back in boxes.

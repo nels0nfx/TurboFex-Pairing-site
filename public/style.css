@@ -616,18 +616,17 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .doc h1 .gold { color: var(--gold-text); }
 .doc .lead { color: var(--muted); font-size: 17px; line-height: 1.6; margin: 0 0 22px; }
 .doc .upd { color: var(--muted); font-size: 14px; margin: -8px 0 16px; }
-.docsec { background: var(--surface); border: 1px solid var(--card-border); border-radius: var(--r-card); padding: 20px 18px; margin: 0 0 14px; box-shadow: var(--card-shadow); }
-.docsec h2 { font-size: 21px; margin: 0 0 10px; text-align: left; display: block; }
+.docsec { margin: 0 0 30px; padding: 0; }
+.docsec h2 { font-size: 22px; margin: 0 0 10px; text-align: left; display: block; }
 .docsec p, .docsec li { color: var(--text); font-size: 16px; line-height: 1.65; margin: 0 0 10px; }
 .docsec p:last-child, .docsec li:last-child { margin-bottom: 0; }
 .docsec ul, .docsec ol { margin: 0; padding-left: 22px; }
 .docsec li { margin-bottom: 8px; }
 .docsec li::marker { color: var(--gold-text); }
 .docsec a, .doc .more a { color: var(--gold-text); text-underline-offset: 3px; }
-.docsec code { font-size: 14px; padding: 2px 7px; border-radius: 8px; background: var(--track); border: 1px solid var(--line); color: var(--gold-text); }
-.docsec .cl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
-.docsec .link2 { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 14px; border: 1px solid var(--gold); text-decoration: none; font-weight: 600; }
+.docsec code { font-size: 15px; color: var(--gold-text); }
+.docsec .cl { margin-top: 4px; }
+.docsec .link2 { display: inline-block; padding: 10px 0; margin-right: 22px; font-weight: 600; }
 .docsec .more { color: var(--muted); font-size: 15px; margin-top: 14px; }
 .docfoot { position: relative; z-index: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 8px max(var(--gutter), env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left)); text-align: center; }
 .docfoot .foot-links { justify-content: center; flex-wrap: wrap; }
-@media (min-width: 700px) { .docsec { padding: 24px 26px; } }
