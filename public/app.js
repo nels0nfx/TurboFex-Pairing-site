@@ -571,7 +571,6 @@
         if (p) { p.hidden = !on; if (!on) [].forEach.call(p.querySelectorAll('details.qa[open]'), function (o) { o.open = false; }); }
       });
       if (focus) tabs[i].focus();
-      var first = $(tabs[i].getAttribute('aria-controls')).querySelector('details.qa'); if (first && !list.querySelector('details.qa[open]')) first.open = true;
     }
     tabs.forEach(function (t, k) {
       t.addEventListener('click', function () { if (!t.classList.contains('on')) { snd('tab'); show(k); } });
