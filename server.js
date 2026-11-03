@@ -9,7 +9,7 @@ const qrImage = require('./qr');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.m4a': 'audio/mp4' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
@@ -77,18 +77,6 @@ function createApp(opts = {}) {
       'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
     });
     res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
-  };
-
-  // the music file: iPhones only play audio from a server that answers byte-range requests (206)
-  const sendAudio = (req, res, buf) => {
-    const head = { 'Content-Type': 'audio/mp4', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' };
-    const m = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || ''));
-    if (!m || (m[1] === '' && m[2] === '')) { res.writeHead(200, { ...head, 'Content-Length': buf.length }); return res.end(buf); }
-    let start = m[1] === '' ? Math.max(0, buf.length - Number(m[2])) : Number(m[1]);
-    let end = m[1] === '' || m[2] === '' ? buf.length - 1 : Math.min(Number(m[2]), buf.length - 1);
-    if (start > end || start >= buf.length) { res.writeHead(416, { ...head, 'Content-Range': `bytes */${buf.length}` }); return res.end(); }
-    res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${buf.length}`, 'Content-Length': end - start + 1 });
-    return res.end(buf.subarray(start, end + 1));
   };
 
   const readBody = (req) =>
@@ -265,9 +253,7 @@ function createApp(opts = {}) {
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)]) {
         try {
-          const buf = fs.readFileSync(path.join(PUBLIC, name));
-          if (path.extname(name) === '.m4a') return sendAudio(req, res, buf);
-          return send(res, 200, buf, TYPES[path.extname(name)]);
+          return send(res, 200, fs.readFileSync(path.join(PUBLIC, name)), TYPES[path.extname(name)]);
         } catch (err) {
           // fall through
         }

@@ -295,7 +295,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
   const t = await boot();
   try {
     const html = await (await fetch(t.base + '/')).text();
-    for (const id of ['connect', 'faq', 'faq-list', 'm-sound', 'm-music']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const id of ['connect', 'faq', 'faq-list', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
     for (const word of ['Linked devices', 'Link a device', 'Never share your pairing code']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
     const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
@@ -337,21 +337,16 @@ test('refresh stays at the top; the FAQ is plain open/close questions (no cards,
   assert.ok(!/radial-gradient\(ellipse closest-side/.test(css));
 });
 
-test('v2.13: no status bar, music file served with byte ranges', async () => {
+test('v2.13: no status bar; the music is gone (v2.19)', async () => {
   const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
   await new Promise((r) => app.server.listen(0, r));
   const port = app.server.address().port;
   try {
     const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
     assert.ok(!html.includes('st-server') && !html.includes('Server: '));
-    assert.ok(html.includes('id="m-music"'));
-    const full = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`);
-    assert.equal(full.status, 200); assert.equal(full.headers.get('content-type'), 'audio/mp4');
-    const total = (await full.arrayBuffer()).byteLength;
-    const part = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`, { headers: { Range: 'bytes=0-1' } });
-    assert.equal(part.status, 206); assert.equal(part.headers.get('content-range'), `bytes 0-1/${total}`);
-    const bad = await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`, { headers: { Range: `bytes=${total + 5}-` } });
-    assert.equal(bad.status, 416);
+    assert.ok(!/music/i.test(html), 'no music item or script');
+    assert.equal((await fetch(`http://127.0.0.1:${port}/tfx-ambient.m4a`)).status, 404);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/music.js`)).status, 404);
   } finally { app.close(); }
 });
 
@@ -362,11 +357,11 @@ test('v2.14: About and Terms pages are served and linked', async () => {
   try {
     for (const [u, word] of [['/about', 'About'], ['/terms', 'Terms and'], ['/privacy', 'Privacy']]) {
       const r = await fetch(base + u); const h = await r.text();
-      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js') && h.includes('/music.js') && h.includes('id="d-music"'), 'music on every page');
+      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js'), 'scripts on every page');
       assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), 'no inline script or style (CSP)');
     }
     assert.equal((await fetch(base + '/about.html')).status, 200);
-    assert.equal((await fetch(base + '/page.js')).status, 200); assert.equal((await fetch(base + '/music.js')).status, 200);
+    assert.equal((await fetch(base + '/page.js')).status, 200);
     const home = await (await fetch(base + '/')).text();
     for (const id of ['m-about', 'm-terms', 'm-privacy']) assert.ok(home.includes(`id="${id}"`));
     assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));

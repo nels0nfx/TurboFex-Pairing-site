@@ -143,3 +143,4 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Version history add: **v2.17.1**.
 - v2.17.2: the owner disliked the FAQ numbers and round arrows -> removed. FAQ = question text + gold plus (CSS gradients, turns into a cross when open), thin lines, no numbers, no boxes. Version history add: **v2.17.2**.
 - v2.18.0: FAQ = 3 tabs (`.ftab`, ids `ft-linking/safety/problems`, panels `.fpanel`) + `details.qa` rows with a gold chevron. Owner disliked numbers and the earlier list look; keep: no numbers, no boxes. Version history add: **v2.18.0**.
+- v2.19.0: the owner had the background music REMOVED (music.js, tfx-ambient.m4a, menu item, doc-page button, audio range serving, mentions in About/Terms/Privacy). Do NOT add music back. The UI tap sounds (`sound.js`, menu Sound On/Off) stay. Sections 10 and 13 above describe the removed music for history only. Version history add: **v2.19.0**.
