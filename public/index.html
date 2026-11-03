@@ -211,7 +211,13 @@
     </div>
     <span class="faq-line r" aria-hidden="true"></span>
   </div>
+  <div class="ftabs" role="tablist" aria-label="FAQ topics">
+    <button type="button" class="ftab on" role="tab" id="ft-linking" aria-controls="fp-linking" aria-selected="true" tabindex="0">Linking</button>
+    <button type="button" class="ftab" role="tab" id="ft-safety" aria-controls="fp-safety" aria-selected="false" tabindex="-1">Safety</button>
+    <button type="button" class="ftab" role="tab" id="ft-problems" aria-controls="fp-problems" aria-selected="false" tabindex="-1">Problems</button>
+  </div>
   <section class="faqlist" id="faq-list" aria-label="Frequently asked questions">
+    <div class="fpanel" role="tabpanel" id="fp-linking" aria-labelledby="ft-linking">
     <details class="qa" open>
       <summary>How do I link my WhatsApp?</summary>
       <div class="ans">
@@ -232,13 +238,11 @@
       <summary>Which number do I enter?</summary>
       <div class="ans"><p>The number of the WhatsApp account you want to link. Choose your country, then type the number without the country code. The page counts the digits for you and will not accept more than your country allows.</p></div>
     </details>
+    </div>
+    <div class="fpanel" role="tabpanel" id="fp-safety" aria-labelledby="ft-safety" hidden>
     <details class="qa">
       <summary>What is the session ID?</summary>
       <div class="ans"><p>A one-time ID that looks like <b>TFX-XXXX-XXXX-XXXX</b>. It is shown here and also sent to your WhatsApp chat. Give it to the TurboFex bot. It works once and expires after 5 minutes.</p></div>
-    </details>
-    <details class="qa">
-      <summary>What does pairing do?</summary>
-      <div class="ans"><p>It links your WhatsApp to your TurboFex bot as a linked device, the same way WhatsApp Web works. You can unlink it any time from Linked devices in WhatsApp.</p></div>
     </details>
     <details class="qa">
       <summary>Is it safe?</summary>
@@ -252,17 +256,32 @@
       </div>
     </details>
     <details class="qa">
-      <summary>WhatsApp says “Couldn’t link device” or the code does not work</summary>
-      <div class="ans"><p>Check that the number and country are right, then tap <b>Try again</b> for a fresh code. Wait a few minutes if WhatsApp says it is limiting requests. If it still fails, switch to the QR code.</p></div>
-    </details>
-    <details class="qa">
-      <summary>Do I need to keep this page open?</summary>
-      <div class="ans"><p>Yes, until you see your session ID. If you refresh by mistake, the page takes you back to your unfinished attempt.</p></div>
+      <summary>What does pairing do?</summary>
+      <div class="ans"><p>It links your WhatsApp to your TurboFex bot as a linked device, the same way WhatsApp Web works. You can unlink it any time from Linked devices in WhatsApp.</p></div>
     </details>
     <details class="qa">
       <summary>How do I unlink the bot?</summary>
       <div class="ans"><p>Open WhatsApp, go to Linked devices, tap the TurboFex device and log out. The bot loses access right away.</p></div>
     </details>
+    </div>
+    <div class="fpanel" role="tabpanel" id="fp-problems" aria-labelledby="ft-problems" hidden>
+    <details class="qa">
+      <summary>WhatsApp says “Couldn’t link device” or the code does not work</summary>
+      <div class="ans"><p>Check that the number and country are right, then tap <b>Try again</b> for a fresh code. Wait a few minutes if WhatsApp says it is limiting requests. If it still fails, switch to the QR code.</p></div>
+    </details>
+    <details class="qa">
+      <summary>My code expired or the QR stopped working</summary>
+      <div class="ans"><p>Codes and QR codes only live for a few minutes. Tap <b>Try again</b> on the code or QR screen to get a new one. You do not need to start over.</p></div>
+    </details>
+    <details class="qa">
+      <summary>I did not get the session ID in WhatsApp</summary>
+      <div class="ans"><p>It is also shown on this page, so copy it from here. It works once and expires 5 minutes after it was made. If it expired, link again to get a new one.</p></div>
+    </details>
+    <details class="qa">
+      <summary>Do I need to keep this page open?</summary>
+      <div class="ans"><p>Yes, until you see your session ID. If you refresh by mistake, the page takes you back to your unfinished attempt.</p></div>
+    </details>
+    </div>
   </section>
 </main>
 

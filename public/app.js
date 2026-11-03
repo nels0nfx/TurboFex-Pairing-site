@@ -556,13 +556,29 @@
     if (img.decode) img.decode().then(reveal, reveal); else img.addEventListener('load', reveal);
   })();
 
-  // FAQ: opening one question closes the one that was open
+  // FAQ: topic tabs (Linking / Safety / Problems); opening one question closes the one that was open
   (function () {
     var list = $('faq-list'); if (!list) return;
     list.addEventListener('toggle', function (e) {
       var d = e.target; if (!d || !d.open || !d.classList.contains('qa')) return;
       [].forEach.call(list.querySelectorAll('details.qa[open]'), function (o) { if (o !== d) o.open = false; });
     }, true);
+    var tabs = [].slice.call(document.querySelectorAll('.ftab'));
+    function show(i, focus) {
+      tabs.forEach(function (t, k) {
+        var on = k === i, p = $(t.getAttribute('aria-controls'));
+        t.classList.toggle('on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1;
+        if (p) { p.hidden = !on; if (!on) [].forEach.call(p.querySelectorAll('details.qa[open]'), function (o) { o.open = false; }); }
+      });
+      if (focus) tabs[i].focus();
+      var first = $(tabs[i].getAttribute('aria-controls')).querySelector('details.qa'); if (first && !list.querySelector('details.qa[open]')) first.open = true;
+    }
+    tabs.forEach(function (t, k) {
+      t.addEventListener('click', function () { if (!t.classList.contains('on')) { snd('tab'); show(k); } });
+      t.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); var n = (k + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; snd('tab'); show(n, true); }
+      });
+    });
   })();
 
   $('yr').textContent = new Date().getFullYear();

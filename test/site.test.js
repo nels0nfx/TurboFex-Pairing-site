@@ -381,6 +381,7 @@ test('v2.17: the FAQ replaces How to connect + Security tips and covers both; th
     const html = await (await fetch(`http://127.0.0.1:${app.server.address().port}/`)).text();
     assert.ok(!html.includes('id="how"') && !html.includes('id="security"') && !html.includes('Security tips') && !html.includes('href="#security"'));
     assert.ok((html.match(/<details class="qa"/g) || []).length >= 8);
+    assert.equal((html.match(/class="ftab( on)?"/g) || []).length, 3, 'three FAQ topic tabs'); assert.equal((html.match(/class="fpanel"/g) || []).length, 3);
     for (const w of ['Linked devices', 'Link a device', 'Never share your pairing code', 'session ID', 'Try again']) assert.ok(html.includes(w), w);
   } finally { app.close(); }
   const th = fs2.readFileSync(path.join(__dirname, '../public/theme.js'), 'utf8');

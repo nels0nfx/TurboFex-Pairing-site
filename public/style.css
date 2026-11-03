@@ -602,25 +602,32 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .dtools { display: flex; align-items: center; gap: 10px; }
 #d-music[aria-pressed="false"] { opacity: .45; }
 
-/* FAQ: plain questions that open and close (one at a time), no boxes - numbers, thin lines, a round gold arrow */
-.faqlist { max-width: 760px; margin: 0 auto 8px; text-align: left; counter-reset: q; }
-.qa { border-bottom: 1px solid var(--line); counter-increment: q; }
-.qa:first-child { border-top: 1px solid var(--line); }
-.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 14px 2px; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--text); -webkit-tap-highlight-color: transparent; transition: color .2s ease; }
+/* FAQ: three topics as tabs (Linking / Safety / Problems); under each, plain questions that open one at a time. No boxes. */
+.ftabs { display: flex; justify-content: center; gap: 6px; max-width: 760px; margin: 0 auto 6px; border-bottom: 1px solid var(--line); }
+.ftab { appearance: none; background: none; border: 0; cursor: pointer; position: relative; flex: 1 1 0; max-width: 200px; min-height: 48px; padding: 12px 6px; font-weight: 600; font-size: 16px; line-height: 1.2; font-family: inherit; color: var(--muted); -webkit-tap-highlight-color: transparent; transition: color .2s ease; }
+.ftab::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--gold); transform: scaleX(0); transition: transform .3s var(--ease-out); }
+.ftab.on { color: var(--gold-text); }
+.ftab.on::after { transform: scaleX(1); }
+@media (hover: hover) { .ftab:hover { color: var(--gold-text); } }
+.ftab:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 8px; }
+.faqlist { max-width: 760px; margin: 0 auto 8px; text-align: left; }
+.fpanel { animation: qaopen .3s var(--ease-out); }
+.fpanel[hidden] { display: none; }
+.qa { border-bottom: 1px solid var(--line); }
+.qa:last-child { border-bottom: 0; }
+.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 62px; padding: 15px 2px; font-size: 17px; font-weight: 600; line-height: 1.4; color: var(--text); -webkit-tap-highlight-color: transparent; transition: color .2s ease; }
 .qa summary::-webkit-details-marker { display: none; }
-.qa summary::before { content: counter(q, decimal-leading-zero); flex: none; min-width: 26px; font: 600 13px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .04em; color: var(--gold-text); opacity: .8; }
-.qa summary::after { content: ""; flex: none; margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold-soft); background: center / 14px 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23C9A45C' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); transition: transform .3s var(--ease-out), background-color .2s ease, border-color .2s ease; }
-[data-theme="light"] .qa summary::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%238A6A2B' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.qa summary::after { content: ""; flex: none; width: 9px; height: 9px; margin: 0 6px 0 0; border-right: 2px solid var(--gold-text); border-bottom: 2px solid var(--gold-text); transform: rotate(-45deg); transition: transform .3s var(--ease-out); }
 .qa[open] summary { color: var(--gold-text); }
-.qa[open] summary::after { transform: rotate(180deg); background-color: var(--gold-faint); border-color: var(--gold); }
-@media (hover: hover) { .qa summary:hover { color: var(--gold-text); } .qa summary:hover::after { border-color: var(--gold); } }
+.qa[open] summary::after { transform: rotate(45deg); }
+@media (hover: hover) { .qa summary:hover { color: var(--gold-text); } }
 .qa summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px; }
-.qa .ans { margin: 0 0 18px 40px; padding: 2px 0 2px 16px; border-left: 2px solid var(--gold-soft); color: var(--muted); font-size: 15.5px; line-height: 1.65; animation: qaopen .3s var(--ease-out); }
+.qa .ans { padding: 0 24px 20px 2px; color: var(--muted); font-size: 16px; line-height: 1.7; animation: qaopen .3s var(--ease-out); }
 @keyframes qaopen { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .qa .ans p { margin: 0; }
-.qa .ans b { color: var(--text); }
+.qa .ans b { color: var(--text); font-weight: 600; }
 .qa .ans a { color: var(--gold-text); text-underline-offset: 3px; }
 .qa .ans ol, .qa .ans ul { margin: 0; padding-left: 20px; }
-.qa .ans li { margin: 0 0 8px; padding-left: 2px; }
+.qa .ans li { margin: 0 0 9px; padding-left: 2px; }
 .qa .ans li:last-child { margin-bottom: 0; }
 .qa .ans li::marker { color: var(--gold-text); font-weight: 600; }
