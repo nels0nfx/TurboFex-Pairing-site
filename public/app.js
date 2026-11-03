@@ -557,7 +557,7 @@
 
   // background music: an original soft ambient loop, started by the first tap (browsers do not allow sound before one), quiet, pausable from the menu
   (function () {
-    var KEY = 'tfx-music', vol = 0.3, au = null, want = true, started = false, fade = 0;
+    var KEY = 'tfx-music', vol = 0.1, au = null, want = true, started = false, fade = 0;
     try { if (localStorage.getItem(KEY) === 'off') want = false; } catch (e) {}
     function label() { $('m-music').setAttribute('aria-checked', want ? 'true' : 'false'); $('m-music-t').textContent = 'Music: ' + (want ? 'On' : 'Off'); }
     function ramp(to, done) {
