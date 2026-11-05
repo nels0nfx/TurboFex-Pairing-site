@@ -118,7 +118,15 @@
       pollAlerts();
     }, 5000);
   }
-  function pollAlerts() { api('GET', 'security').then(function (j) { if (j.alerts.length !== alertCount) { alertCount = j.alerts.length; drawNav(); } }, function () {}); }
+  // an alert counts as unread until the Security tab has shown it; it becomes unread again if more events join it
+  function seenMap() { try { return JSON.parse(localStorage.getItem('tfx-adm-seen') || '{}') || {}; } catch (e) { return {}; } }
+  function setAlerts(list, markSeen) {
+    var m = seenMap(), unread = 0;
+    if (markSeen) { m = {}; list.forEach(function (a) { m[a.id] = a.count; }); try { localStorage.setItem('tfx-adm-seen', JSON.stringify(m)); } catch (e) { /* not saved */ } }
+    else list.forEach(function (a) { if (!(m[a.id] >= a.count)) unread++; });
+    if (unread !== alertCount) { alertCount = unread; drawNav(); }
+  }
+  function pollAlerts() { api('GET', 'security').then(function (j) { setAlerts(j.alerts, tab === 'security'); }, function () {}); }
 
   // ---------- pieces ----------
   function head(title, sub, right) { return h('div', { class: 'vh' }, h('div', null, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), right || null); }
@@ -165,7 +173,7 @@
   function vOverview() {
     return Promise.all([api('GET', 'overview'), api('GET', 'settings'), api('GET', 'announcements')]).then(function (r) {
       var o = r[0], s = r[1], an = r[2].announcements.filter(function (a) { return a.active && (!a.endsAt || a.endsAt > Date.now()); });
-      var t = o.totals; alertCount = o.alerts; drawNav();
+      var t = o.totals; pollAlerts();
       var n = h('div');
       n.appendChild(head('Overview', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
@@ -264,7 +272,7 @@
   // ---------- Security ----------
   function vSecurity() {
     return api('GET', 'security').then(function (j) {
-      alertCount = j.alerts.length; drawNav();
+      setAlerts(j.alerts, true);
       var n = h('div'); n.appendChild(head('Security alerts', 'Worked out from real activity: rate limits, guessing, floods and admin sign-in failures', null));
       if (!j.alerts.length) n.appendChild(h('div', { class: 'note' }, 'No suspicious activity found in the last 24 hours.'));
       j.alerts.forEach(function (a) {
@@ -356,8 +364,9 @@
       var edit = s.canEdit;
       var on = h('input', { id: 'st-on', type: 'checkbox', checked: s.maintenance.on, disabled: !edit }), msg = h('textarea', { id: 'st-msg', maxlength: 200, disabled: !edit, placeholder: 'TurboFex Pair is paused for maintenance. Please come back soon.' });
       msg.value = s.maintenance.message || '';
+      on.addEventListener('change', function () { $('st-lbl').textContent = on.checked ? 'Turn ON when you press Save (pairing paused)' : 'Turn OFF when you press Save (site open)'; });
       n.appendChild(panel('Maintenance mode', null, h('p', { class: 'muted', text: 'While this is on, nobody can start a new pairing (the public page shows your message). Pairings already running finish normally, and the dashboard keeps working.' }),
-        h('label', { class: 'sw', for: 'st-on' }, on, h('span', { text: 'Pause pairing for everyone' })),
+        h('label', { class: 'sw', for: 'st-on' }, on, h('span', { id: 'st-lbl', text: s.maintenance.on ? 'Maintenance is ON (pairing paused)' : 'Maintenance is OFF (site open)' })),
         h('div', { class: 'fld' }, h('label', { for: 'st-msg', text: 'Message shown to visitors' }), msg),
         edit ? h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; var go = function () { act(b, function () { return api('POST', 'settings', { maintenance: { on: on.checked, message: msg.value } }); }, on.checked ? 'Maintenance mode is ON' : 'Maintenance mode is off', function () { load(false); }); }; if (on.checked && !s.maintenance.on) confirmThen('Turn maintenance mode ON? Nobody will be able to start a pairing.', go); else go(); } }, 'Save maintenance') : null));
       var fields = [['pair', 'Pairing attempts per visitor', 'every 15 minutes'], ['number', 'Attempts per phone number', 'every 15 minutes'], ['maxJobs', 'Pairings running at the same time', 'the whole site']];
