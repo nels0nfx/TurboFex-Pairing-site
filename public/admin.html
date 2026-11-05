@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TurboFex Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/admin.css">
+<script src="/theme.js"></script>
+</head>
+<body class="adm">
+
+<!-- sign in -->
+<main id="login" class="lg" hidden>
+  <div class="lg-box">
+    <span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span>
+    <h1>Admin <span class="gold">sign in</span></h1>
+    <p class="muted">TurboFex Pair dashboard. Authorised administrators only.</p>
+    <form id="f-pass" autocomplete="on" novalidate>
+      <label for="u">Username</label>
+      <input id="u" name="username" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="40" required>
+      <label for="p">Password</label>
+      <input id="p" name="password" type="password" autocomplete="current-password" maxlength="200" required>
+      <button class="cta" id="b-pass" type="submit"><span>Continue</span></button>
+    </form>
+    <form id="f-2fa" autocomplete="off" novalidate hidden>
+      <label for="c">6-digit code from your authenticator app</label>
+      <input id="c" name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="7" placeholder="123456" required>
+      <button class="cta" id="b-2fa" type="submit"><span>Sign in</span></button>
+      <button class="ghost" id="b-back" type="button">Back</button>
+    </form>
+    <p class="err" id="lg-err" role="alert"></p>
+    <a class="back" href="/">← Back to TurboFex Pair</a>
+  </div>
+</main>
+
+<!-- dashboard -->
+<div id="app" hidden>
+  <header class="ah">
+    <a class="ab" href="/admin" aria-label="TurboFex admin"><span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span><b>TURBOFEX</b><span class="chip">Admin</span></a>
+    <div class="ah-r">
+      <span class="who"><b id="who-u"></b><small id="who-r"></small></span>
+      <button id="theme" class="ibtn themebtn" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.2A8 8 0 0 1 9.800 4 8.500 8.500 0 1 0 20 14.200z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600l1.400 1.400M17 17l1.400 1.400M5.600 18.400L7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button id="out" class="ibtn" type="button" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="nav" id="nav" role="tablist" aria-label="Dashboard sections"></nav>
+    <main class="view" id="view" tabindex="-1" aria-live="polite"></main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
+
+<noscript><p class="lg-box">This dashboard needs JavaScript.</p></noscript>
+<script src="/admin.js"></script>
+</body>
+</html>

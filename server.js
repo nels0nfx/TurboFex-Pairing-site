@@ -6,6 +6,8 @@ const path = require('path');
 const crypto = require('crypto');
 const { makeStore, normalizeId, DEFAULT_TTL_MS } = require('./store');
 const qrImage = require('./qr');
+const { createEvents } = require('./events');
+const { createAdmin } = require('./admin');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -49,6 +51,12 @@ function createApp(opts = {}) {
   const maxJobs = Number(env.MAX_JOBS) || 15;
 
   const jobs = new Map(); // id -> job
+  const events = createEvents({ dir: path.join(dataDir, 'admin') });
+  const admin = createAdmin({
+    env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION,
+    jobs: () => [...jobs.values()], stopJob: (j, m) => stopJob(j, m),
+    defaults: { pair: pairLimit, number: Number(env.NUMBER_LIMIT) || 5, maxJobs },
+  });
   const hits = new Map(); // "kind:ip" -> [timestamps]
 
   // allows `max` hits per `windowMs` for one visitor
@@ -95,12 +103,13 @@ function createApp(opts = {}) {
     });
 
   const phone = require('./phone');
-  const numberLimit = Number(env.NUMBER_LIMIT) || 5;   // pairing attempts per phone number per 15 minutes
+  const numberLimit = () => admin.limits().number;   // pairing attempts per phone number per 15 minutes (changeable in the dashboard)
   const hashSecret = crypto.randomBytes(8).toString('hex');
 
-  function startJob(number, method) {
+  function startJob(number, method, who = {}) {
     const id = crypto.randomBytes(16).toString('hex');
-    const job = { id, number, method, dm: null, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null };
+    const job = { id, number, method, dm: null, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null, client: who.client, ipm: who.ipm, numId: who.num, numberMasked: who.numm, country: who.country };
+    const ev = (type, extra) => events.record(type, { client: who.client, ipm: who.ipm, num: who.num, numm: who.numm, country: who.country, method, ...extra });
     const done = () => {
       job.doneAt = Date.now();
       clearTimeout(job.timer);
@@ -110,10 +119,12 @@ function createApp(opts = {}) {
         if (job.state === 'starting') {
           job.state = 'code';
           job.code = code;
+          ev('pair.code');
         }
       },
       onQr: (text) => {
         if (job.state === 'starting' || job.state === 'qr') {
+          if (job.state !== 'qr') ev('pair.qr');
           job.state = 'qr';
           job.qr = text; // the picture is made when the page asks (see /api/job)
         }
@@ -131,6 +142,7 @@ function createApp(opts = {}) {
           job.sessionId = store.put(creds, job.idMadeAt);
           job.idExp = job.idMadeAt + store.ttlMs;
           job.state = 'linked';
+          ev('pair.linked');
           job.code = null;
           job.qr = null;
         } catch (err) {
@@ -150,11 +162,13 @@ function createApp(opts = {}) {
         job.state = 'failed';
         job.error = message;
         job.code = null;
+        ev('pair.failed', { detail: String(message || '').slice(0, 120) });
         done();
       },
     }, { method, verify: String(env.VERIFY_WHATSAPP || '') === '1', customCode: String(env.CUSTOM_CODE || '') !== '0' });
     job.timer = setTimeout(() => {
       if (job.state === 'linked' || job.state === 'failed') return;
+      ev('pair.failed', { detail: 'timed out' });
       stopJob(job, 'Time ran out. Start again.' + (job.method === 'code' ? ' Enter the code quickly.' : ''));
     }, JOB_MAX);
     jobs.set(id, job);
@@ -181,12 +195,20 @@ function createApp(opts = {}) {
     const url = new URL(req.url, 'http://x');
     const p = url.pathname;
     const ip = ipOf(req);
+    if (await admin.handle(req, res, p, { ip, readBody })) return;   // the admin dashboard (answers 404 unless admin accounts are configured)
 
     if (req.method === 'GET' && p === '/health') return send(res, 200, { ok: true, version: VERSION, sessionMinutes: Math.round(store.ttlMs / 600) / 100 });
 
+    // what every page asks once: is the site paused, and is there an announcement (set in the admin dashboard)
+    if (req.method === 'GET' && p === '/api/status') return send(res, 200, admin.publicStatus());
+
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {
-      if (limited('pair', ip, pairLimit, 15 * 60 * 1000)) return send(res, 429, { error: 'Too many tries. Please wait a few minutes.' });
+      const who = { client: admin.idOf('client', ip), ipm: admin.maskIp(ip) };
+      const maint = admin.maintenance();
+      if (maint.on) { events.record('pair.maintenance', who); return send(res, 503, { error: maint.message, maintenance: true }); }
+      if (admin.blocked({ client: who.client })) { events.record('pair.blocked', { ...who, detail: 'visitor' }); return send(res, 403, { error: 'Pairing is not available from this connection.' }); }
+      if (limited('pair', ip, admin.limits().pair, 15 * 60 * 1000)) { events.record('pair.limited', { ...who, detail: 'visitor' }); return send(res, 429, { error: 'Too many tries. Please wait a few minutes.' }); }
       let body;
       try {
         body = JSON.parse((await readBody(req)) || '{}');
@@ -197,15 +219,18 @@ function createApp(opts = {}) {
       let number = '';
       if (method === 'code') {
         const v = phone.check(body.number, body.country, env);
-        if (!v.ok) return send(res, 400, { error: v.error, state: v.state });
+        if (!v.ok) { events.record('pair.invalid', { ...who, detail: v.state }); return send(res, 400, { error: v.error, state: v.state }); }
         number = v.e164;
+        who.num = admin.idOf('num', number); who.numm = admin.maskNum(number); who.country = v.iso;
+        if (admin.blocked({ num: who.num })) { events.record('pair.blocked', { ...who, method, detail: 'number' }); return send(res, 403, { error: 'Pairing is not available for this number.' }); }
         // abuse guard: one number can only be tried so often (counted by a one-way hash, the number itself is never kept)
-        if (limited('num', phone.hashOf(number, hashSecret), numberLimit, 15 * 60 * 1000)) return send(res, 429, { error: 'Too many attempts for this number. Please wait a few minutes before trying again.' });
+        if (limited('num', phone.hashOf(number, hashSecret), numberLimit(), 15 * 60 * 1000)) { events.record('pair.limited', { ...who, method, detail: 'number' }); return send(res, 429, { error: 'Too many attempts for this number. Please wait a few minutes before trying again.' }); }
         // the same number asking again means the person started over: stop the old attempt instead of blocking them
         for (const j of active()) if (j.number === number) stopJob(j, 'Replaced by a new attempt.');
       }
-      if (active().length >= maxJobs) return send(res, 503, { error: 'The site is busy. Try again in a minute.' });
-      const job = startJob(number, method);
+      if (active().length >= admin.limits().maxJobs) return send(res, 503, { error: 'The site is busy. Try again in a minute.' });
+      const job = startJob(number, method, who);
+      events.record('pair.start', { ...who, method });
       return send(res, 200, { job: job.id });
     }
 
@@ -240,6 +265,7 @@ function createApp(opts = {}) {
       const id = decodeURIComponent(p.slice('/api/session/'.length));
       if (!normalizeId(id)) return send(res, 400, { error: 'That is not a session ID.' });
       const creds = store.take(id); // checks the expiry itself and marks the ID as used
+      events.record('session.fetch', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), ok: !!creds });
       if (!creds) return send(res, 404, { error: 'Session ID not found, expired, or already used.' });
       // tell the page that waits for it: this ID has now been used by the bot
       const canon = normalizeId(id);
@@ -251,7 +277,7 @@ function createApp(opts = {}) {
     if (req.method === 'GET') {
       const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html' }; // clean addresses for the two text pages
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
-      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)]) {
+      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
           return send(res, 200, fs.readFileSync(path.join(PUBLIC, name)), TYPES[path.extname(name)]);
         } catch (err) {
@@ -280,7 +306,7 @@ function createApp(opts = {}) {
   }, 30 * 1000);
   sweeper.unref();
 
-  return { server, store, jobs, close: () => { clearInterval(sweeper); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
+  return { server, store, jobs, events, admin, close: () => { clearInterval(sweeper); admin.close(); events.close(); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
 }
 
 module.exports = { createApp, dmText, dmMessages, bold };

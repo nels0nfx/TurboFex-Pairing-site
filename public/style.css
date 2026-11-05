@@ -577,8 +577,6 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 
 /* About + Terms pages */
 .docpage { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
-.dbar { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; max-width: 760px; width: 100%; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top, 0px)) max(var(--gutter), env(safe-area-inset-right)) 6px max(var(--gutter), env(safe-area-inset-left)); }
-.dbrand { display: inline-flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; letter-spacing: .06em; }
 .doc { position: relative; z-index: 1; flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 18px max(var(--gutter), env(safe-area-inset-right)) 34px max(var(--gutter), env(safe-area-inset-left)); text-align: left; }
 .doc .back { display: inline-block; padding: 10px 0; color: var(--gold-text); text-decoration: none; font-size: 15px; }
 .doc h1 { font-size: clamp(30px, 8.4vw, 46px); margin: 6px 0 12px; }
@@ -599,7 +597,6 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .docsec .more { color: var(--muted); font-size: 15px; margin-top: 14px; }
 .docfoot { position: relative; z-index: 1; max-width: 760px; width: 100%; margin: 0 auto; padding: 8px max(var(--gutter), env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left)); text-align: center; }
 .docfoot .foot-links { justify-content: center; flex-wrap: wrap; }
-.dtools { display: flex; align-items: center; gap: 10px; }
 
 /* FAQ: three topics as tabs (Linking / Safety / Problems); under each, plain questions that open one at a time. No boxes. */
 .ftabs { display: flex; justify-content: center; gap: 6px; max-width: 760px; margin: 0 auto 6px; border-bottom: 1px solid var(--line); }
@@ -630,3 +627,12 @@ html.switching *, html.switching *::before, html.switching *::after { transition
 .qa .ans li { margin: 0 0 9px; padding-left: 2px; }
 .qa .ans li:last-child { margin-bottom: 0; }
 .qa .ans li::marker { color: var(--gold-text); font-weight: 600; }
+
+/* site notice (announcement / maintenance), set from the admin dashboard */
+.notice { position: relative; z-index: 60; display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: calc(82px + env(safe-area-inset-top, 0px)); padding: 10px 16px; background: var(--gold-faint, rgba(212,175,55,.12)); border-bottom: 1px solid var(--gold, #c9a227); color: var(--text); font-size: 14.5px; line-height: 1.45; text-align: center; }
+.notice p { margin: 0; max-width: 70ch; overflow-wrap: anywhere; }
+.notice button { flex: none; appearance: none; border: 0; background: none; color: inherit; font-size: 22px; line-height: 1; padding: 4px 8px; cursor: pointer; }
+.notice.maint { border-bottom-color: var(--bad, #d9534f); }
+.notice.warning, .notice.critical { border-bottom-color: var(--bad, #d9534f); }
+.notice + .notice { margin-top: 0; }
+.notice:has(+ .notice) { border-bottom-width: 0; }

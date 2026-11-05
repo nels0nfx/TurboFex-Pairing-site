@@ -92,7 +92,29 @@ function makeStore({ dir, secret, ttlMs = DEFAULT_TTL_MS, oneTime = true }) {
     return n;
   }
 
-  return { put, take, sweep, ttlMs };
+  // for the admin dashboard: which IDs are alive right now. Only a file reference and the times are returned - never an ID or a login.
+  function list() {
+    const out = [];
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        const rec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        if (rec && rec.v === 2 && Number.isFinite(rec.exp) && Date.now() < rec.exp) out.push({ fh: f.slice(0, -5), exp: rec.exp, createdAt: rec.exp - ttlMs });
+      } catch (err) { /* unreadable: the clean-up removes it */ }
+    }
+    return out;
+  }
+  // removes one live record by its file reference (admin "revoke"); true if something was removed
+  function revoke(fh) {
+    if (!/^[a-f0-9]{64}$/.test(String(fh))) return false;
+    const file = path.join(dir, fh + '.json');
+    if (!fs.existsSync(file)) return false;
+    fs.rmSync(file, { force: true });
+    return true;
+  }
+  const fileHashOf = (rawId) => { const id = normalizeId(rawId); return id ? crypto.createHash('sha256').update(id).digest('hex') : null; };
+
+  return { put, take, sweep, list, revoke, fileHashOf, ttlMs };
 }
 
 module.exports = { makeStore, newId, normalizeId, DEFAULT_TTL_MS };

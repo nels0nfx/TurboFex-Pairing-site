@@ -11,3 +11,5 @@ services:
         value: "1"
       - key: SITE_SECRET
         generateValue: true
+      - key: ADMIN_ACCOUNTS
+        sync: false

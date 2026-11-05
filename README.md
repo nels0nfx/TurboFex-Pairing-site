@@ -42,3 +42,7 @@ git commit -m "Smoother interactions and sticky header"
 git push
 ```
 Render redeploys by itself after the push.
+
+
+## Admin dashboard (optional)
+Open `/admin` on your site. It does not exist until you set `ADMIN_ACCOUNTS` (see `TURBOFEX_AI_NOTES.md`, section 17). Create an account with `node tools/admin-setup.js`, scan the QR in an authenticator app, paste the printed `ADMIN_ACCOUNTS=...` line into Render -> Environment, then redeploy.
