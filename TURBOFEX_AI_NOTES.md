@@ -158,3 +158,15 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Privacy/Terms text updated (activity log, blocklist, dashboard). Keep them true when changing the log.
 - Version history add: **v2.20.0** admin dashboard + island on About/Terms/Privacy.
 - v2.20.1: `.sw input` is a custom switch (global input styles had turned the checkbox into an empty pill). Security badge = unread alerts only: `localStorage tfx-adm-seen` {alertId: count}; opening Security marks all seen; an alert is unread again when its count grows. Version history add: **v2.20.1**.
+- v2.20.2: the 'Your session ended' text shows only if `me` was set (a real sign-out); sign-out asks `confirm()` first. Note: admin sessions live in memory, so every Render redeploy/restart signs everyone out. Version history add: **v2.20.2**.
+
+## 18. v2.21.0 - Supabase storage for the admin data
+- Why: Render free has no disk, so redeploys wiped blocks/settings/announcements/logs. Owner chose Supabase (NOT Vercel: Vercel cannot hold the live WhatsApp pairing connection; static hosting there was judged low value).
+- `cloud.js` talks to Supabase REST (PostgREST) with plain fetch (no npm package; npm is unreachable in the build sandbox). Env: `SUPABASE_URL` (https only) + `SUPABASE_SERVICE_KEY` (the SECRET/service_role key, never the publishable/anon one; never shown, logged or sent to the browser). Off when unset.
+- Tables (`tools/supabase-setup.sql`, RLS on, anon/authenticated revoked): `tfx_kv` (key 'state' = blocks/settings/announcements), `tfx_events` (t, e jsonb; pruned to 7 days hourly), `tfx_audit` (line jsonb, kept forever so the hash chain stays valid).
+- Flow: `server.js` main awaits `cloud.restore(data/admin)` which rewrites the local files BEFORE `createApp` reads them; afterwards every event/audit line/state save is queued and pushed (every 4 s, state debounced 0.5 s). Local files stay the working copy. If Supabase is down the site works normally and retries; queue capped at 5000.
+- NEVER sent: session IDs, pairing codes, sessions, full numbers/IPs (tests check). Admin login sessions are still in memory (a restart signs admins out, by design).
+- Dashboard: Server tab shows Permanent storage: Not set up / Connected / Problem.
+- Tests: `test/cloud.test.js` (fake Supabase): restore after wipe, audit chain valid and continuing, offline catch-up, wrong key, https only. Not tested against the real Supabase.
+- Privacy page now mentions the database copy; keep true.
+- Version history add: **v2.21.0**.

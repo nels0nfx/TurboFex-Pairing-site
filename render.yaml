@@ -13,3 +13,7 @@ services:
         generateValue: true
       - key: ADMIN_ACCOUNTS
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

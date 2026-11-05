@@ -8,6 +8,7 @@ const { makeStore, normalizeId, DEFAULT_TTL_MS } = require('./store');
 const qrImage = require('./qr');
 const { createEvents } = require('./events');
 const { createAdmin } = require('./admin');
+const { fromEnv: cloudFromEnv } = require('./cloud');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -51,9 +52,10 @@ function createApp(opts = {}) {
   const maxJobs = Number(env.MAX_JOBS) || 15;
 
   const jobs = new Map(); // id -> job
-  const events = createEvents({ dir: path.join(dataDir, 'admin') });
+  const cloud = opts.cloud || cloudFromEnv(env);   // optional Supabase copy of the admin data (see cloud.js)
+  const events = createEvents({ dir: path.join(dataDir, 'admin'), onRecord: (e) => cloud.pushEvent(e) });
   const admin = createAdmin({
-    env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION,
+    env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION, cloud,
     jobs: () => [...jobs.values()], stopJob: (j, m) => stopJob(j, m),
     defaults: { pair: pairLimit, number: Number(env.NUMBER_LIMIT) || 5, maxJobs },
   });
@@ -306,7 +308,7 @@ function createApp(opts = {}) {
   }, 30 * 1000);
   sweeper.unref();
 
-  return { server, store, jobs, events, admin, close: () => { clearInterval(sweeper); admin.close(); events.close(); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
+  return { server, store, jobs, events, admin, cloud, close: () => { clearInterval(sweeper); admin.close(); events.close(); cloud.close().catch(() => {}); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
 }
 
 module.exports = { createApp, dmText, dmMessages, bold };
@@ -314,7 +316,12 @@ module.exports = { createApp, dmText, dmMessages, bold };
 if (require.main === module) {
   process.on('unhandledRejection', (e) => console.error('Unhandled:', e));
   process.on('uncaughtException', (e) => console.error('Crash prevented:', e));
-  const app = createApp();
-  const port = Number(process.env.PORT) || 3000;
-  app.server.listen(port, () => console.log(`TurboFex pairing site running on port ${port}`));
+  (async () => {
+    const cloud = cloudFromEnv(process.env);
+    const dataDir = path.join(__dirname, 'data');
+    if (cloud.enabled) await cloud.restore(path.join(dataDir, 'admin'));   // bring the saved admin data back before the site reads its files
+    const app = createApp({ cloud, dataDir });
+    const port = Number(process.env.PORT) || 3000;
+    app.server.listen(port, () => console.log(`TurboFex pairing site running on port ${port}` + (cloud.enabled ? ' (Supabase storage on)' : '')));
+  })();
 }

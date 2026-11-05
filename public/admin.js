@@ -31,7 +31,7 @@
     if (method !== 'GET') { o.headers['content-type'] = 'application/json'; o.headers['x-csrf-token'] = csrf; o.body = JSON.stringify(body || {}); }
     return fetch('/admin/api/' + url, o).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
-        if (r.status === 401 && url !== 'login' && url !== '2fa') { showLogin('Your session ended. Please sign in again.'); throw new Error('signed out'); }
+        if (r.status === 401 && url !== 'login' && url !== '2fa') { showLogin(me ? 'Your session ended. Please sign in again.' : ''); throw new Error('signed out'); }
         if (!r.ok) { var e = new Error(j.error || 'Something went wrong.'); e.status = r.status; throw e; }
         return j;
       });
@@ -62,7 +62,7 @@
     api('POST', '2fa', { ticket: ticket, code: $('c').value }).then(function () { return start(); }, function (er) { $('lg-err').textContent = er.message; if (/Sign in again/.test(er.message)) { $('f-pass').hidden = false; $('f-2fa').hidden = true; } }).then(function () { b.disabled = false; $('c').value = ''; });
   });
   $('b-back').addEventListener('click', function () { $('f-pass').hidden = false; $('f-2fa').hidden = true; $('lg-err').textContent = ''; ticket = ''; });
-  $('out').addEventListener('click', function () { api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); });
+  $('out').addEventListener('click', function () { if (!window.confirm('Sign out of the admin dashboard?')) return; api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); });
 
   // ---------- theme button ----------
   $('theme').addEventListener('click', function () {
@@ -302,10 +302,11 @@
           h('div', null, h('span', { text: 'Load average (1 / 5 / 15 min)' }), h('b', { text: x.cpu.load.join(' / ') })),
           h('div', null, h('span', { text: 'Event-loop delay' }), h('b', { text: x.eventLoopLagMs + ' ms' })),
           h('div', null, h('span', { text: 'Data folder size' }), h('b', { text: mb(x.storage.data) })),
+          h('div', null, h('span', { text: 'Permanent storage (Supabase)' }), h('b', { text: !x.storage.cloud.enabled ? 'Not set up' : x.storage.cloud.ok === false ? 'Problem: ' + x.storage.cloud.lastError : x.storage.cloud.ok ? 'Connected' + (x.storage.cloud.queued ? ' · ' + x.storage.cloud.queued + ' waiting to send' : '') : 'Starting…' })),
           h('div', null, h('span', { text: 'Live session IDs' }), h('b', { text: String(x.pairing.liveSessionIds) })),
           h('div', null, h('span', { text: 'Running attempts' }), h('b', { text: String(x.pairing.activeJobs) }))))));
       n.appendChild(h('div', { class: 'cols' }, panel('CPU of the site', 'last ' + Math.round(x.series.length * 5 / 60) + ' min', spark(x.series.map(function (s) { return s.cpu; }), 'CPU history')), panel('Memory of the site', null, spark(x.series.map(function (s) { return s.rss; }), 'Memory history'))));
-      if (!x.storage.disk || !m.containerLimit) n.appendChild(h('p', { class: 'note', text: 'Free hosting plans do not keep files between deploys: the activity log, blocks and settings saved on the server are lost when the site is redeployed unless a persistent disk is attached.' }));
+      if (!x.storage.cloud.enabled && (!x.storage.disk || !m.containerLimit)) n.appendChild(h('p', { class: 'note', text: 'Free hosting plans do not keep files between deploys: the activity log, blocks and settings saved on the server are lost when the site is redeployed unless a persistent disk is attached or Supabase storage is set up.' }));
       return n;
     });
   }

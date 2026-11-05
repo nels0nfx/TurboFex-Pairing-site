@@ -85,7 +85,7 @@ function parseAccounts(raw) {
 }
 
 // ---------- the dashboard ----------
-function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, stopJob, version, defaults, now = () => Date.now() }) {
+function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, stopJob, version, defaults, cloud = null, now = () => Date.now() }) {
   const accounts = parseAccounts(env.ADMIN_ACCOUNTS);
   const enabled = accounts.length > 0;
   const trustProxy = String(env.TRUST_PROXY || '') === '1';
@@ -108,6 +108,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
   try { const s = JSON.parse(fs.readFileSync(stateFile, 'utf8')); state = { ...state, ...s }; } catch (err) { /* first start */ }
   function save() {
     try { fs.writeFileSync(stateFile + '.tmp', JSON.stringify(state), { mode: 0o600 }); fs.renameSync(stateFile + '.tmp', stateFile); } catch (err) { /* best effort */ }
+    if (cloud) cloud.pushState(state);
   }
   const LIMITS = { pair: { min: 1, max: 200 }, number: { min: 1, max: 100 }, maxJobs: { min: 1, max: 100 } };
   const limits = () => ({ pair: state.limits.pair || defaults.pair, number: state.limits.number || defaults.number, maxJobs: state.limits.maxJobs || defaults.maxJobs });
@@ -129,6 +130,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     const h = chainOf(auditLast, body);
     try { fs.appendFileSync(auditFile, JSON.stringify({ ...body, h }) + '\n', { mode: 0o600 }); } catch (err) { /* best effort */ }
     auditLast = h;
+    if (cloud) cloud.pushAudit({ ...body, h });
     return body;
   }
   function auditRead(limit) {
@@ -185,7 +187,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       uptimeSec: Math.round(process.uptime()), startedAt: now() - Math.round(process.uptime()) * 1000,
       cpu: { process: last.proc, system: last.sys, load: os.loadavg().map((x) => Math.round(x * 100) / 100) },
       memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },
-      storage: { data: dirSize(dataDir), disk },
+      storage: { data: dirSize(dataDir), disk, cloud: cloud ? cloud.status() : { enabled: false } },
       eventLoopLagMs: last.lag,
       series: samples.map((s) => ({ t: s.t, cpu: s.proc, rss: s.rss, lag: s.lag })),
       pairing: { activeJobs: jobs().filter((j) => !j.doneAt).length, liveSessionIds: store.list().length },

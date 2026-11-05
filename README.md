@@ -46,3 +46,6 @@ Render redeploys by itself after the push.
 
 ## Admin dashboard (optional)
 Open `/admin` on your site. It does not exist until you set `ADMIN_ACCOUNTS` (see `TURBOFEX_AI_NOTES.md`, section 17). Create an account with `node tools/admin-setup.js`, scan the QR in an authenticator app, paste the printed `ADMIN_ACCOUNTS=...` line into Render -> Environment, then redeploy.
+
+## Permanent admin data (Supabase, optional)
+Run `tools/supabase-setup.sql` once in Supabase's SQL Editor, then set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` on Render. Blocks, settings, announcements, the activity log and the audit log then survive restarts.

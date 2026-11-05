@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function createEvents({ dir, retentionMs = 7 * 24 * 3600 * 1000, memMax = 20000 }) {
+function createEvents({ dir, retentionMs = 7 * 24 * 3600 * 1000, memMax = 20000, onRecord = null }) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const file = path.join(dir, 'events.jsonl');
   let list = [];
@@ -31,6 +31,7 @@ function createEvents({ dir, retentionMs = 7 * 24 * 3600 * 1000, memMax = 20000 
     list.push(e);
     if (list.length > memMax) list = list.slice(-Math.floor(memMax * 0.9));
     fs.appendFile(file, JSON.stringify(e) + '\n', { mode: 0o600 }, () => {});
+    if (onRecord) { try { onRecord(e); } catch (err) { /* never break the site */ } }
     return e;
   }
   const since = (ms) => { const from = Date.now() - ms; let i = list.length; while (i > 0 && list[i - 1].t >= from) i--; return list.slice(i); };

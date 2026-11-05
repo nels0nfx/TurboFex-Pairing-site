@@ -77,7 +77,7 @@
   <ul class="checks2">
     <li>Session: until the session ID is used, or 5 minutes after it was made, whichever comes first. Then it is removed from the site.</li>
     <li>Attempt counters: about 15 minutes.</li>
-    <li>Activity log: 7 days, then it is deleted. On the free hosting we use, it is also cleared whenever the site is restarted or updated.</li>
+    <li>Activity log: 7 days, then it is deleted. A copy is kept in a private database service so it is not lost when the site restarts.</li>
     <li>Phone number: not kept.</li>
   </ul>
   <p>Once the bot has your session it keeps running on your account until you unlink it. See below.</p></section>
@@ -89,6 +89,7 @@
   <ul class="checks2">
     <li><b>WhatsApp (Meta).</b> Linking happens through WhatsApp, so WhatsApp receives your number and link request under its own <a href="https://www.whatsapp.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">privacy policy</a>.</li>
     <li><b>Hosting.</b> The site runs on a cloud hosting provider, which handles the traffic and the files the site stores.</li>
+    <li><b>Database.</b> The activity log, blocks and audit log (the shortened, scrambled data described above, never your session, session ID or full number) are copied to a private Supabase database, which only the site can access.</li>
   </ul>
   <p>We do not sell or rent your information and do not share it for advertising.</p></section>
   <section class="docsec"><h2>Your choices</h2>
