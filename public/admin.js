@@ -89,6 +89,7 @@
   ];
   var alertCount = 0;
   function drawNav() {
+    drawBar();
     var nav = clear($('nav'));
     TABS.forEach(function (t) {
       if (t[2] && !can(t[2])) return;
@@ -98,21 +99,53 @@
       nav.appendChild(b);
     });
   }
+  var BAR = ['overview', 'pairing', 'visitors', 'security'];
+  function icon(name, size) { return svg('svg', { viewBox: '0 0 24 24', width: size || 22, height: size || 22, 'aria-hidden': 'true' }, svg('path', { d: ICON[name], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })); }
+  function drawBar() {
+    var bar = clear($('bar')), titles = {}; TABS.forEach(function (t) { titles[t[0]] = t[1]; });
+    BAR.forEach(function (id) {
+      bar.appendChild(h('button', { type: 'button', id: 'bar-' + id, 'aria-current': id === tab ? 'page' : 'false', onclick: function () { go(id); } }, icon(id), h('span', { text: titles[id] }), id === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
+    });
+    bar.appendChild(h('button', { type: 'button', id: 'bar-more', 'aria-current': BAR.indexOf(tab) < 0 ? 'page' : 'false', onclick: openMore }, svg('svg', { viewBox: '0 0 24 24', width: 22, height: 22, 'aria-hidden': 'true' }, svg('path', { d: 'M5 12h.01M12 12h.01M19 12h.01', fill: 'none', stroke: 'currentColor', 'stroke-width': 3, 'stroke-linecap': 'round' })), h('span', { text: 'More' })));
+  }
+  function openMore() {
+    var prev = document.activeElement, list = h('div', { class: 'asheet-l' });
+    var bg = h('div', { class: 'modal-bg asheet-bg' }, h('div', { class: 'asheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'More sections' }, h('div', { class: 'grab' }), list));
+    function close() { bg.remove(); document.removeEventListener('keydown', key); try { if (prev && prev.focus) prev.focus(); } catch (e) { /* fine */ } }
+    function key(e) { if (e.key === 'Escape') close(); }
+    TABS.forEach(function (t) {
+      if (BAR.indexOf(t[0]) >= 0 || (t[2] && !can(t[2]))) return;
+      list.appendChild(h('button', { type: 'button', id: 'more-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] })));
+    });
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+    document.addEventListener('keydown', key); document.body.appendChild(bg); var f = list.querySelector('button'); if (f) f.focus();
+  }
   function go(t) {
+    if (!VIEWS[t]) return;
     tab = t; try { history.replaceState(null, '', '#' + t); } catch (e) { /* fine */ }
-    drawNav(); load(true);
+    drawNav(); load(true); window.scrollTo(0, 0);
     var sel = $('tab-' + t); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
+  window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (me && t !== tab && VIEWS[t]) go(t); });
   var VIEWS = { overview: vOverview, pairing: vPairing, visitors: vVisitors, security: vSecurity, server: vServer, activity: vActivity, audit: vAudit, announce: vAnnounce, settings: vSettings };
   var REFRESH = { overview: 15000, pairing: 5000, visitors: 20000, security: 15000, server: 5000, activity: 8000, audit: 0, announce: 0, settings: 0 };
   var state = { visitors: { days: 1, kind: 'clients' }, activity: { type: '' } };
 
+  var lastLoad = 0;
+  function skeleton() { return h('div', { class: 'askel', 'aria-label': 'Loading' }, h('i', { class: 'sk t' }), h('i', { class: 'sk s' }), h('div', { class: 'sk-g' }, h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' })), h('i', { class: 'sk p' })); }
+  function liveBadge() {
+    if (!REFRESH[tab]) return null;
+    var t = h('span', { class: 'lt', text: 'Live' });
+    var b = h('button', { type: 'button', class: 'live', 'aria-label': 'Refresh now', onclick: function () { b.classList.add('spin'); load(false).then(function () { b.classList.remove('spin'); }); } }, h('i', { class: 'dot' }), t);
+    b._t = t; return b;
+  }
+  setInterval(function () { var l = document.querySelector('.live .lt'); if (l && lastLoad) { var sec = Math.round((Date.now() - lastLoad) / 1000); l.textContent = sec < 4 ? 'Live' : 'Updated ' + sec + 's ago'; } }, 1000);
   function load(first) {
     var v = $('view'), t = tab;
-    if (first) { clear(v); v.appendChild(h('div', { class: 'spin-c' }, h('span', { class: 'spin' }))); }
+    if (first) { clear(v); v.appendChild(skeleton()); }
     return VIEWS[t]().then(function (node) {
       if (t !== tab) return;
-      var keep = window.scrollY; clear(v); v.appendChild(node); if (!first) window.scrollTo(0, keep);
+      lastLoad = Date.now(); var keep = window.scrollY; clear(v); node.classList.add(first ? 'enter' : 'same'); v.appendChild(node); if (!first) window.scrollTo(0, keep);
     }, function (e) { if (t === tab && first) { clear(v); v.appendChild(h('p', { class: 'empty', text: (e && e.message) || 'Could not load.' })); } fail(e); });
   }
   function schedule() {
@@ -136,7 +169,7 @@
   function pollAlerts() { api('GET', 'security').then(function (j) { setAlerts(j.alerts, tab === 'security'); }, function () {}); }
 
   // ---------- pieces ----------
-  function head(title, sub, right) { return h('div', { class: 'vh' }, h('div', null, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), right || null); }
+  function head(title, sub, right) { return h('div', { class: 'vh' }, h('div', { class: 'vt' }, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), h('div', { class: 'avr' }, right || null, liveBadge())); }
   function stat(label, value, note, cls) { return h('div', { class: 'kpi ' + (cls || '') }, h('small', { text: label }), h('b', { text: value }), note ? h('em', { text: note }) : null); }
   function panel(title, small) { var p = h('section', { class: 'pnl' }); if (title) p.appendChild(h('h3', null, title, small ? h('small', { text: small }) : null)); for (var i = 2; i < arguments.length; i++) add(p, arguments[i]); return p; }
   function table(cols, rows, empty, widths) {
@@ -165,13 +198,14 @@
     return h('div', { class: 'gauge' }, h('div', { class: 'gr' }, ring, h('b', { class: 'gp', text: (p < 10 ? p.toFixed(1) : String(Math.round(p))) + '%' })), h('div', { class: 'gl', text: label }), h('div', { class: 'gc', text: caption }));
   }
   function bars(series, a, b) {
+    if (!series.some(function (x) { return x[a] || x[b]; })) return h('p', { class: 'empty', text: 'No pairing attempts in the last 24 hours.' });
     var W = 320, H = 110, pad = 16, max = Math.max.apply(null, series.map(function (s) { return Math.max(s[a], s[b]); }).concat([1]));
     var g = svg('svg', { viewBox: '0 0 ' + W + ' ' + (H + 16), class: 'chart', role: 'img', 'aria-label': 'Pairing attempts and linked accounts per hour, last 24 hours' });
     var bw = (W - pad) / series.length;
     g.appendChild(svg('line', { class: 'axis', x1: 0, y1: H, x2: W, y2: H }));
     series.forEach(function (s, i) {
       var x = pad / 2 + i * bw, ha = s[a] / max * (H - 8), hb = s[b] / max * (H - 8);
-      if (s[a]) g.appendChild(svg('rect', { class: 'bar', x: x + 1, y: H - ha, width: Math.max(2, bw - 3), height: ha, rx: 2 }));
+      if (s[a]) g.appendChild(svg('rect', { class: 'abar', x: x + 1, y: H - ha, width: Math.max(2, bw - 3), height: ha, rx: 2 }));
       if (s[b]) g.appendChild(svg('rect', { class: 'bar2', x: x + 1, y: H - hb, width: Math.max(2, bw - 3), height: hb, rx: 2 }));
       if (i % 6 === 0) { var d = new Date(s.t); var tx = svg('text', { class: 'lbl', x: x, y: H + 12 }); tx.textContent = String(d.getHours()).padStart(2, '0') + ':00'; g.appendChild(tx); }
     });
@@ -210,16 +244,25 @@
       var n = h('div');
       n.appendChild(head('Overview', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
-      n.appendChild(h('div', { class: 'grid' },
+      // what needs a look right now: each chip opens the tab that deals with it
+      var items = [];
+      if (o.alerts) items.push(['Security alerts', o.alerts, 'security', 'bad']);
+      if (o.now.activeAttempts) items.push(['Pairings running', o.now.activeAttempts, 'pairing', '']);
+      if (o.now.liveSessionIds) items.push(['Session IDs waiting', o.now.liveSessionIds, 'pairing', '']);
+      if (o.now.blocks) items.push(['Active blocks', o.now.blocks, 'visitors', '']);
+      var att = h('section', { class: 'attn' }, h('div', { class: 'at' }, h('b', { text: items.length ? 'Right now' : 'All quiet' }), h('small', { text: items.length ? 'Tap one to look' : 'Nothing needs your attention' })));
+      if (items.length) att.appendChild(h('div', { class: 'ac' }, items.map(function (i) { return h('button', { type: 'button', class: 'chipb ' + i[3], onclick: function () { go(i[2]); } }, h('b', { text: String(i[1]) }), h('span', { text: i[0] })); })));
+      n.appendChild(att);
+      n.appendChild(h('div', { class: 'ahero' },
         stat('Visitors', String(t.visitors), t.visits + ' page visits'),
         stat('Pairing attempts', String(t.attempts), t.codes + ' codes · ' + t.qrs + ' QR'),
         stat('Linked', String(t.linked), 'accounts linked', 'good'),
-        stat('Failed', String(t.failed), t.invalid + ' invalid numbers', t.failed ? 'warn' : ''),
-        stat('Success rate', o.successRate === null ? '—' : pct(o.successRate), o.successRate === null ? 'no finished attempts yet' : 'linked ÷ finished'),
-        stat('Live session IDs', String(o.now.liveSessionIds), 'waiting for the bot'),
-        stat('Attempts running', String(o.now.activeAttempts), 'right now'),
-        stat('Security alerts', String(o.alerts), 'last hour / day', o.alerts ? 'bad' : 'good'),
-        stat('Blocks', String(o.now.blocks), t.blocked + ' blocked attempts')));
+        stat('Success rate', o.successRate === null ? '—' : pct(o.successRate), o.successRate === null ? 'no finished attempts yet' : 'linked ÷ finished')));
+      n.appendChild(h('div', { class: 'mini' },
+        h('div', null, h('b', { text: String(t.failed) }), h('span', { text: 'Failed' })),
+        h('div', null, h('b', { text: String(t.invalid) }), h('span', { text: 'Invalid numbers' })),
+        h('div', null, h('b', { text: String(t.limited) }), h('span', { text: 'Rate limited' })),
+        h('div', null, h('b', { text: String(t.blocked) }), h('span', { text: 'Blocked tries' }))));
       n.appendChild(panel('Attempts per hour', '24 h', bars(o.series, 'attempts', 'linked'), h('div', { class: 'legend' }, h('span', null, h('i'), 'Attempts'), h('span', null, h('i', { class: 'g' }), 'Linked'))));
       n.appendChild(h('div', { class: 'cols' },
         panel('Method', null, h('div', { class: 'kv' }, h('div', null, h('span', { text: 'Pairing code' }), h('b', { text: String(o.methods.code) })), h('div', null, h('span', { text: 'QR code' }), h('b', { text: String(o.methods.qr) })), h('div', null, h('span', { text: 'Session IDs fetched by the bot' }), h('b', { text: t.sessionFetchOk + ' ok · ' + t.sessionFetchBad + ' wrong' })))),

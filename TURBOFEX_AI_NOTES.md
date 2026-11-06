@@ -185,3 +185,11 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Visitors: the row that is the admin's own visitor fingerprint shows 'this is you' and has no Block button (blocking yourself is refused by the server anyway).
 - Server tab: usage bars replaced by round gauges (`gauge()`); 'This site' (CPU, memory vs limit, heap vs V8 limit) vs 'The whole machine' (shared, never shown red unless >=97%). CSS gotcha: style.css already has `.ring`; the gauge class is `.gring`.
 - Version history add: **v2.23.0**.
+
+## 21. v2.24.0 - admin dashboard UI/UX upgrade
+- Phones: bottom tab bar (Overview, Pairing, Visitors, Security + badge, More). 'More' opens a bottom sheet (Server, Activity, Audit log if allowed, Announcements, Settings). Desktop (>=900px) keeps the side menu. The old top scroller is hidden on phones. Tabs also follow `#hash` (back button works): tests switch tabs with `location.hash = '#settings'`, not by clicking.
+- Every view header has a 'Live' badge: shows 'Updated Ns ago', tap to refresh now. Loading shows skeleton shimmers; views fade in.
+- Overview: 'Right now' attention card (chips that open the matching tab, or 'All quiet'), 4 big headline numbers, a compact strip (failed / invalid / rate limited / blocked tries), then the chart (shows a message instead of an empty chart).
+- Phone lists: each row is a card with a bold title line and two-column facts.
+- CLASS NAME RULE: style.css (public site) already uses .bar, .hero, .skel, .sheet, .sheet-bg, .vr, .ring, .stat, .sub. New dashboard classes are prefixed (.abar, .ahero, .askel, .asheet, .avr, .gring, .kpi). Check style.css before naming a class.
+- Version history add: **v2.24.0**.
