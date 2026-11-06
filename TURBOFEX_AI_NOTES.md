@@ -178,3 +178,10 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Visits: `site.visit` events from `noteVisit()` in server.js (html pages only, one per visitor per 10 min, skips bots/monitors by User-Agent). Shown as Visitors / page visits on Overview and a 'Page visits' column in Visitors. Privacy page updated.
 - Heap meter now compares with V8's real limit (`heapLimit`), not heapTotal (which always looks nearly full and showed red).
 - Version history add: **v2.22.0**.
+
+## 20. v2.23.0 - dialogs, gauges, noop fix
+- `/admin/api/noop` now answers 200 with a tiny HTML page. A 204 made iPhone Safari ask "Do you want to download noop?".
+- The phone's own confirm()/prompt() boxes (white iOS sheet) are gone: `dlg()` / `confirmThen()` in public/admin.js draw an in-page pop-up in the site's style (Esc/outside click cancels, Enter submits). Never use window.confirm/prompt in the dashboard.
+- Visitors: the row that is the admin's own visitor fingerprint shows 'this is you' and has no Block button (blocking yourself is refused by the server anyway).
+- Server tab: usage bars replaced by round gauges (`gauge()`); 'This site' (CPU, memory vs limit, heap vs V8 limit) vs 'The whole machine' (shared, never shown red unless >=97%). CSS gotcha: style.css already has `.ring`; the gauge class is `.gring`.
+- Version history add: **v2.23.0**.

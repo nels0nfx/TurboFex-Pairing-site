@@ -298,7 +298,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     if (!post && req.method !== 'GET') { json(res, 405, { error: 'Not allowed.' }); return true; }
     // The sign-in page sends its form here (into a hidden frame) after a successful sign-in. It does nothing and never reads the body:
     // it only lets the phone's browser see a real form submission, which is what makes it offer to save the password.
-    if (post && route === 'noop') { req.resume(); res.writeHead(204, { ...HEAD, 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': HEAD['Content-Security-Policy'].replace("frame-ancestors 'none'", "frame-ancestors 'self'") }); res.end(); return true; }
+    if (post && route === 'noop') { req.resume(); res.writeHead(200, { ...HEAD, 'Content-Type': 'text/html; charset=utf-8', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': HEAD['Content-Security-Policy'].replace("frame-ancestors 'none'", "frame-ancestors 'self'") }); res.end('<!doctype html><meta charset="utf-8"><title>ok</title>'); return true; }
     if (post && !sameOrigin(req)) { json(res, 403, { error: 'Blocked.' }); return true; }
     const body = async () => { try { return JSON.parse((await ctx.readBody(req)) || '{}') || {}; } catch (err) { return null; } };
 
@@ -370,7 +370,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       if (!j) { json(res, 404, { error: 'That attempt already ended.' }); return true; }
       stopJob(j, 'This attempt was stopped by the site.'); events.record('pair.stopped', { client: j.client, num: j.numId, by: sess.user }); act('attempt.stop', ref, ''); json(res, 200, { ok: true }); return true;
     }
-    if (!post && route === 'visitors') { if (need('view')) { const w = Math.min(7, Math.max(1, Number(new URL(req.url, 'http://x').searchParams.get('days')) || 1)); json(res, 200, { days: w, ...visitors(w * DAY), blocks: state.blocks.filter(liveBlock) }); } return true; }
+    if (!post && route === 'visitors') { if (need('view')) { const w = Math.min(7, Math.max(1, Number(new URL(req.url, 'http://x').searchParams.get('days')) || 1)); { const v = visitors(w * DAY); v.clients.forEach((c) => { c.isMe = c.id === ipId; }); json(res, 200, { days: w, ...v, blocks: state.blocks.filter(liveBlock) }); } } return true; }
     if (!post && route === 'blocks') { if (need('view')) json(res, 200, { blocks: state.blocks.filter(liveBlock) }); return true; }
     if (post && route === 'blocks/add') {
       if (!need('blocks.manage')) return true;

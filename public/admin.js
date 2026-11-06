@@ -69,7 +69,7 @@
       return api('POST', '2fa', { ticket: j.ticket, code: code, trust: $('trust').checked }).then(function () { finishLogin(); });
     }).catch(function (er) { $('lg-err').textContent = er.message; if (/code is not right/.test(er.message)) { $('c').value = ''; $('c').focus(); } }).then(function () { b.disabled = false; });
   });
-  $('out').addEventListener('click', function () { if (!window.confirm('Sign out of the admin dashboard?')) return; api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); });
+  $('out').addEventListener('click', function () { confirmThen('Sign out of the admin dashboard?', function () { api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); }, 'Sign out'); });
 
   // ---------- theme button ----------
   $('theme').addEventListener('click', function () {
@@ -155,6 +155,15 @@
     return r;
   }
   function meter(label, value, text, max) { var p = Math.max(0, Math.min(100, max ? value / max * 100 : value)); return h('div', { class: 'meter' }, h('div', { class: 'mh' }, h('span', { text: label }), h('span', { text: text })), svg('svg', { viewBox: '0 0 100 10', preserveAspectRatio: 'none', role: 'img', 'aria-label': label + ' ' + text }, svg('rect', { class: 'track', x: 0, y: 0, width: 100, height: 10, rx: 5 }), svg('rect', { class: 'fill' + (p > 85 ? ' high' : ''), x: 0, y: 0, width: Math.max(1.5, p), height: 10, rx: 5 }))); }
+  // round gauge: ring + percent in the middle + a line of plain numbers under it
+  function gauge(label, ratio, caption, shared) {
+    var p = Math.max(0, Math.min(100, ratio * 100)), R = 38, C = 2 * Math.PI * R, lvl = p >= 90 ? 'bad' : p >= 70 ? 'warn' : 'ok';
+    if (shared && p < 97) lvl = 'ok';   // the machine is shared with other programs: its fullness is not an alarm for this site
+    var ring = svg('svg', { viewBox: '0 0 100 100', class: 'gring', role: 'img', 'aria-label': label + ' ' + Math.round(p) + ' percent' },
+      svg('circle', { class: 'rt', cx: 50, cy: 50, r: R, fill: 'none', 'stroke-width': 10 }),
+      svg('circle', { class: 'rf ' + lvl, cx: 50, cy: 50, r: R, fill: 'none', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': (C * p / 100).toFixed(1) + ' ' + C.toFixed(1), transform: 'rotate(-90 50 50)' }));
+    return h('div', { class: 'gauge' }, h('div', { class: 'gr' }, ring, h('b', { class: 'gp', text: (p < 10 ? p.toFixed(1) : String(Math.round(p))) + '%' })), h('div', { class: 'gl', text: label }), h('div', { class: 'gc', text: caption }));
+  }
   function bars(series, a, b) {
     var W = 320, H = 110, pad = 16, max = Math.max.apply(null, series.map(function (s) { return Math.max(s[a], s[b]); }).concat([1]));
     var g = svg('svg', { viewBox: '0 0 ' + W + ' ' + (H + 16), class: 'chart', role: 'img', 'aria-label': 'Pairing attempts and linked accounts per hour, last 24 hours' });
@@ -174,7 +183,24 @@
     var d = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
     return svg('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': label }, svg('path', { class: 'area', d: d + ' L' + W + ' ' + H + ' L0 ' + H + ' Z' }), svg('path', { class: 'line', d: d }));
   }
-  function confirmThen(msg, fn) { if (window.confirm(msg)) fn(); }
+  // our own pop-up (the phone's built-in boxes look foreign): dlg({title, text, fields, ok, danger}, function (values) {...})
+  function dlg(o, done) {
+    var prev = document.activeElement, inputs = {};
+    var card = h('form', { class: 'dlg', role: 'dialog', 'aria-modal': 'true', 'aria-label': o.title, novalidate: 'novalidate' }, h('h2', { text: o.title }), o.text ? h('p', { text: o.text }) : null);
+    (o.fields || []).forEach(function (f) {
+      var inp = h('input', { id: 'dlg-' + f.name, type: f.type || 'text', value: f.value == null ? '' : f.value, placeholder: f.placeholder || '', autocomplete: 'off', inputmode: f.type === 'number' ? 'numeric' : null, min: f.type === 'number' ? '0' : null, maxlength: '120' });
+      inputs[f.name] = inp; card.appendChild(h('div', { class: 'fld' }, h('label', { for: 'dlg-' + f.name, text: f.label }), inp));
+    });
+    var bg = h('div', { class: 'modal-bg' }, card);
+    function close() { bg.remove(); document.removeEventListener('keydown', key); try { if (prev && prev.focus) prev.focus(); } catch (e) { /* fine */ } }
+    function key(e) { if (e.key === 'Escape') close(); }
+    card.appendChild(h('div', { class: 'dlg-b' }, h('button', { class: 'btn', type: 'button', onclick: close }, 'Cancel'), h('button', { class: 'btn solid' + (o.danger ? ' danger' : ''), type: 'submit' }, o.ok || 'OK')));
+    card.addEventListener('submit', function (e) { e.preventDefault(); var v = {}; Object.keys(inputs).forEach(function (k) { v[k] = inputs[k].value; }); close(); done(v); });
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+    document.addEventListener('keydown', key); document.body.appendChild(bg);
+    var first = card.querySelector('input'); (first || card.querySelector('button[type=submit]')).focus();
+  }
+  function confirmThen(msg, fn, okLabel) { dlg({ title: 'Please confirm', text: msg, ok: okLabel || 'Yes, do it', danger: true }, fn); }
 
   // ---------- Overview ----------
   function vOverview() {
@@ -244,7 +270,7 @@
       }
       if (st.kind === 'clients') {
         rows = j.clients.map(function (c) {
-          return row([{ l: 'Visitor', v: c.id, mono: true }, { l: 'Address', v: c.ip || '—', mono: true }, { l: 'Attempts', v: String(c.attempts) }, { l: 'Linked / failed', v: c.linked + ' / ' + c.failed }, { l: 'Page visits', v: String(c.visits) }, { l: 'Numbers', v: String(c.numbers) }, { l: 'Last seen', v: ago(c.lastSeen) }, { l: 'Status', node: h('span', { class: 'tag ' + (c.blocked ? 'bad' : 'ok'), text: c.blocked ? 'blocked' : 'ok' }) }], blockBtn('client', c.id, c.blocked, 'visitor ' + c.id));
+          return row([{ l: 'Visitor', v: c.id, mono: true }, { l: 'Address', v: c.ip || '—', mono: true }, { l: 'Attempts', v: String(c.attempts) }, { l: 'Linked / failed', v: c.linked + ' / ' + c.failed }, { l: 'Page visits', v: String(c.visits) }, { l: 'Numbers', v: String(c.numbers) }, { l: 'Last seen', v: ago(c.lastSeen) }, { l: 'Status', node: h('span', { class: 'tag ' + (c.blocked ? 'bad' : 'ok'), text: c.isMe ? 'this is you' : c.blocked ? 'blocked' : 'ok' }) }], c.isMe ? null : blockBtn('client', c.id, c.blocked, 'visitor ' + c.id));
         });
         n.appendChild(panel('Visitors', String(j.clients.length), table(['Visitor', 'Address', 'Attempts', 'Linked / failed', 'Page visits', 'Numbers', 'Last seen', 'Status', ''], rows, 'No visitors in this period.')));
       } else {
@@ -271,10 +297,10 @@
     });
   }
   function askBlock(label, done) {
-    var hours = window.prompt('Block ' + label + '.\nFor how many hours? (0 = permanent)', '24'); if (hours === null) return;
-    var n = Number(hours); if (!isFinite(n) || n < 0) { toast('Enter a number of hours.', true); return; }
-    var reason = window.prompt('Reason (optional, shown in the audit log):', '') || '';
-    done(n, reason);
+    dlg({ title: 'Block ' + label, text: 'They will not be able to start a pairing until the block ends.', ok: 'Block', danger: true, fields: [{ name: 'hours', label: 'For how many hours? (0 = permanent)', type: 'number', value: '24' }, { name: 'reason', label: 'Reason (optional, shown in the audit log)', value: '' }] }, function (v) {
+      var n = Number(v.hours); if (v.hours === '' || !isFinite(n) || n < 0) { toast('Enter a number of hours.', true); return; }
+      done(n, v.reason || '');
+    });
   }
 
   // ---------- Security ----------
@@ -296,15 +322,16 @@
   function vServer() {
     return api('GET', 'health').then(function (x) {
       var n = h('div'); n.appendChild(head('Server health', 'Live numbers from the running server (updated every few seconds)', null));
-      n.appendChild(h('div', { class: 'grid' }, stat('Uptime', dur(x.uptimeSec), 'since ' + when(x.startedAt)), stat('Version', x.version, 'Node ' + x.node), stat('CPU (this site)', pct(x.cpu.process), 'of one core'), stat('Memory used', mb(x.memory.rss), 'by the site')));
-      var m = x.memory, cpuLimit = Math.max(100, x.cores * 100);
-      var memBars = [meter('CPU of the site (of one core)', Math.min(100, x.cpu.process), pct(x.cpu.process), 100), meter('Machine CPU', x.cpu.system, pct(x.cpu.system), 100)];
-      if (m.containerLimit) memBars.push(meter('Memory (this service)', m.containerUsed || m.rss, mb(m.containerUsed || m.rss) + ' of ' + mb(m.containerLimit), m.containerLimit));
-      memBars.push(meter('Memory (whole machine)', m.systemTotal - m.systemFree, mb(m.systemTotal - m.systemFree) + ' of ' + mb(m.systemTotal), m.systemTotal));
-      memBars.push(meter('Heap (JavaScript)', m.heapUsed, mb(m.heapUsed) + ' of ' + mb(m.heapLimit) + ' allowed', m.heapLimit));
-      if (x.storage.disk) memBars.push(meter('Storage (disk of the data folder)', x.storage.disk.total - x.storage.disk.free, mb(x.storage.disk.total - x.storage.disk.free) + ' of ' + mb(x.storage.disk.total), x.storage.disk.total));
-      void cpuLimit;
-      n.appendChild(h('div', { class: 'cols' }, panel('Usage', null, memBars),
+      n.appendChild(h('div', { class: 'grid' }, stat('Uptime', dur(x.uptimeSec), 'since ' + when(x.startedAt)), stat('Version', x.version, 'Node ' + x.node)));
+      var m = x.memory, used = m.containerUsed || m.rss, disk = x.storage.disk;
+      var mine = [gauge('Site CPU', Math.min(100, x.cpu.process) / 100, 'of one core'),
+        gauge(m.containerLimit ? 'Site memory' : 'Site memory (no limit known)', m.containerLimit ? used / m.containerLimit : 0, m.containerLimit ? mb(used) + ' of ' + mb(m.containerLimit) : mb(used) + ' in use'),
+        gauge('Heap (JavaScript)', m.heapUsed / m.heapLimit, mb(m.heapUsed) + ' of ' + mb(m.heapLimit))];
+      var host = [gauge('Machine CPU', x.cpu.system / 100, 'all programs on it', true), gauge('Machine memory', (m.systemTotal - m.systemFree) / m.systemTotal, mb(m.systemTotal - m.systemFree) + ' of ' + mb(m.systemTotal), true)];
+      if (disk) host.push(gauge('Machine disk', (disk.total - disk.free) / disk.total, mb(disk.total - disk.free) + ' of ' + mb(disk.total), true));
+      var memBars = h('div', null, h('div', { class: 'gh', text: 'This site' }), h('div', { class: 'gg' }, mine), h('div', { class: 'gh', text: 'The whole machine (shared with other programs, for your information)' }), h('div', { class: 'gg' }, host));
+      n.appendChild(panel('Usage', 'live', memBars));
+      n.appendChild(h('div', { class: 'cols' },
         panel('Details', null, h('div', { class: 'kv' },
           h('div', null, h('span', { text: 'Platform' }), h('b', { text: x.platform + ' · ' + x.cores + ' cores' })),
           h('div', null, h('span', { text: 'Load average (1 / 5 / 15 min)' }), h('b', { text: x.cpu.load.join(' / ') })),

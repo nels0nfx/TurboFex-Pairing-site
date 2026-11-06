@@ -153,3 +153,29 @@ body.adm { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--b
 .lg .opt { font-weight: 400; color: var(--muted); font-size: 12.5px; }
 .lg label.chk { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 4px; font-weight: 500; font-size: 14px; color: var(--muted); line-height: 1.4; cursor: pointer; }
 .lg label.chk input { flex: none; appearance: auto; -webkit-appearance: checkbox; width: 20px; height: 20px; min-height: 0; margin: 1px 0 0; padding: 0; accent-color: var(--gold); }
+
+/* in-page pop-up (replaces the phone's own confirm/prompt boxes) */
+.modal-bg { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8, 8, 8, .6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.dlg { width: 100%; max-width: 420px; max-height: 90vh; overflow: auto; padding: 22px 20px 18px; border-radius: 22px; background: var(--surface); border: 1px solid var(--card-border); color: var(--text); box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+.dlg h2 { margin: 0 0 8px; font-size: 21px; line-height: 1.25; overflow-wrap: anywhere; }
+.dlg p { margin: 0 0 14px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.dlg .fld { margin: 0 0 12px; }
+.dlg-b { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.dlg-b .btn { min-width: 96px; }
+.btn.solid.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.dlg input { width: 100%; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--bg); color: var(--text); font: inherit; font-size: 16px; }
+.dlg label { display: block; margin: 0 0 6px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+
+/* usage gauges */
+.gh { margin: 4px 0 10px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.gg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 0 18px; }
+.gauge { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 14px 8px 12px; border: 1px solid var(--card-border); border-radius: 16px; background: var(--bg); }
+.gr { position: relative; width: 92px; height: 92px; }
+.gring { width: 100%; height: 100%; display: block; }
+.gring .rt { stroke: var(--track); }
+.gring .rf { transition: stroke-dasharray .5s ease; }
+.gring .rf.ok { stroke: var(--gold); } .gring .rf.warn { stroke: #D9962B; } .gring .rf.bad { stroke: var(--bad); }
+.gp { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; font-variant-numeric: tabular-nums; }
+.gl { margin-top: 8px; font-size: 14.5px; font-weight: 600; line-height: 1.25; }
+.gc { margin-top: 2px; font-size: 12.5px; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+@media (min-width: 760px) { .gg { grid-template-columns: repeat(3, 1fr); } }
