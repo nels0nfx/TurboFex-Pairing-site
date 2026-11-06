@@ -149,3 +149,7 @@ body.adm { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--b
 .toast.bad { background: var(--bad); color: #fff; }
 .spin-c { display: grid; place-items: center; padding: 40px; }
 @media (prefers-reduced-motion: reduce) { .adm * { animation: none !important; transition: none !important; } }
+
+.lg .opt { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.lg label.chk { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 4px; font-weight: 500; font-size: 14px; color: var(--muted); line-height: 1.4; cursor: pointer; }
+.lg label.chk input { flex: none; appearance: auto; -webkit-appearance: checkbox; width: 20px; height: 20px; min-height: 0; margin: 1px 0 0; padding: 0; accent-color: var(--gold); }

@@ -8,6 +8,8 @@ const { createCloud } = require('../cloud');
 const { hashPassword, newTotpSecret, totpCode } = require('../admin');
 
 // a tiny stand-in for Supabase's REST interface (only what cloud.js uses)
+// Postgres jsonb does not keep the order of keys (shorter keys first, then alphabetical): do the same, so key order can never matter
+const jsonb = (v) => (Array.isArray(v) || v === null || typeof v !== 'object') ? v : Object.fromEntries(Object.keys(v).sort((a, b) => a.length - b.length || (a < b ? -1 : 1)).map((k) => [k, jsonb(v[k])]));
 function fakeSupabase() {
   const db = { tfx_kv: [], tfx_events: [], tfx_audit: [] }; let nextId = 1; const calls = []; let down = false;
   async function fetchImpl(url, o) {
@@ -19,7 +21,7 @@ function fakeSupabase() {
     if (o.method === 'POST') {
       const body = JSON.parse(o.body);
       if (table === 'tfx_kv') { const i = rows.findIndex((r) => r.key === body.key); if (i >= 0) rows[i] = body; else rows.push(body); }
-      else for (const r of body) rows.push({ id: nextId++, ...r });
+      else for (const r of body) rows.push({ id: nextId++, ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, jsonb(v)])) });
       return ok(undefined, 201);
     }
     if (o.method === 'DELETE') { const lt = Number(u.searchParams.get('t').replace('lt.', '')); db[table] = rows.filter((r) => !(r.t < lt)); return ok(undefined, 204); }

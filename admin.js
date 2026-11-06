@@ -104,7 +104,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
 
   // ----- saved state: blocks, settings, announcements (one small file) -----
   const stateFile = path.join(dataDir, 'admin-state.json');
-  let state = { maintenance: { on: false, message: '' }, limits: {}, blocks: [], announcements: [] };
+  let state = { maintenance: { on: false, message: '' }, limits: {}, blocks: [], announcements: [], trust: {} };
   try { const s = JSON.parse(fs.readFileSync(stateFile, 'utf8')); state = { ...state, ...s }; } catch (err) { /* first start */ }
   function save() {
     try { fs.writeFileSync(stateFile + '.tmp', JSON.stringify(state), { mode: 0o600 }); fs.renameSync(stateFile + '.tmp', stateFile); } catch (err) { /* best effort */ }
@@ -133,11 +133,13 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     if (cloud) cloud.pushAudit({ ...body, h });
     return body;
   }
+  // the hash is over the fields in this fixed order, so a database that reorders JSON keys (Postgres jsonb does) cannot break the chain
+  const canon = (e) => ({ t: e.t, actor: e.actor, role: e.role, action: e.action, target: e.target, detail: e.detail, client: e.client });
   function auditRead(limit) {
     let lines = [];
     try { lines = fs.readFileSync(auditFile, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)); } catch (err) { /* none */ }
     let prev = '0'.repeat(64), ok = true;
-    for (const e of lines) { const { h, ...body } = e; if (chainOf(prev, body) !== h) { ok = false; break; } prev = h; }
+    for (const e of lines) { const { h } = e; const body = canon(e); if (chainOf(prev, body) !== h) { ok = false; break; } prev = h; }
     return { entries: lines.slice(-limit).reverse().map(({ h, ...b }) => b), total: lines.length, chainOk: ok };
   }
 
@@ -176,7 +178,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
   function dirSize(d) { let n = 0; try { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); n += f.isDirectory() ? dirSize(p) : fs.statSync(p).size; } } catch (err) { /* gone */ } return n; }
   function healthNow() {
     if (!samples.length) sample();
-    const m = process.memoryUsage();
+    const m = process.memoryUsage(); const heapLimit = require('v8').getHeapStatistics().heap_size_limit;
     const cg = { limit: readNum('/sys/fs/cgroup/memory.max') || readNum('/sys/fs/cgroup/memory/memory.limit_in_bytes'), used: readNum('/sys/fs/cgroup/memory.current') || readNum('/sys/fs/cgroup/memory/memory.usage_in_bytes') };
     const containerLimit = cg.limit && cg.limit < os.totalmem() * 2 ? cg.limit : null;
     let disk = null;
@@ -186,7 +188,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       version, node: process.version, platform: process.platform + ' ' + os.arch(), cores: os.cpus().length,
       uptimeSec: Math.round(process.uptime()), startedAt: now() - Math.round(process.uptime()) * 1000,
       cpu: { process: last.proc, system: last.sys, load: os.loadavg().map((x) => Math.round(x * 100) / 100) },
-      memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },
+      memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, heapLimit, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },
       storage: { data: dirSize(dataDir), disk, cloud: cloud ? cloud.status() : { enabled: false } },
       eventLoopLagMs: last.lag,
       series: samples.map((s) => ({ t: s.t, cpu: s.proc, rss: s.rss, lag: s.lag })),
@@ -210,7 +212,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     const act = jobs().filter((j) => !j.doneAt);
     return {
       since: events.first(), windowHours: 24,
-      totals: { attempts: starts.length, codes: c('pair.code'), qrs: c('pair.qr'), linked, failed, limited: c('pair.limited'), blocked: c('pair.blocked'), invalid: c('pair.invalid'), sessionFetchOk: ev.filter((e) => e.type === 'session.fetch' && e.ok).length, sessionFetchBad: ev.filter((e) => e.type === 'session.fetch' && !e.ok).length },
+      totals: { visits: c('site.visit'), visitors: new Set(ev.filter((e) => e.client && (e.type === 'site.visit' || e.type.startsWith('pair.'))).map((e) => e.client)).size, attempts: starts.length, codes: c('pair.code'), qrs: c('pair.qr'), linked, failed, limited: c('pair.limited'), blocked: c('pair.blocked'), invalid: c('pair.invalid'), sessionFetchOk: ev.filter((e) => e.type === 'session.fetch' && e.ok).length, sessionFetchBad: ev.filter((e) => e.type === 'session.fetch' && !e.ok).length },
       successRate: linked + failed ? Math.round((linked / (linked + failed)) * 1000) / 10 : null,
       methods: { code: starts.filter((e) => e.method === 'code').length, qr: starts.filter((e) => e.method === 'qr').length },
       countries: count(starts, 'country').slice(0, 6).map(([country, n]) => ({ country, n })),
@@ -238,10 +240,10 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     return out.sort((a, b) => rank[a.severity] - rank[b.severity] || b.lastSeen - a.lastSeen);
   }
   function visitors(windowMs) {
-    const ev = events.since(windowMs).filter((e) => e.type.startsWith('pair.') || e.type === 'session.fetch');
+    const ev = events.since(windowMs).filter((e) => e.type.startsWith('pair.') || e.type === 'session.fetch' || e.type === 'site.visit');
     const clients = new Map(), nums = new Map();
     for (const e of ev) {
-      if (e.client) { const c = clients.get(e.client) || { id: e.client, ip: e.ipm || '', attempts: 0, linked: 0, failed: 0, limited: 0, blocked: 0, lastSeen: 0, countries: new Set(), numbers: new Set() }; if (e.type === 'pair.start') c.attempts++; if (e.type === 'pair.linked') c.linked++; if (e.type === 'pair.failed') c.failed++; if (e.type === 'pair.limited') c.limited++; if (e.type === 'pair.blocked') c.blocked++; if (e.country) c.countries.add(e.country); if (e.num) c.numbers.add(e.num); c.lastSeen = Math.max(c.lastSeen, e.t); clients.set(e.client, c); }
+      if (e.client) { const c = clients.get(e.client) || { id: e.client, ip: e.ipm || '', visits: 0, attempts: 0, linked: 0, failed: 0, limited: 0, blocked: 0, lastSeen: 0, countries: new Set(), numbers: new Set() }; if (e.type === 'site.visit') c.visits++; if (e.type === 'pair.start') c.attempts++; if (e.type === 'pair.linked') c.linked++; if (e.type === 'pair.failed') c.failed++; if (e.type === 'pair.limited') c.limited++; if (e.type === 'pair.blocked') c.blocked++; if (e.country) c.countries.add(e.country); if (e.num) c.numbers.add(e.num); c.lastSeen = Math.max(c.lastSeen, e.t); clients.set(e.client, c); }
       if (e.num) { const n = nums.get(e.num) || { id: e.num, number: e.numm || '', attempts: 0, linked: 0, failed: 0, lastSeen: 0, clients: new Set() }; if (e.type === 'pair.start') n.attempts++; if (e.type === 'pair.linked') n.linked++; if (e.type === 'pair.failed') n.failed++; if (e.client) n.clients.add(e.client); n.lastSeen = Math.max(n.lastSeen, e.t); nums.set(e.num, n); }
     }
     const flag = (kind, id) => !!blocked(kind === 'client' ? { client: id } : { num: id });
@@ -265,6 +267,18 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
   const cookieOf = (req) => { const m = new RegExp('(?:^|;\\s*)' + COOKIE + '=([a-f0-9]{64})').exec(req.headers.cookie || ''); return m ? m[1] : null; };
   const isHttps = (req) => !!req.socket.encrypted || (trustProxy && String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https');
   const setCookie = (req, sid, maxAge) => `${COOKIE}=${sid}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${isHttps(req) ? '; Secure' : ''}`;
+  // "trust this device": a signed cookie that lets this phone skip the 6-digit code (the password is still asked) for 30 days.
+  // It is tied to the account's 2FA key and a counter the owner can bump ("forget trusted devices"), so it can be cancelled at any time.
+  const TRUST_COOKIE = 'tfx_trust', TRUST_MS = 30 * 24 * 3600 * 1000;
+  const trustMac = (acct, exp, epoch) => crypto.createHmac('sha256', secret).update(`trust|${acct.user}|${exp}|${epoch}|${crypto.createHash('sha256').update(acct.totp).digest('hex')}`).digest('hex').slice(0, 40);
+  const trustEpoch = (user) => (state.trust && state.trust[user]) || 0;
+  const trustCookie = (req, acct) => { const exp = now() + TRUST_MS, ep = trustEpoch(acct.user); return `${TRUST_COOKIE}=${acct.user}.${exp}.${ep}.${trustMac(acct, exp, ep)}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=${TRUST_MS / 1000}${isHttps(req) ? '; Secure' : ''}`; };
+  const clearTrustCookie = (req) => `${TRUST_COOKIE}=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0${isHttps(req) ? '; Secure' : ''}`;
+  function isTrusted(req, acct) {
+    const m = new RegExp('(?:^|;\\s*)' + TRUST_COOKIE + '=([a-z0-9_-]{1,40})\\.(\\d{10,15})\\.(\\d{1,6})\\.([a-f0-9]{40})').exec(req.headers.cookie || '');
+    if (!m || m[1] !== acct.user || Number(m[2]) < now() || Number(m[3]) !== trustEpoch(acct.user)) return false;
+    return eq(m[4], trustMac(acct, m[2], Number(m[3])));
+  }
   const sameOrigin = (req) => { const o = req.headers.origin; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (err) { return false; } };
   const eq = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && crypto.timingSafeEqual(x, y); };
 
@@ -282,6 +296,9 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     const route = p.slice('/admin/api/'.length);
     const post = req.method === 'POST';
     if (!post && req.method !== 'GET') { json(res, 405, { error: 'Not allowed.' }); return true; }
+    // The sign-in page sends its form here (into a hidden frame) after a successful sign-in. It does nothing and never reads the body:
+    // it only lets the phone's browser see a real form submission, which is what makes it offer to save the password.
+    if (post && route === 'noop') { req.resume(); res.writeHead(204, { ...HEAD, 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': HEAD['Content-Security-Policy'].replace("frame-ancestors 'none'", "frame-ancestors 'self'") }); res.end(); return true; }
     if (post && !sameOrigin(req)) { json(res, 403, { error: 'Blocked.' }); return true; }
     const body = async () => { try { return JSON.parse((await ctx.readBody(req)) || '{}') || {}; } catch (err) { return null; } };
 
@@ -293,6 +310,12 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       const acct = accounts.find((a) => a.user === user);
       const ok = checkPassword(String(b.password || '').slice(0, 200), acct ? acct.hash : DUMMY_HASH) && !!acct;
       if (!ok) { noteFail(ipId, user); events.record('admin.login_failed', { client: ipId, ipm: maskIp(ip), stage: 'password' }); audit(user || '?', '', 'login.failed', 'password', '', ipId); json(res, 401, { error: 'Wrong username or password.' }); return true; }
+      if (isTrusted(req, acct)) {   // known device: password was enough
+        const sid = crypto.randomBytes(32).toString('hex'), csrf = crypto.randomBytes(24).toString('hex');
+        sessions.set(sid, { user: acct.user, role: acct.role, csrf, created: now(), last: now(), client: ipId });
+        audit(acct.user, acct.role, 'login', '', 'trusted device', ipId);
+        json(res, 200, { ok: true, trusted: true }, { 'Set-Cookie': setCookie(req, sid, SESSION_MAX_MS / 1000) }); return true;
+      }
       const ticket = crypto.randomBytes(24).toString('hex');
       tickets.set(ticket, { user: acct.user, exp: now() + 5 * 60 * 1000, tries: 0, client: ipId });
       json(res, 200, { step: '2fa', ticket }); return true;
@@ -312,8 +335,8 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       acct.lastStep = step; tickets.delete(String(b.ticket));
       const sid = crypto.randomBytes(32).toString('hex'), csrf = crypto.randomBytes(24).toString('hex');
       sessions.set(sid, { user: acct.user, role: acct.role, csrf, created: now(), last: now(), client: ipId });
-      audit(acct.user, acct.role, 'login', '', '', ipId);
-      json(res, 200, { ok: true }, { 'Set-Cookie': setCookie(req, sid, SESSION_MAX_MS / 1000) }); return true;
+      audit(acct.user, acct.role, 'login', '', b.trust === true ? 'device trusted for 30 days' : '', ipId);
+      json(res, 200, { ok: true }, { 'Set-Cookie': b.trust === true ? [setCookie(req, sid, SESSION_MAX_MS / 1000), trustCookie(req, acct)] : setCookie(req, sid, SESSION_MAX_MS / 1000) }); return true;
     }
 
     // --- everything below needs a signed-in session ---
@@ -326,6 +349,9 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     const act = (action, target, detail) => audit(sess.user, sess.role, action, target, detail, ipId);
 
     if (post && route === 'logout') { sessions.delete(sid); act('logout', '', ''); json(res, 200, { ok: true }, { 'Set-Cookie': setCookie(req, '0'.repeat(64), 0) }); return true; }
+    if (post && route === 'trust/forget') {   // any signed-in admin: cancel "trust this device" for their own account, everywhere
+      state.trust = state.trust || {}; state.trust[sess.user] = trustEpoch(sess.user) + 1; save(); act('trust.forget', sess.user, ''); json(res, 200, { ok: true }, { 'Set-Cookie': clearTrustCookie(req) }); return true;
+    }
     if (!post && route === 'me') { json(res, 200, { user: sess.user, role: sess.role, perms: PERMS[sess.role], csrf: sess.csrf, version, serverTime: now(), idleMs: SESSION_IDLE_MS }); return true; }
     if (!post && route === 'overview') { if (need('view')) json(res, 200, overview()); return true; }
     if (!post && route === 'sessions') { if (need('view')) json(res, 200, { sessions: liveSessions(), attempts: liveJobs(), ttlSeconds: Math.round(store.ttlMs / 1000) }); return true; }

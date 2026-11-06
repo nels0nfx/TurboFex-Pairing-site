@@ -49,19 +49,26 @@
   // ---------- sign in ----------
   function showLogin(msg) {
     me = null; csrf = ''; ticket = ''; clearInterval(timer);
-    $('app').hidden = true; $('login').hidden = false; $('f-pass').hidden = false; $('f-2fa').hidden = true;
+    $('app').hidden = true; $('login').hidden = false;
     $('p').value = ''; $('c').value = ''; $('lg-err').textContent = msg || '';
     setTimeout(function () { $('u').focus(); }, 50);
   }
-  $('f-pass').addEventListener('submit', function (e) {
-    e.preventDefault(); var b = $('b-pass'); if (b.disabled) return; b.disabled = true; $('lg-err').textContent = '';
-    api('POST', 'login', { user: $('u').value, password: $('p').value }).then(function (j) { ticket = j.ticket; $('p').value = ''; $('f-pass').hidden = true; $('f-2fa').hidden = false; $('c').focus(); }, function (er) { $('lg-err').textContent = er.message; }).then(function () { b.disabled = false; });
+  function finishLogin() {
+    // send the form once for real into a hidden frame: that is what makes phone browsers offer to save the password
+    var f = $('f-login'), fr = $('tfxframe'), done = false;
+    function go() { if (done) return; done = true; $('p').value = ''; $('c').value = ''; start().catch(function () {}); }
+    fr.addEventListener('load', go, { once: true }); setTimeout(go, 900);
+    try { f.submit(); } catch (e) { go(); }
+  }
+  $('f-login').addEventListener('submit', function (e) {
+    e.preventDefault(); var b = $('b-login'); if (b.disabled) return; b.disabled = true; $('lg-err').textContent = '';
+    var code = $('c').value.replace(/\s/g, '');
+    api('POST', 'login', { user: $('u').value, password: $('p').value }).then(function (j) {
+      if (j.trusted) return finishLogin();
+      if (!code) { ticket = j.ticket; $('lg-err').textContent = 'Enter the 6-digit code from your authenticator app, then press Sign in again.'; $('c').focus(); return null; }
+      return api('POST', '2fa', { ticket: j.ticket, code: code, trust: $('trust').checked }).then(function () { finishLogin(); });
+    }).catch(function (er) { $('lg-err').textContent = er.message; if (/code is not right/.test(er.message)) { $('c').value = ''; $('c').focus(); } }).then(function () { b.disabled = false; });
   });
-  $('f-2fa').addEventListener('submit', function (e) {
-    e.preventDefault(); var b = $('b-2fa'); if (b.disabled) return; b.disabled = true; $('lg-err').textContent = '';
-    api('POST', '2fa', { ticket: ticket, code: $('c').value }).then(function () { return start(); }, function (er) { $('lg-err').textContent = er.message; if (/Sign in again/.test(er.message)) { $('f-pass').hidden = false; $('f-2fa').hidden = true; } }).then(function () { b.disabled = false; $('c').value = ''; });
-  });
-  $('b-back').addEventListener('click', function () { $('f-pass').hidden = false; $('f-2fa').hidden = true; $('lg-err').textContent = ''; ticket = ''; });
   $('out').addEventListener('click', function () { if (!window.confirm('Sign out of the admin dashboard?')) return; api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); });
 
   // ---------- theme button ----------
@@ -178,6 +185,7 @@
       n.appendChild(head('Overview', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
       n.appendChild(h('div', { class: 'grid' },
+        stat('Visitors', String(t.visitors), t.visits + ' page visits'),
         stat('Pairing attempts', String(t.attempts), t.codes + ' codes · ' + t.qrs + ' QR'),
         stat('Linked', String(t.linked), 'accounts linked', 'good'),
         stat('Failed', String(t.failed), t.invalid + ' invalid numbers', t.failed ? 'warn' : ''),
@@ -222,7 +230,7 @@
     var st = state.visitors;
     return api('GET', 'visitors?days=' + st.days).then(function (j) {
       var n = h('div');
-      n.appendChild(head('Visitors', 'People and numbers seen pairing. There are no user accounts: visitors are shown as short fingerprints, numbers are masked.', null));
+      n.appendChild(head('Visitors', 'Everyone who opened the site or tried to pair. There are no user accounts: visitors are shown as short fingerprints (one per internet address), numbers are masked.', null));
       var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Show' },
         h('button', { type: 'button', 'aria-pressed': st.kind === 'clients' ? 'true' : 'false', onclick: function () { st.kind = 'clients'; load(false); } }, 'Visitors'),
         h('button', { type: 'button', 'aria-pressed': st.kind === 'numbers' ? 'true' : 'false', onclick: function () { st.kind = 'numbers'; load(false); } }, 'Numbers'));
@@ -236,9 +244,9 @@
       }
       if (st.kind === 'clients') {
         rows = j.clients.map(function (c) {
-          return row([{ l: 'Visitor', v: c.id, mono: true }, { l: 'Address', v: c.ip || '—', mono: true }, { l: 'Attempts', v: String(c.attempts) }, { l: 'Linked / failed', v: c.linked + ' / ' + c.failed }, { l: 'Limited', v: String(c.limited + c.blocked) }, { l: 'Numbers', v: String(c.numbers) }, { l: 'Last seen', v: ago(c.lastSeen) }, { l: 'Status', node: h('span', { class: 'tag ' + (c.blocked ? 'bad' : 'ok'), text: c.blocked ? 'blocked' : 'ok' }) }], blockBtn('client', c.id, c.blocked, 'visitor ' + c.id));
+          return row([{ l: 'Visitor', v: c.id, mono: true }, { l: 'Address', v: c.ip || '—', mono: true }, { l: 'Attempts', v: String(c.attempts) }, { l: 'Linked / failed', v: c.linked + ' / ' + c.failed }, { l: 'Page visits', v: String(c.visits) }, { l: 'Numbers', v: String(c.numbers) }, { l: 'Last seen', v: ago(c.lastSeen) }, { l: 'Status', node: h('span', { class: 'tag ' + (c.blocked ? 'bad' : 'ok'), text: c.blocked ? 'blocked' : 'ok' }) }], blockBtn('client', c.id, c.blocked, 'visitor ' + c.id));
         });
-        n.appendChild(panel('Visitors', String(j.clients.length), table(['Visitor', 'Address', 'Attempts', 'Linked / failed', 'Limited', 'Numbers', 'Last seen', 'Status', ''], rows, 'No visitors in this period.')));
+        n.appendChild(panel('Visitors', String(j.clients.length), table(['Visitor', 'Address', 'Attempts', 'Linked / failed', 'Page visits', 'Numbers', 'Last seen', 'Status', ''], rows, 'No visitors in this period.')));
       } else {
         rows = j.numbers.map(function (x) {
           return row([{ l: 'Number', v: x.number || '—', mono: true }, { l: 'Fingerprint', v: x.id, mono: true }, { l: 'Attempts', v: String(x.attempts) }, { l: 'Linked / failed', v: x.linked + ' / ' + x.failed }, { l: 'Visitors', v: String(x.clients) }, { l: 'Last seen', v: ago(x.lastSeen) }, { l: 'Status', node: h('span', { class: 'tag ' + (x.blocked ? 'bad' : 'ok'), text: x.blocked ? 'blocked' : 'ok' }) }], blockBtn('number', x.id, x.blocked, 'number ' + x.number));
@@ -293,7 +301,7 @@
       var memBars = [meter('CPU of the site (of one core)', Math.min(100, x.cpu.process), pct(x.cpu.process), 100), meter('Machine CPU', x.cpu.system, pct(x.cpu.system), 100)];
       if (m.containerLimit) memBars.push(meter('Memory (this service)', m.containerUsed || m.rss, mb(m.containerUsed || m.rss) + ' of ' + mb(m.containerLimit), m.containerLimit));
       memBars.push(meter('Memory (whole machine)', m.systemTotal - m.systemFree, mb(m.systemTotal - m.systemFree) + ' of ' + mb(m.systemTotal), m.systemTotal));
-      memBars.push(meter('Heap (JavaScript)', m.heapUsed, mb(m.heapUsed) + ' of ' + mb(m.heapTotal), m.heapTotal));
+      memBars.push(meter('Heap (JavaScript)', m.heapUsed, mb(m.heapUsed) + ' of ' + mb(m.heapLimit) + ' allowed', m.heapLimit));
       if (x.storage.disk) memBars.push(meter('Storage (disk of the data folder)', x.storage.disk.total - x.storage.disk.free, mb(x.storage.disk.total - x.storage.disk.free) + ' of ' + mb(x.storage.disk.total), x.storage.disk.total));
       void cpuLimit;
       n.appendChild(h('div', { class: 'cols' }, panel('Usage', null, memBars),
@@ -374,6 +382,7 @@
       var inputs = {};
       var rows = fields.map(function (f) { inputs[f[0]] = h('input', { id: 'lm-' + f[0], type: 'number', min: s.ranges[f[0]].min, max: s.ranges[f[0]].max, step: 1, value: s.limits[f[0]], disabled: !edit, inputmode: 'numeric' }); return h('div', { class: 'fld' }, h('label', { for: 'lm-' + f[0], text: f[1] + ' (' + f[2] + ')' }), inputs[f[0]], h('small', { text: 'Allowed: ' + s.ranges[f[0]].min + '–' + s.ranges[f[0]].max + ' · default ' + s.defaults[f[0]] })); });
       n.appendChild(panel('Pairing limits', null, h('div', { class: 'frow c3' }, rows), edit ? h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { var l = {}; Object.keys(inputs).forEach(function (k) { l[k] = inputs[k].value; }); return api('POST', 'settings', { limits: l }); }, 'Limits saved', function () { load(false); }); } }, 'Save limits') : null));
+      n.appendChild(panel('Trusted devices', null, h('p', { class: 'muted', text: 'A device you trusted at sign-in skips the 6-digit code for 30 days (the password is still asked). Press this to cancel that on every device, for your account.' }), h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; confirmThen('Forget all trusted devices? Every device will ask for the code again.', function () { act(b, function () { return api('POST', 'trust/forget'); }, 'Trusted devices forgotten'); }); } }, 'Forget trusted devices')));
       n.appendChild(panel('Your account', null, h('div', { class: 'kv' }, h('div', null, h('span', { text: 'Signed in as' }), h('b', { text: me.user })), h('div', null, h('span', { text: 'Role' }), h('b', { text: me.role })), h('div', null, h('span', { text: 'Allowed' }), h('b', { text: me.perms.join(', ') })), h('div', null, h('span', { text: 'Auto sign-out' }), h('b', { text: Math.round(me.idleMs / 60000) + ' min idle · 8 h at most' })))));
       return n;
     });

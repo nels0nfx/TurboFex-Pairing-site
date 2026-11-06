@@ -75,6 +75,18 @@ function createApp(opts = {}) {
     return false;
   };
 
+  // page visits for the admin dashboard only: one line per visitor per 10 minutes (masked address + short fingerprint, same as the rest of the log)
+  const visitSeen = new Map();
+  function noteVisit(req, p) {
+    try {
+      if (/bot|crawl|spider|monitor|uptime|curl|wget|health/i.test(String(req.headers['user-agent'] || ''))) return;
+      const client = admin.idOf('client', ipOf(req)), t = Date.now();
+      if (t - (visitSeen.get(client) || 0) < 10 * 60 * 1000) return;
+      visitSeen.set(client, t);
+      if (visitSeen.size > 5000) for (const [k, v] of visitSeen) if (t - v > 10 * 60 * 1000) visitSeen.delete(k);
+      events.record('site.visit', { client, ipm: admin.maskIp(ipOf(req)), page: p });
+    } catch (err) { /* never break a page */ }
+  }
   const ipOf = (req) => (trustProxy && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress || 'unknown';
 
   const send = (res, status, body, type = 'application/json; charset=utf-8') => {
@@ -281,7 +293,9 @@ function createApp(opts = {}) {
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
-          return send(res, 200, fs.readFileSync(path.join(PUBLIC, name)), TYPES[path.extname(name)]);
+          const body = fs.readFileSync(path.join(PUBLIC, name));
+          if (path.extname(name) === '.html') noteVisit(req, p);
+          return send(res, 200, body, TYPES[path.extname(name)]);
         } catch (err) {
           // fall through
         }

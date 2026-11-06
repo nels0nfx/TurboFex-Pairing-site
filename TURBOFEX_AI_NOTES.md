@@ -170,3 +170,11 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Tests: `test/cloud.test.js` (fake Supabase): restore after wipe, audit chain valid and continuing, offline catch-up, wrong key, https only. Not tested against the real Supabase.
 - Privacy page now mentions the database copy; keep true.
 - Version history add: **v2.21.0**.
+
+## 19. v2.22.0 - fixes after real use + trusted devices
+- BUG (found on the live site): "Chain BROKEN" after a Supabase restore. Postgres jsonb reorders object keys, so the audit hash (over JSON.stringify) no longer matched. Fix: `canon()` in admin.js rebuilds each audit entry in a fixed field order before hashing; the fake Supabase in `test/cloud.test.js` now reorders keys like jsonb. Existing rows in the owner's database verify again with no migration. Never hash raw key order of anything that passes through a database.
+- Login is ONE form (username, password, optional code, 'trust this device'). 2FA stays mandatory, but a trusted device (signed cookie `tfx_trust`, 30 days, HttpOnly/Strict, tied to the account's 2FA key and a counter) skips only the code; the password is always asked. Settings -> Trusted devices -> 'Forget trusted devices' bumps the counter (state.trust[user]) and kills all such cookies. Audit notes 'trusted device'.
+- Password saving on iPhone: after a successful sign-in the form is really submitted into a hidden iframe (`POST /admin/api/noop`, 204, body never read) so Safari sees a real form submit and offers to save. Fields use autocomplete username/current-password. The noop route must stay BEFORE the Origin check (the admin pages send Referrer-Policy no-referrer, so form posts carry Origin: null). NOT verified on a real iPhone.
+- Visits: `site.visit` events from `noteVisit()` in server.js (html pages only, one per visitor per 10 min, skips bots/monitors by User-Agent). Shown as Visitors / page visits on Overview and a 'Page visits' column in Visitors. Privacy page updated.
+- Heap meter now compares with V8's real limit (`heapLimit`), not heapTotal (which always looks nearly full and showed red).
+- Version history add: **v2.22.0**.

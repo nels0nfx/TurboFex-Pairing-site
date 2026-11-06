@@ -20,19 +20,17 @@
     <span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span>
     <h1>Admin <span class="gold">sign in</span></h1>
     <p class="muted">TurboFex Pair dashboard. Authorised administrators only.</p>
-    <form id="f-pass" autocomplete="on" novalidate>
+    <form id="f-login" method="post" action="/admin/api/noop" target="tfxframe" autocomplete="on" novalidate>
       <label for="u">Username</label>
       <input id="u" name="username" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="40" required>
       <label for="p">Password</label>
       <input id="p" name="password" type="password" autocomplete="current-password" maxlength="200" required>
-      <button class="cta" id="b-pass" type="submit"><span>Continue</span></button>
+      <label for="c">6-digit code <span class="opt">(not needed on a trusted device)</span></label>
+      <input id="c" name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="7" placeholder="123456">
+      <label class="chk" for="trust"><input id="trust" name="trust" type="checkbox"><span>Trust this device for 30 days (no code needed here, password still asked)</span></label>
+      <button class="cta" id="b-login" type="submit"><span>Sign in</span></button>
     </form>
-    <form id="f-2fa" autocomplete="off" novalidate hidden>
-      <label for="c">6-digit code from your authenticator app</label>
-      <input id="c" name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="7" placeholder="123456" required>
-      <button class="cta" id="b-2fa" type="submit"><span>Sign in</span></button>
-      <button class="ghost" id="b-back" type="button">Back</button>
-    </form>
+    <iframe name="tfxframe" id="tfxframe" title="" hidden tabindex="-1"></iframe>
     <p class="err" id="lg-err" role="alert"></p>
     <a class="back" href="/">← Back to TurboFex Pair</a>
   </div>

@@ -376,3 +376,59 @@ test('the normal pairing features still work and the public pages stay public', 
     assert.strictEqual((await t.req('GET', '/api/status')).json.announcement, null);
   } finally { t.close(); }
 });
+
+test('"trust this device": password only on a trusted device, still checked, and cancellable', async () => {
+  const t = await boot();
+  try {
+    const login = async (shift, trust, cookie) => {
+      const a = await t.req('POST', '/admin/api/login', { cookie, body: { user: 'own', password: PW } });
+      if (a.json.trusted) return { trusted: true, res: a };
+      const b = await t.req('POST', '/admin/api/2fa', { cookie, body: { ticket: a.json.ticket, code: totpCode(t.secrets.own, Date.now() + shift * 30000), trust } });
+      return { trusted: false, res: b };
+    };
+    const first = await login(-1, true);
+    assert.strictEqual(first.trusted, false);
+    const setc = first.res.headers.getSetCookie();
+    const trust = setc.find((c) => c.startsWith('tfx_trust=')); assert.ok(trust, 'a trust cookie is issued when asked');
+    assert.ok(/HttpOnly/.test(trust) && /SameSite=Strict/.test(trust) && /Path=\/admin/.test(trust));
+    const tc = trust.split(';')[0];
+    // password still required on a trusted device
+    const bad = await t.req('POST', '/admin/api/login', { cookie: tc, body: { user: 'own', password: 'wrong-password-123' } });
+    assert.strictEqual(bad.status, 401);
+    // right password + trusted cookie = in, no code
+    const again = await login(0, false, tc); assert.strictEqual(again.trusted, true);
+    const sess = again.res.headers.getSetCookie().find((c) => c.startsWith('tfx_admin=')).split(';')[0];
+    assert.strictEqual((await t.req('GET', '/admin/api/me', { cookie: sess })).status, 200);
+    // a forged or other-user cookie does nothing
+    const forged = tc.replace(/.$/, tc.endsWith('0') ? '1' : '0');
+    assert.strictEqual((await t.req('POST', '/admin/api/login', { cookie: forged, body: { user: 'own', password: PW } })).json.trusted, undefined);
+    // without the checkbox no cookie is issued
+    const b = await t.req('POST', '/admin/api/login', { body: { user: 'own', password: PW } });
+    const plain = await t.req('POST', '/admin/api/2fa', { body: { ticket: b.json.ticket, code: totpCode(t.secrets.own, Date.now() + 30000), trust: false } });
+    assert.ok(!plain.headers.getSetCookie().some((c) => c.startsWith('tfx_trust=')));
+    // "forget trusted devices" cancels every cookie
+    const me = (await t.req('GET', '/admin/api/me', { cookie: sess })).json;
+    assert.strictEqual((await t.req('POST', '/admin/api/trust/forget', { cookie: sess, csrf: me.csrf })).status, 200);
+    const after = await t.req('POST', '/admin/api/login', { cookie: tc, body: { user: 'own', password: PW } });
+    assert.strictEqual(after.json.trusted, undefined, 'the old cookie no longer works');
+    assert.ok(after.json.ticket);
+  } finally { t.close(); }
+});
+
+test('page visits are counted for the dashboard (one per visitor per 10 minutes, no bots) and the heap meter has a real limit', async () => {
+  const t = await boot();
+  try {
+    const own = await t.login('own');
+    await fetch(t.base + '/', { headers: { 'user-agent': 'Mozilla/5.0 iPhone' } });
+    await fetch(t.base + '/about', { headers: { 'user-agent': 'Mozilla/5.0 iPhone' } });   // same visitor within 10 minutes: not counted again
+    await fetch(t.base + '/', { headers: { 'user-agent': 'UptimeRobot/2.0' } });         // a monitor: ignored
+    const o = (await t.req('GET', '/admin/api/overview', as(own))).json;
+    assert.strictEqual(o.totals.visits, 1);
+    assert.ok(o.totals.visitors >= 1);
+    const v = (await t.req('GET', '/admin/api/visitors?days=1', as(own))).json;
+    assert.ok(v.clients.some((c) => c.visits === 1 && c.attempts === 0), 'a visitor who never paired is listed');
+    assert.ok(!JSON.stringify(v).includes('127.0.0.1'), 'no full address');
+    const h = (await t.req('GET', '/admin/api/health', as(own))).json;
+    assert.ok(h.memory.heapLimit > h.memory.heapUsed);
+  } finally { t.close(); }
+});
