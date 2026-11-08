@@ -208,3 +208,13 @@ test('custom pairing code can be switched off (customCode: false)', async () => 
   await until(() => code); restore();
   assert.deepStrictEqual(asked, [undefined]);
 });
+
+test('pickBrowser: unchanged unless PAIR_BROWSER=android, and guarded', () => {
+  const { pickBrowser } = require('../engine');
+  const B = { ubuntu: (b) => ['Ubuntu', b, '22.04'], android: (v) => ['Android', 'Chrome', v] };
+  assert.deepStrictEqual(pickBrowser(B, {}), ['Ubuntu', 'Chrome', '22.04']);
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'web' }), ['Ubuntu', 'Chrome', '22.04']);
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'android' }), ['Android', 'Chrome', '13']);
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: ' ANDROID'.trim() }), ['Android', 'Chrome', '13']);
+  assert.deepStrictEqual(pickBrowser({ ubuntu: B.ubuntu }, { PAIR_BROWSER: 'android' }), ['Ubuntu', 'Chrome', '22.04'], 'falls back (with a log line) when the library has no android identity');
+});

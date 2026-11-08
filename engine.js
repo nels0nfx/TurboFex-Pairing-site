@@ -15,6 +15,16 @@ function makeCustomCode() {
   return c;
 }
 
+// Which device identity the link is made with. The identity is fixed at the moment of linking.
+// PAIR_BROWSER=android -> Android companion (so view-once files can reach the bot); anything else or unset -> exactly the identity used before.
+const pickBrowser = (Browsers, env = process.env) => {
+  if (String(env.PAIR_BROWSER || '').toLowerCase() === 'android') {
+    if (typeof Browsers.android === 'function') return Browsers.android('13');
+    console.log('Android identity not available in this Baileys version, using the default one');
+  }
+  return Browsers.ubuntu('Chrome'); // the identity WhatsApp accepted for pairing codes
+};
+
 let libPromise = null;
 function loadLib() {
   if (!libPromise) {
@@ -179,6 +189,7 @@ function start(number, hooks, opts = {}) {
         if (!(creds.me && creds.me.id)) throw new Error('no account in the login');
         creds.registered = true; // so the bot recognises it as linked
         log('linked as', String(creds.me.id).split(':')[0].slice(0, 4) + '…');
+        console.log('Linked as platform:', (s && s.authState && s.authState.creds ? s.authState.creds : creds).platform);
         const text = await hooks.onLinked(creds);
         if (text && s) {
           const sent = await sendDm(s, creds, text, lib, nap);
@@ -196,7 +207,7 @@ function start(number, hooks, opts = {}) {
       if (finished) return;
       const s = lib.makeWASocket({
         auth: state,
-        browser: lib.Browsers.ubuntu('Chrome'), // the identity WhatsApp accepted for pairing codes
+        browser: pickBrowser(lib.Browsers),
         ...version,
         logger: opts.logger || require('pino')({ level: 'silent' }),
         printQRInTerminal: false,
@@ -307,4 +318,4 @@ function start(number, hooks, opts = {}) {
   return { cancel: () => finish(null) };
 }
 
-module.exports = { makeCustomCode, start, sendDm, dressCard, resolveVersion, _resetVersion: () => { versionCache = null; } };
+module.exports = { pickBrowser, makeCustomCode, start, sendDm, dressCard, resolveVersion, _resetVersion: () => { versionCache = null; } };

@@ -11,6 +11,8 @@ services:
         value: "1"
       - key: SITE_SECRET
         generateValue: true
+      - key: PAIR_BROWSER
+        value: android
       - key: ADMIN_ACCOUNTS
         sync: false
       - key: SUPABASE_URL

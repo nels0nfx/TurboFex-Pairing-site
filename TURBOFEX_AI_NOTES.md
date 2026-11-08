@@ -199,3 +199,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Phone lists: each row is one clean card: bold title, status tag top-right (grid, not absolute), one fact per line, zero/empty facts hidden (`.td.z`), long page descriptions hidden. Row cells labelled Status/State/Event/Action with a node become the corner tag (`.td.st`).
 - Class clash again: style.css has `.menubtn` (public site burger): the dashboard uses `.amenubtn`. Always prefix dashboard classes with `a`.
 - Version history add: **v2.25.0**.
+
+## 23. v2.26.0 - PAIR_BROWSER (Android companion identity)
+- Only makeWASocket call is in engine.js `connect()`; its `browser:` is now `pickBrowser(lib.Browsers)`. PAIR_BROWSER=android -> `Browsers.android('13')` (version NUMBER, not 'Chrome'); unset/other -> exactly `Browsers.ubuntu('Chrome')`. Guarded: if `Browsers.android` is not a function it logs and uses the default.
+- Identity is fixed at link time; already linked sessions keep their old identity. Android-identity pairing CODE is unverified; never silently fall back, report the exact error.
+- `complete()` logs `Linked as platform: <creds.platform>` (no keys). render.yaml has PAIR_BROWSER=android. Tests: pickBrowser unit test in test/engine.test.js (fake lib has ubuntu only in other tests).
+- Version history add: **v2.26.0**.
