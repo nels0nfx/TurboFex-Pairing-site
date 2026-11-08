@@ -193,3 +193,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Phone lists: each row is a card with a bold title line and two-column facts.
 - CLASS NAME RULE: style.css (public site) already uses .bar, .hero, .skel, .sheet, .sheet-bg, .vr, .ring, .stat, .sub. New dashboard classes are prefixed (.abar, .ahero, .askel, .asheet, .avr, .gring, .kpi). Check style.css before naming a class.
 - Version history add: **v2.24.0**.
+
+## 22. v2.25.0 - simpler dashboard (owner said v2.24.0 UX was bad: bottom bar/menu and lists; wanted 'simpler and cleaner')
+- The bottom tab bar was REMOVED: it collided with iPhone Safari's own floating bottom toolbar. Phones now have one menu button (id `menu`, class `amenubtn`) in the top header that opens a list of all sections (`#m-<tab>` ids); a red count shows on it for unread security alerts (`#menu-n`). The 'Admin' chip is hidden under 440px. Desktop keeps the side menu.
+- Phone lists: each row is one clean card: bold title, status tag top-right (grid, not absolute), one fact per line, zero/empty facts hidden (`.td.z`), long page descriptions hidden. Row cells labelled Status/State/Event/Action with a node become the corner tag (`.td.st`).
+- Class clash again: style.css has `.menubtn` (public site burger): the dashboard uses `.amenubtn`. Always prefix dashboard classes with `a`.
+- Version history add: **v2.25.0**.

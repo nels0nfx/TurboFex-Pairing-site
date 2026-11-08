@@ -99,27 +99,22 @@
       nav.appendChild(b);
     });
   }
-  var BAR = ['overview', 'pairing', 'visitors', 'security'];
   function icon(name, size) { return svg('svg', { viewBox: '0 0 24 24', width: size || 22, height: size || 22, 'aria-hidden': 'true' }, svg('path', { d: ICON[name], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })); }
-  function drawBar() {
-    var bar = clear($('bar')), titles = {}; TABS.forEach(function (t) { titles[t[0]] = t[1]; });
-    BAR.forEach(function (id) {
-      bar.appendChild(h('button', { type: 'button', id: 'bar-' + id, 'aria-current': id === tab ? 'page' : 'false', onclick: function () { go(id); } }, icon(id), h('span', { text: titles[id] }), id === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
-    });
-    bar.appendChild(h('button', { type: 'button', id: 'bar-more', 'aria-current': BAR.indexOf(tab) < 0 ? 'page' : 'false', onclick: openMore }, svg('svg', { viewBox: '0 0 24 24', width: 22, height: 22, 'aria-hidden': 'true' }, svg('path', { d: 'M5 12h.01M12 12h.01M19 12h.01', fill: 'none', stroke: 'currentColor', 'stroke-width': 3, 'stroke-linecap': 'round' })), h('span', { text: 'More' })));
-  }
-  function openMore() {
-    var prev = document.activeElement, list = h('div', { class: 'asheet-l' });
-    var bg = h('div', { class: 'modal-bg asheet-bg' }, h('div', { class: 'asheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'More sections' }, h('div', { class: 'grab' }), list));
+  function drawBar() { var n = $('menu-n'); n.hidden = !alertCount; n.textContent = alertCount ? String(alertCount) : ''; }
+  // phones: one menu button at the top (a bottom bar collides with the phone browser's own bottom toolbar)
+  function openMenu() {
+    var prev = document.activeElement, list = h('div', { class: 'amenu-l' });
+    var bg = h('div', { class: 'modal-bg amenu-bg' }, h('div', { class: 'amenu', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Sections' }, list));
     function close() { bg.remove(); document.removeEventListener('keydown', key); try { if (prev && prev.focus) prev.focus(); } catch (e) { /* fine */ } }
     function key(e) { if (e.key === 'Escape') close(); }
     TABS.forEach(function (t) {
-      if (BAR.indexOf(t[0]) >= 0 || (t[2] && !can(t[2]))) return;
-      list.appendChild(h('button', { type: 'button', id: 'more-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] })));
+      if (t[2] && !can(t[2])) return;
+      list.appendChild(h('button', { type: 'button', id: 'm-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] }), t[0] === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
     });
     bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
-    document.addEventListener('keydown', key); document.body.appendChild(bg); var f = list.querySelector('button'); if (f) f.focus();
+    document.addEventListener('keydown', key); document.body.appendChild(bg); var cur = list.querySelector('[aria-current=page]') || list.querySelector('button'); if (cur) cur.focus();
   }
+  $('menu').addEventListener('click', openMenu);
   function go(t) {
     if (!VIEWS[t]) return;
     tab = t; try { history.replaceState(null, '', '#' + t); } catch (e) { /* fine */ }
@@ -183,7 +178,11 @@
   }
   function row(cells, actions) {
     var r = h('div', { class: 'tr', role: 'row' });
-    cells.forEach(function (c) { r.appendChild(h('div', { class: 'td' + (c.mono ? ' mono' : ''), 'data-l': c.l, role: 'cell' }, c.node || c.v)); });
+    cells.forEach(function (c, i) {
+      var st = i > 0 && c.node && /^(Status|State|Event|Action)$/.test(c.l);                       // shown in the card's corner on phones
+      var zero = i > 0 && !c.node && /^(0|—|-|0 \/ 0|)$/.test(String(c.v == null ? '' : c.v).trim());   // nothing to say: hidden on phones
+      r.appendChild(h('div', { class: 'td' + (c.mono ? ' mono' : '') + (st ? ' st' : '') + (zero ? ' z' : ''), 'data-l': c.l, role: 'cell' }, c.node || c.v));
+    });
     r.appendChild(h('div', { class: 'td act' }, actions || null));
     return r;
   }
