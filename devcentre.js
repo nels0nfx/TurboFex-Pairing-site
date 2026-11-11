@@ -29,16 +29,17 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 
   // ---------- records (small files, copied to Supabase when it is on) ----------
-  const devs = new Map(), subs = new Map();
+  const devs = new Map(), subs = new Map(), ratings = new Map();   // ratings: plugin id -> { pluginId, votes: { githubId: { stars, text, login, at, hidden } } }
   for (const f of fs.readdirSync(dir)) {
     try {
       const v = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
       if (/^dev_\d+\.json$/.test(f) && v && v.githubId) devs.set(String(v.githubId), v);
       else if (/^sub_[a-f0-9]{8}\.json$/.test(f) && v && v.id) subs.set(v.id, v);
+      else if (/^rat_[a-z0-9-]{3,32}\.json$/.test(f) && v && v.pluginId && v.votes) ratings.set(v.pluginId, v);
     } catch (err) { /* a damaged file is skipped */ }
   }
   function save(kind, rec) {
-    const name = kind === 'dev' ? 'dev_' + rec.githubId : 'sub_' + rec.id;
+    const name = kind === 'dev' ? 'dev_' + rec.githubId : kind === 'rat' ? 'rat_' + rec.pluginId : 'sub_' + rec.id;
     const f = path.join(dir, name + '.json'), tmp = f + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
     if (cloud && cloud.pushKv) cloud.pushKv('dc:' + name.replace('_', ':'), rec);
@@ -182,6 +183,42 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
   const adminDevs = () => [...devs.values()].sort((a, b) => b.lastLogin - a.lastLogin).slice(0, 200).map((d) => ({ githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, lastLogin: d.lastLogin, submissions: [...subs.values()].filter((s) => s.githubId === d.githubId).length }));
 
+  // ---------- ratings: one 1-5 star vote (and a short review) per GitHub account per plugin ----------
+  const rePlug = /^[a-z0-9-]{3,32}$/, MAX_VOTES = 2000;
+  const clean = (t) => String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const visible = (r) => Object.values((r && r.votes) || {}).filter((v) => !v.hidden);
+  function ratingOf(pluginId) {
+    const v = visible(ratings.get(pluginId)); if (!v.length) return null;
+    return { avg: Math.round((v.reduce((a, x) => a + x.stars, 0) / v.length) * 10) / 10, count: v.length };
+  }
+  async function rate(d, b, listed) {
+    const id = String(b.plugin || '');
+    if (!rePlug.test(id)) return { status: 400, error: 'Unknown plugin.' };
+    if (!(await listed(id))) return { status: 404, error: 'That plugin is not in the store.' };
+    let rec = ratings.get(id);
+    if (b.remove === true) {
+      if (rec && rec.votes[d.githubId]) { delete rec.votes[d.githubId]; save('rat', rec); }
+      return { status: 200, ok: true };
+    }
+    const stars = Number(b.stars);
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return { status: 400, error: 'Choose 1 to 5 stars.' };
+    if ([...subs.values()].some((s) => s.githubId === d.githubId && s.manifest.id === id)) return { status: 403, error: 'You cannot rate your own plugin.' };
+    if (!rec) { rec = { pluginId: id, votes: {} }; ratings.set(id, rec); }
+    const old = rec.votes[d.githubId];
+    if (!old && Object.keys(rec.votes).length >= MAX_VOTES) return { status: 429, error: 'This plugin has reached the limit of ratings.' };
+    rec.votes[d.githubId] = { stars, text: clean(b.text), login: d.login, at: now(), hidden: old ? !!old.hidden : false };
+    save('rat', rec);
+    return { status: 200, ok: true, rating: ratingOf(id) };
+  }
+  const reviewsOf = (id, limit = 30) => visible(ratings.get(id)).filter((v) => v.text).sort((a, b) => b.at - a.at).slice(0, limit).map((v) => ({ login: v.login, stars: v.stars, text: v.text, at: v.at }));
+  const myRatings = (d) => { const out = {}; for (const [id, r] of ratings) { const v = r.votes[d.githubId]; if (v) out[id] = { stars: v.stars, text: v.text }; } return out; };
+  const adminReviews = () => { const out = []; for (const r of ratings.values()) for (const [gid, v] of Object.entries(r.votes)) out.push({ plugin: r.pluginId, githubId: Number(gid), login: v.login, stars: v.stars, text: v.text, at: v.at, hidden: !!v.hidden }); return out.sort((a, b) => b.at - a.at).slice(0, 300); };
+  function adminHide(plugin, githubId, hide) {
+    const rec = ratings.get(String(plugin)), v = rec && rec.votes[String(githubId)];
+    if (!v) return { status: 404, error: 'Not found.' };
+    v.hidden = hide === true; save('rat', rec); return { status: 200, ok: true };
+  }
+
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
     const all = [...subs.values()].filter((s) => s.status === 'published' && s.manifest.id === pluginId);
@@ -216,8 +253,9 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!configured) return redirect('/developers?e=off');
       if (limited('devauth', ip, 20, 10 * 60 * 1000)) return redirect('/developers?e=wait');
       const state = crypto.randomBytes(18).toString('hex');
+      const nx = new URL(req.url, 'http://x').searchParams.get('next');   // where to land after signing in (only these two pages)
       const to = 'https://github.com/login/oauth/authorize?' + new URLSearchParams({ client_id: clientId, redirect_uri: site + '/auth/github/callback', state, allow_signup: 'false' });
-      return redirect(to, setCookie(OAUTH_COOKIE, state + '.' + mac('oauth:' + state), 600, '/auth'));
+      return redirect(to, [setCookie(OAUTH_COOKIE, state + '.' + mac('oauth:' + state), 600, '/auth'), setCookie('tfx_next', nx === 'plugins' ? 'plugins' : 'developers', 600, '/auth')]);
     }
     if (req.method === 'GET' && p === '/auth/github/callback') {
       const q = new URL(req.url, 'http://x').searchParams;
@@ -232,14 +270,19 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const existing = devs.get(String(u.id));
       if (existing && existing.blocked) return redirect('/developers?e=blocked', clear);
       const d = upsertDev(u);
-      return redirect('/developers', [clear, devCookie(d)]);
+      return redirect(cookieOf(req, 'tfx_next') === 'plugins' ? '/plugins' : '/developers', [clear, setCookie('tfx_next', 'x', 0, '/auth'), devCookie(d)]);
     }
 
     if (p === '/api/dev/me' && req.method === 'GET') {
       const d = devOf(req);
-      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d) } : { configured, user: null }), true;
+      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d) } : { configured, user: null }), true;
     }
-    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw') {
+    if (p === '/api/plugin-reviews' && req.method === 'GET') {
+      if (limited('reviews', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' }), true;
+      const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
+      return send(res, 200, rePlug.test(id) ? { rating: ratingOf(id), reviews: reviewsOf(id) } : { rating: null, reviews: [] }), true;
+    }
+    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate') {
       if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
       // a form on another website cannot send this header, and the cookie is SameSite=Lax: together they stop cross-site requests
       let sameSite = req.headers['x-requested-with'] === 'tfx';
@@ -250,7 +293,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
       if (limited('devpost', ip, 30, 10 * 60 * 1000)) return send(res, 429, { error: 'Please slow down a little.' }), true;
       let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-      const out = p === '/api/dev/submit' ? await submit(d, b) : withdraw(d, b.id);
+      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : withdraw(d, b.id);
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 
@@ -268,7 +311,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, _subs: subs, _devs: devs };
+  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

@@ -236,3 +236,11 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 28. v2.31.0 - Plugin Guide page
 - `/plugin-guide` (public/plugin-guide.html, styles in developers.css under `.guide`): the developer guide (the two files, commands and `c` fields, permission table, API calls with their real limits, events/schedules, limits, how to submit). Linked from /developers. It was written from core/plugins/{manifest,broker,host,worker}.js of bot v1.4.4: when the plugin API or its limits change in the bot, UPDATE THIS PAGE too. A test runs the guide's manifest and code through plugin-check.js and checks that every permission of registry.js PERMS is in the table.
 - Version history add: **v2.31.0**.
+
+## 29. v2.32.0 - ratings and reviews
+- Anyone signed in with GitHub (same login and `tfx_dev` cookie as developers) can give a plugin 1-5 stars and an optional review (max 300 characters, control and direction characters removed, always shown with textContent). One vote per GitHub account per plugin (voting again replaces it); a developer cannot rate their own plugin; only plugins in the signed store can be rated; max 2000 votes per plugin.
+- Storage: one record per plugin, file `data/devcentre/rat_<pluginId>.json`, Supabase key `dc:rat:<pluginId>` (restored at boot like the other developer records).
+- Routes: `GET /api/plugin-reviews?id=` (public), `POST /api/dev/rate {plugin, stars, text}` or `{plugin, remove:true}` (header `x-requested-with: tfx`), `/api/dev/me` now includes the person's own `ratings`; `GET /api/plugins` adds `rating {avg,count}`. `/auth/github?next=plugins` returns to the Plugins page (any other value goes to /developers).
+- Admin: Plugins > "Ratings and reviews": hide/show one rating (hidden = not shown and not counted). Routes `plugins/reviews`, `plugins/review-hide`; audited.
+- privacy.html says ratings and reviews are public with the GitHub username.
+- Version history add: **v2.32.0**.

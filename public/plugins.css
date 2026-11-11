@@ -37,3 +37,18 @@
 .pver2 { margin-left: 8px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--ok); color: var(--ok); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .plink { display: inline-block; margin: 2px 0 10px; color: var(--gold-text); font-size: 14.5px; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .pvers { margin: 0 0 10px; padding-left: 20px; color: var(--muted); font-size: 14.5px; line-height: 1.6; }
+
+.prate { margin-left: 8px; color: var(--gold-text); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.prev .pform { margin: 8px 0 12px; }
+.pstars { display: flex; gap: 2px; margin: 0 0 8px; }
+.pstar { width: 44px; height: 44px; padding: 0; font-size: 26px; line-height: 1; color: var(--line); background: none; border: 0; border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pstar.on { color: var(--gold); }
+.pstar:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.ptext { display: block; width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 12px 14px; font: inherit; font-size: 16px; color: var(--text); background: var(--field); border: 1px solid var(--card-border); border-radius: 14px; resize: vertical; -webkit-appearance: none; appearance: none; }
+.ptext:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pform .dbtn { margin-right: 8px; margin-bottom: 8px; }
+.pmsg { margin: 4px 0 0; color: var(--bad); font-size: 14.5px; }
+.prv { padding: 10px 0; border-top: 1px solid var(--line); }
+.prv p { margin: 4px 0 0; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.prv-t { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.prv-s { color: var(--gold); letter-spacing: 1px; }

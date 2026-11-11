@@ -93,7 +93,7 @@ test('GitHub sign-in: state is checked, the token is never kept, the cookie is l
     const cookie = await t.signIn();
     assert.match(cookie, /^tfx_dev=42\.\d+\.[a-f0-9]{32}$/);
     const me = await t.req('GET', '/api/dev/me', { cookie });
-    assert.deepStrictEqual(me.json, { configured: true, user: { login: 'alice', verified: false }, submissions: [] });
+    assert.deepStrictEqual(me.json, { configured: true, user: { login: 'alice', verified: false }, submissions: [], ratings: {} });
     // a forged or edited cookie is nobody
     assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: cookie.replace('tfx_dev=42', 'tfx_dev=43') })).json.user, null);
     // the access token is not written anywhere
@@ -243,7 +243,7 @@ test('the pages exist, say nothing risky and add everything as text', () => {
   assert.match(html, /14 days/);
   for (const f of ['index', 'about', 'terms', 'privacy', 'plugins', 'developers']) assert.match(fs.readFileSync(path.join(__dirname, `../public/${f}.html`), 'utf8'), /id="m-dev"/, f);
   const adminJs = fs.readFileSync(path.join(__dirname, '../public/admin.js'), 'utf8'); assert.ok(!/confirm\(|prompt\(|innerHTML/.test(adminJs.slice(adminJs.indexOf('Plugins (submissions'), adminJs.indexOf('// ---------- Settings'))), 'review screen: no native dialogs, no innerHTML');
-  assert.match(fs.readFileSync(path.join(__dirname, '../public/privacy.html'), 'utf8'), /Developers only/);
+  assert.match(fs.readFileSync(path.join(__dirname, '../public/privacy.html'), 'utf8'), /Developers and raters only/);
 });
 
 test('the Plugins page shows the developer, the verified mark, the source link and the version history', async () => {
@@ -309,4 +309,65 @@ test('the Plugin Guide page is served, linked, and its examples are valid plugin
   for (const k of Object.keys(require('../registry').PERMS)) assert.ok(html.includes('<code>' + k + '</code>'), k);
   const t = await boot();
   try { const r2 = await t.req('GET', '/plugin-guide'); assert.strictEqual(r2.status, 200); assert.match(r2.text, /Plugin <span class="gold">Guide/); } finally { t.close(); }
+});
+
+test('ratings: GitHub sign-in, one vote each, a short review, the owner can hide, own plugin is excluded', async () => {
+  const view = { updated: 'x', total: 2, plugins: [
+    { id: 'hello-plugin', name: 'Hello', description: 'd', author: 'Alice', version: '1.0.0', permissions: [], domains: [], history: [] },
+    { id: 'other-plugin', name: 'Other', description: 'd', author: 'Z', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const rate = (c, body) => t.req('POST', '/api/dev/rate', { ...t.dev(c), body });
+    const bob = await t.signIn('bob');
+    assert.strictEqual((await t.req('POST', '/api/dev/rate', { headers: { 'x-requested-with': 'tfx' }, body: { plugin: 'hello-plugin', stars: 5 } })).status, 401, 'signed out');
+    assert.strictEqual((await t.req('POST', '/api/dev/rate', { cookie: bob, body: { plugin: 'hello-plugin', stars: 5 } })).status, 403, 'needs the header');
+    assert.strictEqual((await rate(bob, { plugin: 'hello-plugin', stars: 6 })).status, 400);
+    assert.strictEqual((await rate(bob, { plugin: 'hello-plugin', stars: 0 })).status, 400);
+    assert.strictEqual((await rate(bob, { plugin: 'hello-plugin', stars: 2.5 })).status, 400);
+    assert.strictEqual((await rate(bob, { plugin: 'nothere-plugin', stars: 5 })).status, 404, 'only plugins in the store');
+    assert.strictEqual((await rate(bob, { plugin: '../x', stars: 5 })).status, 400);
+    const text = '<img src=x onerror=alert(1)> great\u202e\n\n  stuff ' + 'x'.repeat(400);
+    const r1 = await rate(bob, { plugin: 'hello-plugin', stars: 4, text }); assert.strictEqual(r1.status, 200); assert.deepStrictEqual(r1.json.rating, { avg: 4, count: 1 });
+    await rate(bob, { plugin: 'hello-plugin', stars: 2, text: 'changed my mind' });   // the same person again: replaces, never adds
+    const pub = (await t.req('GET', '/api/plugin-reviews?id=hello-plugin')).json;
+    assert.deepStrictEqual(pub.rating, { avg: 2, count: 1 }); assert.strictEqual(pub.reviews.length, 1); assert.strictEqual(pub.reviews[0].login, 'bob'); assert.strictEqual(pub.reviews[0].text, 'changed my mind');
+    await rate(bob, { plugin: 'hello-plugin', stars: 3, text });
+    const long = (await t.req('GET', '/api/plugin-reviews?id=hello-plugin')).json.reviews[0].text;
+    assert.ok(long.length <= 300 && !/[\u202e\n]/.test(long) && long.includes('<img'), 'cleaned and cut (shown as text by the page)');
+    // the Plugins list carries the average, and "me" carries my own rating
+    assert.deepStrictEqual((await t.req('GET', '/api/plugins')).json.plugins[0].rating, { avg: 3, count: 1 });
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: bob })).json.ratings['hello-plugin'].stars, 3);
+    // a developer cannot rate their own plugin (once they have sent it)
+    const alice = await t.signIn('good'); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE); await send(t, alice, GOOD);
+    assert.match((await rate(alice, { plugin: 'hello-plugin', stars: 5 })).json.error, /own plugin/);
+    assert.strictEqual((await rate(alice, { plugin: 'other-plugin', stars: 5 })).status, 200);
+    assert.deepStrictEqual((await t.req('GET', '/api/plugins')).json.plugins[1].rating, { avg: 5, count: 1 });
+    // the owner hides a rating: it disappears from the page and the average
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/reviews', { cookie: (await t.admin('mod')).cookie })).status, 403);
+    const all = (await t.req('GET', '/admin/api/plugins/reviews', A)).json.reviews; assert.strictEqual(all.length, 2);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review-hide', { ...A, body: { plugin: 'hello-plugin', githubId: 77, hidden: true } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/api/plugin-reviews?id=hello-plugin')).json.reviews.length, 0);
+    assert.ok(!(await t.req('GET', '/api/plugins')).json.plugins[0].rating);
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.review.hide'));
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review-hide', { ...A, body: { plugin: 'hello-plugin', githubId: 999, hidden: true } })).status, 404);
+    // a hidden rating stays hidden when its author edits it; removing works
+    await rate(bob, { plugin: 'hello-plugin', stars: 5, text: 'again' }); assert.strictEqual((await t.req('GET', '/api/plugin-reviews?id=hello-plugin')).json.reviews.length, 0);
+    assert.strictEqual((await rate(bob, { plugin: 'hello-plugin', remove: true })).status, 200);
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: bob })).json.ratings['hello-plugin'], undefined);
+    // a blocked person is signed out
+    await t.req('POST', '/admin/api/plugins/dev', { ...A, body: { githubId: 77, blocked: true } });
+    assert.strictEqual((await rate(bob, { plugin: 'other-plugin', stars: 1 })).status, 401);
+  } finally { t.close(); }
+});
+
+test('sign in from the Plugins page lands back on the Plugins page', async () => {
+  const t = await boot();
+  try {
+    t.gh.as('good'); const a = await t.req('GET', '/auth/github?next=plugins');
+    const b = await t.req('GET', '/auth/github/callback?code=abc123xyz&state=' + new URL(a.loc).searchParams.get('state'), { cookie: a.cookies.map((c) => c.split(';')[0]).join('; ') });
+    assert.strictEqual(b.loc, '/plugins');
+    const a2 = await t.req('GET', '/auth/github?next=https://evil.example'); const b2 = await t.req('GET', '/auth/github/callback?code=abc123xyz&state=' + new URL(a2.loc).searchParams.get('state'), { cookie: a2.cookies.map((c) => c.split(';')[0]).join('; ') });
+    assert.strictEqual(b2.loc, '/developers', 'any other value goes to the Developer Centre');
+  } finally { t.close(); }
 });

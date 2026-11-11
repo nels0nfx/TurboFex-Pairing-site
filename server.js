@@ -228,14 +228,14 @@ function createApp(opts = {}) {
         // add who sent each plugin and whether the owner verified them (kept on this site, not in the signed registry)
         const hid = devcentre.hidden();   // withdrawn by you: hidden at once, even before the withdrawal is signed
         const shown = view.plugins.filter((pl) => !hid.has(pl.id + '@' + pl.version));
-        return send(res, 200, { ...view, total: shown.length, plugins: shown.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version); return info ? { ...pl, dev: info } : pl; }) });
+        return send(res, 200, { ...view, total: shown.length, plugins: shown.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version), rt = devcentre.ratingOf(pl.id); return { ...pl, ...(info ? { dev: info } : {}), ...(rt ? { rating: rt } : {}) }; }) });
       } catch (err) {
         return send(res, 503, { error: 'The plugin list cannot be loaded right now. Please try again in a moment.' });
       }
     }
 
     // the Developer Centre: GitHub sign-in, plugin submissions, and the phone command's download (see devcentre.js)
-    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/')) && await devcentre.handle(req, res, p, { ip, send, readBody, limited })) return;
+    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
 
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {

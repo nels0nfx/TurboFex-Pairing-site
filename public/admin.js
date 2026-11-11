@@ -451,12 +451,13 @@
           [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
       });
       n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
-      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers')));
+      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews')));
       return n;
     });
   }
   function vPluginOne(id) {
     if (id === '#devs') return vPluginDevs();
+    if (id === '#reviews') return vPluginReviews();
     return api('GET', 'plugins/submission?id=' + encodeURIComponent(id)).then(function (s) {
       var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
       n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
@@ -490,6 +491,18 @@
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: s.dev.githubId, verified: !s.dev.verified }); }, s.dev.verified ? 'Verified mark removed' : 'Developer verified', function () { load(false); }); } }, s.dev.verified ? 'Remove verified mark' : 'Mark developer as verified'));
       }
       n.appendChild(bar);
+      return n;
+    });
+  }
+  function vPluginReviews() {
+    return api('GET', 'plugins/reviews').then(function (j) {
+      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
+      n.appendChild(head('Ratings and reviews', 'Newest first. A hidden rating is not shown and does not count in the average.', back));
+      var rows = j.reviews.map(function (r) {
+        return row([{ l: 'Plugin', v: r.plugin }, { l: 'Stars', v: '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars) }, { l: 'By', v: r.login }, { l: 'Review', v: r.text || '(no text)' }, { l: 'State', node: h('span', { class: 'tag ' + (r.hidden ? 'bad' : 'ok'), text: r.hidden ? 'hidden' : 'shown' }) }, { l: 'Sent', v: when(r.at) }],
+          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/review-hide', { plugin: r.plugin, githubId: r.githubId, hidden: !r.hidden }); }, r.hidden ? 'Shown again' : 'Hidden', function () { load(false); }); } }, r.hidden ? 'Show' : 'Hide')]);
+      });
+      n.appendChild(panel('Ratings', String(j.reviews.length), table(['Plugin', 'Stars', 'By', 'Review', 'State', 'Sent', ''], rows, 'Nobody has rated a plugin yet.')));
       return n;
     });
   }
