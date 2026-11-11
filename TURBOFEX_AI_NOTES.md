@@ -222,3 +222,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Public page `/developers` (developers.html/js/css, textContent only), menu item `id="m-dev"` on all pages, privacy.html has the developer-data paragraph.
 - Not done: "Verified" mark in the marketplace list; GitHub 2FA is not verifiable through OAuth so it is not required.
 - Version history add: **v2.28.0**.
+
+## 26. v2.29.0 - Verified mark, developer and versions on the Plugins page
+- `GET /api/plugins` now adds, per plugin, `history` (up to 10 versions, newest first, from the signed registry) and, when the plugin came through the Developer Centre and its submission is `published`, `dev: {developer, verified, source}` (devcentre.publicInfo; `verified` is false for a blocked developer; `source` = repo + /tree/<tag>). The signed registry is not changed: the verified mark lives only on this site.
+- public/plugins.js shows "✓ Verified developer" beside the author, a Developer section with the source link, and a Versions list. textContent only; the source link is only used if it matches https://github.com/....
+- Version history add: **v2.29.0**.

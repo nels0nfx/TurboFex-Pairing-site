@@ -26,13 +26,22 @@
     var a = el('article', 'pcard'); a.id = p.id;
     var head = el('button', 'phead'); head.type = 'button'; head.setAttribute('aria-expanded', 'false');
     var title = el('span', 'ptitle'); title.appendChild(el('span', 'pname', p.name)); title.appendChild(el('span', 'pver', 'v' + p.version));
-    head.appendChild(title); head.appendChild(el('span', 'pdesc', p.description)); head.appendChild(el('span', 'pby', 'By ' + (p.author || 'unknown')));
+    head.appendChild(title); head.appendChild(el('span', 'pdesc', p.description)); var by = el('span', 'pby', 'By ' + (p.author || 'unknown')); if (p.dev && p.dev.verified) by.appendChild(el('span', 'pver2', '✓ Verified developer')); head.appendChild(by);
     var more = el('div', 'pmore'); more.hidden = true;
     more.appendChild(el('h3', null, 'What it asks for')); more.appendChild(chips(p));
     if (p.domains.length) more.appendChild(el('p', 'pdom', 'Websites it connects to: ' + p.domains.join(', ')));
     more.appendChild(el('h3', null, 'Install'));
     var cmd = '.plugin install ' + p.id; var row = el('div', 'prow'); row.appendChild(el('code', null, cmd)); row.appendChild(copyBtn(cmd)); more.appendChild(row);
     if (p.publishedAt) more.appendChild(el('p', 'pdom', 'Published ' + p.publishedAt.slice(0, 10)));
+    if (p.dev) {
+      more.appendChild(el('h3', null, 'Developer'));
+      more.appendChild(el('p', 'pdom', p.dev.developer + (p.dev.verified ? ' · verified by the TurboFex team: we checked who they are' : ' · not verified yet. Every plugin is still read before it is published.')));
+      if (/^https:\/\/github\.com\/[A-Za-z0-9._\/-]+$/.test(p.dev.source)) { var src = el('a', 'plink', 'View the source code on GitHub'); src.href = p.dev.source; src.target = '_blank'; src.rel = 'noopener noreferrer'; more.appendChild(src); }
+    }
+    if (p.history && p.history.length > 1) {
+      more.appendChild(el('h3', null, 'Versions'));
+      var vl = el('ul', 'pvers'); p.history.forEach(function (h) { vl.appendChild(el('li', null, 'v' + h.version + (h.publishedAt ? ' · ' + h.publishedAt.slice(0, 10) : ''))); }); more.appendChild(vl);
+    }
     head.addEventListener('click', function () { var open = head.getAttribute('aria-expanded') !== 'true'; head.setAttribute('aria-expanded', open ? 'true' : 'false'); more.hidden = !open; a.classList.toggle('open', open); });
     a.appendChild(head); a.appendChild(more); return a;
   }

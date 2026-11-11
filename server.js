@@ -224,7 +224,9 @@ function createApp(opts = {}) {
     if (req.method === 'GET' && p === '/api/plugins') {
       if (limited('plugins', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
       try {
-        return send(res, 200, await registry.list());
+        const view = await registry.list();
+        // add who sent each plugin and whether the owner verified them (kept on this site, not in the signed registry)
+        return send(res, 200, { ...view, plugins: view.plugins.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version); return info ? { ...pl, dev: info } : pl; }) });
       } catch (err) {
         return send(res, 503, { error: 'The plugin list cannot be loaded right now. Please try again in a moment.' });
       }

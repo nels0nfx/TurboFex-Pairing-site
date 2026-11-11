@@ -40,7 +40,7 @@ test('the list is read from the registry, the signature is checked, withdrawn pl
   assert.strictEqual(v.total, 3);
   const lock = v.plugins.find((p) => p.id === 'lock-plugin');
   assert.strictEqual(lock.version, '1.1.0'); assert.strictEqual(lock.permissions[0].risk, 'high'); assert.match(lock.permissions[0].text, /Remove members/);
-  assert.deepStrictEqual(Object.keys(v.plugins[0]).sort(), ['author', 'description', 'domains', 'id', 'name', 'permissions', 'publishedAt', 'version']); // no hashes or file names
+  assert.deepStrictEqual(Object.keys(v.plugins[0]).sort(), ['author', 'description', 'domains', 'history', 'id', 'name', 'permissions', 'publishedAt', 'version']); // no hashes or file names
   const w = makeView({ plugins: { 'lock-plugin': INDEX.plugins['lock-plugin'] }, revoked: [{ id: 'lock-plugin', version: '1.1.0' }] });
   assert.strictEqual(w.plugins[0].version, '1.0.0'); // only the withdrawn version is hidden; an unknown permission is shown as medium
   assert.strictEqual(w.plugins[0].permissions[1].risk, 'medium');
@@ -93,4 +93,9 @@ test('both themes are covered and the page stays inside the screen on phones', (
   const css = fs.readFileSync(path.join(__dirname, '..', 'public', 'plugins.css'), 'utf8');
   assert.ok(!/#[0-9a-f]{3,6}\b/i.test(css.replace(/\/\*[\s\S]*?\*\//g, '')), 'colours come from style.css so both themes work');
   assert.ok(/overflow-wrap: anywhere/.test(css));
+});
+
+test('the list carries the version history, newest first', () => {
+  const v = makeView({ format: 1, plugins: { 'multi-plug': { name: 'M', versions: { '1.0.0': { publishedAt: '2026-01-01' }, '1.2.0': { publishedAt: '2026-03-01' }, '1.1.0': { publishedAt: '2026-02-01' } } } } });
+  assert.deepStrictEqual(v.plugins[0].history.map((h) => h.version), ['1.2.0', '1.1.0', '1.0.0']); assert.strictEqual(v.plugins[0].version, '1.2.0');
 });

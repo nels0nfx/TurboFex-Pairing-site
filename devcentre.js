@@ -172,6 +172,15 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
   const adminDevs = () => [...devs.values()].sort((a, b) => b.lastLogin - a.lastLogin).slice(0, 200).map((d) => ({ githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, lastLogin: d.lastLogin, submissions: [...subs.values()].filter((s) => s.githubId === d.githubId).length }));
 
+  // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
+  function publicInfo(pluginId, version) {
+    const all = [...subs.values()].filter((s) => s.status === 'published' && s.manifest.id === pluginId);
+    const s = all.find((x) => x.manifest.version === version) || all.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0))[0];
+    if (!s) return null;
+    const d = devs.get(String(s.githubId));
+    return { developer: s.login, verified: !!(d && d.verified && !d.blocked), source: `${s.repo}/tree/${s.tag}` };
+  }
+
   // ---------- the phone command ----------
   const pullAuthorized = (req) => { const m = /^Bearer (.{24,200})$/.exec(String(req.headers.authorization || '')); return pullOn && !!m && eq(m[1], pullToken); };
   const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
@@ -243,7 +252,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, _subs: subs, _devs: devs };
+  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, publicInfo, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

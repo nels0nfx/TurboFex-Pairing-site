@@ -34,6 +34,7 @@ function makeView(index) {
     out.push({
       id, name: str(p.name, 40) || id, description: str(p.description, 200), author: str(p.author, 60), version, publishedAt: str(e.publishedAt, 40),
       permissions: (Array.isArray(e.permissions) ? e.permissions : []).slice(0, 12).map((k) => ({ key: str(k, 30), risk: (PERMS[k] || ['medium'])[0], text: (PERMS[k] || [0, 'Another permission'])[1] })),
+      history: versions.slice().reverse().slice(0, 10).map((v) => ({ version: v, publishedAt: str((p.versions[v] || {}).publishedAt, 40) })),
       domains: (Array.isArray(e.domains) ? e.domains : []).slice(0, 10).map((d) => str(d, 80)).filter(Boolean),
     });
   }

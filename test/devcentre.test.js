@@ -26,13 +26,13 @@ function fakeGithub() {
   return { fetchImpl, files, log, as: (u) => { nextUser = u; } };
 }
 
-async function boot(envExtra = {}, dataDir) {
+async function boot(envExtra = {}, dataDir, extra = {}) {
   const gh = fakeGithub();
   const acct = { user: 'own', role: 'owner', hash: hashPassword('Correct-Horse-42'), totp: newTotpSecret() };
   const mod = { user: 'mod', role: 'moderator', hash: acct.hash, totp: newTotpSecret() };
   dataDir = dataDir || fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-dev-'));
   const env = { GITHUB_CLIENT_ID: 'cid', GITHUB_CLIENT_SECRET: 'csecret', SITE_URL: 'https://turbofex-pair.example', REGISTRY_PULL_TOKEN: TOKEN, ADMIN_ACCOUNTS: JSON.stringify([acct, mod]), ...envExtra };
-  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env, fetchImpl: gh.fetchImpl });
+  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env, fetchImpl: gh.fetchImpl, ...extra });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   const req = async (method, url, { cookie, headers, body, csrf } = {}) => {
@@ -244,4 +244,28 @@ test('the pages exist, say nothing risky and add everything as text', () => {
   for (const f of ['index', 'about', 'terms', 'privacy', 'plugins', 'developers']) assert.match(fs.readFileSync(path.join(__dirname, `../public/${f}.html`), 'utf8'), /id="m-dev"/, f);
   const adminJs = fs.readFileSync(path.join(__dirname, '../public/admin.js'), 'utf8'); assert.ok(!/confirm\(|prompt\(|innerHTML/.test(adminJs.slice(adminJs.indexOf('Plugins (submissions'), adminJs.indexOf('// ---------- Settings'))), 'review screen: no native dialogs, no innerHTML');
   assert.match(fs.readFileSync(path.join(__dirname, '../public/privacy.html'), 'utf8'), /Developers only/);
+});
+
+test('the Plugins page shows the developer, the verified mark, the source link and the version history', async () => {
+  const view = { updated: 'x', total: 2, plugins: [
+    { id: 'hello-plugin', name: 'Hello', description: 'd', author: 'Alice', version: '1.0.0', publishedAt: '2026-11-11', permissions: [], domains: [], history: [{ version: '1.0.0', publishedAt: '2026-11-11' }] },
+    { id: 'other-plugin', name: 'Other', description: 'd', author: 'Z', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const sub = (await send(t, c, GOOD)).json.submission;
+    let plugins = (await t.req('GET', '/api/plugins')).json.plugins;
+    assert.ok(!plugins[0].dev, 'a plugin that is only waiting or approved shows nothing');
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/api/registry/published', { headers: { authorization: 'Bearer ' + TOKEN }, body: { ids: [sub.id] } });
+    plugins = (await t.req('GET', '/api/plugins')).json.plugins;
+    assert.deepStrictEqual(plugins[0].dev, { developer: 'alice', verified: false, source: 'https://github.com/alice/hello/tree/v1.0.0' });
+    assert.ok(!plugins[1].dev, 'a plugin from the owner has no developer record');
+    await t.req('POST', '/admin/api/plugins/dev', { ...A, body: { githubId: 42, verified: true } });
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins[0].dev.verified, true);
+    await t.req('POST', '/admin/api/plugins/dev', { ...A, body: { githubId: 42, blocked: true } });
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins[0].dev.verified, false, 'a blocked developer is not shown as verified');
+    assert.strictEqual(plugins[0].history.length, 1);
+  } finally { t.close(); }
 });
