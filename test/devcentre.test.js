@@ -269,3 +269,29 @@ test('the Plugins page shows the developer, the verified mark, the source link a
     assert.strictEqual(plugins[0].history.length, 1);
   } finally { t.close(); }
 });
+
+test('withdrawing a published plugin: hidden at once, handed to the phone command, then confirmed', async () => {
+  const view = { updated: 'x', total: 1, plugins: [{ id: 'hello-plugin', name: 'Hello', description: 'd', author: 'Alice', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const sub = (await send(t, c, GOOD)).json.submission; const H = { authorization: 'Bearer ' + TOKEN };
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.match((await t.req('POST', '/admin/api/plugins/revoke', { ...A, body: { id: sub.id, reason: 'bad' } })).json.error, /published/, 'a waiting plugin cannot be withdrawn');
+    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/api/registry/published', { headers: H, body: { ids: [sub.id] } });
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins.length, 1);
+    const m = await t.admin('mod'); assert.strictEqual((await t.req('POST', '/admin/api/plugins/revoke', { cookie: m.cookie, csrf: m.csrf, body: { id: sub.id, reason: 'Found a problem' } })).status, 403);
+    assert.match((await t.req('POST', '/admin/api/plugins/revoke', { ...A, body: { id: sub.id, reason: ' ' } })).json.error, /reason/);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/revoke', { ...A, body: { id: sub.id, reason: 'Found a problem' } })).status, 200);
+    assert.match((await t.req('POST', '/admin/api/plugins/revoke', { ...A, body: { id: sub.id, reason: 'Again please' } })).json.error, /only once/);
+    const pub = (await t.req('GET', '/api/plugins')).json; assert.strictEqual(pub.plugins.length, 0); assert.strictEqual(pub.total, 0);
+    const pull = (await t.req('GET', '/api/registry/approved', { headers: H })).json;
+    assert.deepStrictEqual(pull.revocations, [{ submission: sub.id, id: 'hello-plugin', version: '1.0.0', reason: 'Found a problem' }]);
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.revoke'));
+    assert.strictEqual((await t.req('POST', '/api/registry/published', { headers: H, body: { revoked: [sub.id, 'nothere'] } })).json.revoked, 1);
+    assert.deepStrictEqual((await t.req('GET', '/api/registry/approved', { headers: H })).json.revocations, []);
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions[0].status, 'revoked');
+    assert.match((await send(t, c, GOOD)).json.error, /already sent/, 'the same version cannot come back');
+  } finally { t.close(); }
+});

@@ -226,7 +226,9 @@ function createApp(opts = {}) {
       try {
         const view = await registry.list();
         // add who sent each plugin and whether the owner verified them (kept on this site, not in the signed registry)
-        return send(res, 200, { ...view, plugins: view.plugins.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version); return info ? { ...pl, dev: info } : pl; }) });
+        const hid = devcentre.hidden();   // withdrawn by you: hidden at once, even before the withdrawal is signed
+        const shown = view.plugins.filter((pl) => !hid.has(pl.id + '@' + pl.version));
+        return send(res, 200, { ...view, total: shown.length, plugins: shown.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version); return info ? { ...pl, dev: info } : pl; }) });
       } catch (err) {
         return send(res, 503, { error: 'The plugin list cannot be loaded right now. Please try again in a moment.' });
       }

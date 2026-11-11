@@ -227,3 +227,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `GET /api/plugins` now adds, per plugin, `history` (up to 10 versions, newest first, from the signed registry) and, when the plugin came through the Developer Centre and its submission is `published`, `dev: {developer, verified, source}` (devcentre.publicInfo; `verified` is false for a blocked developer; `source` = repo + /tree/<tag>). The signed registry is not changed: the verified mark lives only on this site.
 - public/plugins.js shows "✓ Verified developer" beside the author, a Developer section with the source link, and a Versions list. textContent only; the source link is only used if it matches https://github.com/....
 - Version history add: **v2.29.0**.
+
+## 27. v2.30.0 - withdraw a published plugin (admin dashboard)
+- Admin route `POST /admin/api/plugins/revoke {id, reason}` (owner, audited as `plugin.revoke`): only a `published` submission, once, reason >= 3 chars. The Plugins page hides it at once (`devcentre.hidden()`), `GET /api/registry/approved` also returns `revocations`, and `POST /api/registry/published` accepts `{ids, revoked}`; a confirmed withdrawal sets the status to `revoked` (the id and version stay taken: published versions never change).
+- The signed withdrawal itself is made on the owner's phone: bot tools/registry.js `pull` runs `revoke` for each request, `published` reports it back (bot v1.4.6).
+- Version history add: **v2.30.0**.

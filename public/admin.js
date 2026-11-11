@@ -436,7 +436,7 @@
   }
 
   // ---------- Plugins (submissions from the Developer Centre) ----------
-  var PSTAT = { pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], withdrawn: ['Withdrawn', ''] };
+  var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], withdrawn: ['Withdrawn', ''] };
   function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
   function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
   function vPluginList() {
@@ -482,6 +482,10 @@
       if (s.status === 'pending' || s.status === 'approved') {
         bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Reject ' + s.name + ' ' + s.version + '?', text: 'The developer sees this reason, so keep it short and kind.', fields: [{ name: 'note', label: 'Reason' }], ok: 'Reject', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'reject', note: v.note }); }, 'Rejected', function () { load(false); }); }); } }, 'Reject'));
       }
+      if (s.status === 'published' && !s.revoke) {
+        bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Withdraw ' + s.name + ' ' + s.version + ' from the store?', text: 'The Plugins page hides it at once. Bots switch it off only after you run the phone command (node tools/registry.js pull) and push the registry.', fields: [{ name: 'reason', label: 'Reason (bots show it to their owners)' }], ok: 'Withdraw', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/revoke', { id: s.id, reason: v.reason }); }, 'Marked for withdrawal', function () { load(false); }); } ); } }, 'Withdraw from the store'));
+      }
+      if (s.revoke) bar.appendChild(h('p', { class: 'note warn', text: s.revoke.done ? 'Withdrawn and signed: bots switch it off. Reason: ' + s.revoke.reason : 'Withdrawal waiting for the phone command (pull, then push the registry, then published). Reason: ' + s.revoke.reason }));
       if (s.dev) {
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: s.dev.githubId, verified: !s.dev.verified }); }, s.dev.verified ? 'Verified mark removed' : 'Developer verified', function () { load(false); }); } }, s.dev.verified ? 'Remove verified mark' : 'Mark developer as verified'));
       }

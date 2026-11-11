@@ -16,7 +16,7 @@ const DEV_COOKIE = 'tfx_dev', OAUTH_COOKIE = 'tfx_oauth';
 const DEV_DAYS = 7;
 const MAX_PENDING = 5, MAX_PER_DAY = 10;
 const reLogin = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/, reRepo = /^[A-Za-z0-9._-]{1,100}$/, reTag = /^[A-Za-z0-9._\/-]{1,60}$/, reFolder = /^[A-Za-z0-9._\/-]{0,80}$/;
-const LIVE = ['pending', 'approved', 'published'];   // a submission in one of these states holds its plugin id + version
+const LIVE = ['pending', 'approved', 'published', 'revoked'];   // a submission in one of these states holds its plugin id + version
 
 function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fetchImpl = globalThis.fetch, now = () => Date.now() } = {}) {
   const clientId = String(env.GITHUB_CLIENT_ID || '').trim(), clientSecret = String(env.GITHUB_CLIENT_SECRET || '').trim();
@@ -139,8 +139,8 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
-  const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions }; };
-  const order = { pending: 0, approved: 1, published: 2, rejected: 3, withdrawn: 4 };
+  const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
+  const order = { pending: 0, approved: 1, published: 2, revoked: 3, rejected: 4, withdrawn: 5 };
   const adminList = () => ({ submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
@@ -154,7 +154,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (s.status !== 'pending') return { status: 400, error: 'Only a waiting submission can be approved.' };
       const c = checkPlugin(s.manifestRaw, s.entrySource);   // the stored copy is checked again, so nothing changes between sending and approving
       if (!c.ok || c.entrySha !== s.entrySha || c.manifestSha !== s.manifestSha) return { status: 400, error: 'The stored plugin no longer passes the check.' };
-      for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId !== s.githubId && ['approved', 'published'].includes(o.status)) return { status: 409, error: 'Another developer already owns this plugin id.' };
+      for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId !== s.githubId && ['approved', 'published', 'revoked'].includes(o.status)) return { status: 409, error: 'Another developer already owns this plugin id.' };
       s.status = 'approved';
     } else if (decision === 'reject') {
       if (!['pending', 'approved'].includes(s.status)) return { status: 400, error: 'This submission cannot be rejected now.' };
@@ -164,6 +164,16 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     s.note = note; s.reviewedBy = String(by || '').slice(0, 40); s.reviewedAt = now(); s.updatedAt = now(); save('sub', s);
     return { status: 200, ok: true };
   }
+  // withdraw a published plugin: the site hides it at once and the phone command signs the withdrawal (bots switch it off after that)
+  function adminRevoke(id, reason, by) {
+    const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
+    reason = String(reason || '').trim().slice(0, 200);
+    if (s.status !== 'published' || s.revoke) return { status: 400, error: 'Only a published plugin can be withdrawn, and only once.' };
+    if (reason.length < 3) return { status: 400, error: 'Write a short reason (at least 3 characters).' };
+    s.revoke = { reason, at: now(), by: String(by || '').slice(0, 40), done: false }; s.updatedAt = now(); save('sub', s);
+    return { status: 200, ok: true };
+  }
+  const hidden = () => new Set([...subs.values()].filter((s) => s.revoke).map((s) => s.manifest.id + '@' + s.manifest.version));
   function adminDev(githubId, patch) {
     const d = devs.get(String(githubId)); if (!d) return { status: 404, error: 'Not found.' };
     if (typeof patch.verified === 'boolean') d.verified = patch.verified;
@@ -184,6 +194,12 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   // ---------- the phone command ----------
   const pullAuthorized = (req) => { const m = /^Bearer (.{24,200})$/.exec(String(req.headers.authorization || '')); return pullOn && !!m && eq(m[1], pullToken); };
   const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
+  const revocationsForPull = () => [...subs.values()].filter((s) => s.revoke && !s.revoke.done).map((s) => ({ submission: s.id, id: s.manifest.id, version: s.manifest.version, reason: s.revoke.reason }));
+  function markRevoked(ids) {
+    let n = 0;
+    for (const id of Array.isArray(ids) ? ids.slice(0, 100) : []) { const s = subs.get(String(id)); if (s && s.revoke && !s.revoke.done) { s.revoke.done = true; s.status = 'revoked'; s.updatedAt = now(); save('sub', s); n++; } }
+    return n;
+  }
   function markPublished(ids) {
     let n = 0;
     for (const id of Array.isArray(ids) ? ids.slice(0, 100) : []) { const s = subs.get(String(id)); if (s && s.status === 'approved') { s.status = 'published'; s.publishedAt = now(); s.updatedAt = now(); save('sub', s); n++; } }
@@ -242,17 +258,17 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!pullOn) return send(res, 404, { error: 'Not found.' }), true;
       if (limited('regpull', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
       if (!pullAuthorized(req)) return send(res, 401, { error: 'Not allowed.' }), true;
-      if (p.endsWith('approved') && req.method === 'GET') return send(res, 200, { plugins: approvedForPull() }), true;
+      if (p.endsWith('approved') && req.method === 'GET') return send(res, 200, { plugins: approvedForPull(), revocations: revocationsForPull() }), true;
       if (p.endsWith('published') && req.method === 'POST') {
         let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-        return send(res, 200, { ok: true, marked: markPublished(b.ids) }), true;
+        return send(res, 200, { ok: true, marked: markPublished(b.ids), revoked: markRevoked(b.revoked) }), true;
       }
       return send(res, 405, { error: 'Not allowed.' }), true;
     }
     return false;
   }
 
-  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, publicInfo, _subs: subs, _devs: devs };
+  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

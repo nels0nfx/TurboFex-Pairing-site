@@ -5,7 +5,7 @@
   if (!stateBox) return;
   var form = document.getElementById('dsend'), go = document.getElementById('dgo'), msg = document.getElementById('dmsg'), prob = document.getElementById('dprob');
   var NOTES = { off: 'The Developer Centre is not open yet. Please check back soon.', wait: 'Too many tries. Please wait a few minutes and try again.', login: 'GitHub sign-in did not finish. Please try again.', blocked: 'This account cannot sign in.' };
-  var STATUS = { pending: ['Waiting for review', 'wait'], approved: ['Approved: waiting to be published', 'ok'], published: ['Published', 'ok'], rejected: ['Not accepted', 'bad'], withdrawn: ['Withdrawn', ''] };
+  var STATUS = { pending: ['Waiting for review', 'wait'], approved: ['Approved: waiting to be published', 'ok'], published: ['Published', 'ok'], rejected: ['Not accepted', 'bad'], revoked: ['Withdrawn from the store', 'bad'], withdrawn: ['Withdrawn', ''] };
 
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function post(url, body) {

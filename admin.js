@@ -461,6 +461,13 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
         const one = devcentre.adminGet(b.id); act('plugin.' + (b.decision === 'approve' ? 'approve' : 'reject'), String(b.id).slice(0, 12), `${one.pluginId}@${one.version} by ${one.login}` + (b.note ? ': ' + String(b.note).slice(0, 120) : ''));
         json(res, 200, { ok: true }); return true;
       }
+      if (post && route === 'plugins/revoke') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.adminRevoke(b.id, b.reason, sess.user);
+        if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        const one = devcentre.adminGet(b.id); act('plugin.revoke', String(b.id).slice(0, 12), `${one.pluginId}@${one.version}: ${String(b.reason).slice(0, 120)}`);
+        json(res, 200, { ok: true }); return true;
+      }
       if (post && route === 'plugins/dev') {
         const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
         const r = devcentre.adminDev(b.githubId, { verified: b.verified, blocked: b.blocked });
