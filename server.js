@@ -9,6 +9,7 @@ const qrImage = require('./qr');
 const { createEvents } = require('./events');
 const { createAdmin } = require('./admin');
 const { fromEnv: cloudFromEnv } = require('./cloud');
+const { createRegistry } = require('./registry');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -59,6 +60,7 @@ function createApp(opts = {}) {
     jobs: () => [...jobs.values()], stopJob: (j, m) => stopJob(j, m),
     defaults: { pair: pairLimit, number: Number(env.NUMBER_LIMIT) || 5, maxJobs },
   });
+  const registry = opts.registry || createRegistry({ env });   // the signed plugin list for the Plugins page
   const hits = new Map(); // "kind:ip" -> [timestamps]
 
   // allows `max` hits per `windowMs` for one visitor
@@ -216,6 +218,16 @@ function createApp(opts = {}) {
     // what every page asks once: is the site paused, and is there an announcement (set in the admin dashboard)
     if (req.method === 'GET' && p === '/api/status') return send(res, 200, admin.publicStatus());
 
+    // the plugin list (read from the signed registry; see registry.js)
+    if (req.method === 'GET' && p === '/api/plugins') {
+      if (limited('plugins', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
+      try {
+        return send(res, 200, await registry.list());
+      } catch (err) {
+        return send(res, 503, { error: 'The plugin list cannot be loaded right now. Please try again in a moment.' });
+      }
+    }
+
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {
       const who = { client: admin.idOf('client', ip), ipm: admin.maskIp(ip) };
@@ -289,7 +301,7 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html' }; // clean addresses for the two text pages
+      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html' }; // clean addresses for the two text pages
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {

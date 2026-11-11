@@ -1,0 +1,292 @@
+CHANGED IN THE NEXT VERSION
+- NEW (pairing site v2.27.0): a PLUGINS page at /plugins, linked from the menu of every page. It lists the approved TurboFex plugins (name, version, author, description), has a search box, and each plugin opens to show what it asks for in plain words with a risk mark (Low, Medium, High) and its install command with a copy button. The list comes from the signed TurboFex-Registry: the site downloads index.json and index.json.sig from GitHub, checks the signature with the registry's public key (the same one the bots trust), keeps the result for 10 minutes and, if GitHub is down, shows the last good list for up to a day. A list that fails the signature check is never shown. Withdrawn plugins and old versions are hidden. The visitor's browser never talks to GitHub. Pairing, QR and the admin dashboard are untouched. Optional settings (normally not needed): REGISTRY_URL, REGISTRY_PUBLIC_KEY.
+- NEW (pairing site v2.26.0): the site can link new devices with the ANDROID companion identity so the bot can receive view-once files. It is controlled by the PAIR_BROWSER setting on Render (render.yaml now sets PAIR_BROWSER = android). Remove PAIR_BROWSER (or set anything else) and the site links exactly as before. Pairing code and QR both stay, and the session ID/session files are unchanged. After a link the log shows 'Linked as platform: ...'. Pairing code with the Android identity is NOT verified by anyone yet: if it fails, the exact error is shown and nothing silently switches identity.
+- CHANGED (pairing site v2.25.0, admin dashboard): simpler and cleaner on phones. The bottom bar is gone (it clashed with the phone browser's own bottom bar); there is one menu button at the top that opens all sections. Lists (visitors, attempts, session IDs, activity, audit) are tidier cards with the status in the corner and empty zero values hidden.
+- NEW (pairing site v2.24.0, admin dashboard UI/UX upgrade): on phones the sections are a bottom tab bar (Overview, Pairing, Visitors, Security, More) instead of a scrolling strip; a "Live" badge on every page shows when the numbers were last updated and refreshes on tap; loading placeholders; a new Overview with a "Right now" card (tap to jump to what needs attention), big headline numbers and a compact strip; cleaner phone cards for visitors, attempts and logs; the back button now moves between sections.
+- FIXED (pairing site v2.23.0, admin dashboard): (1) no more "Do you want to download noop?" pop-up after signing in; (2) the phone's white confirm/ask boxes are replaced by pop-ups in the TurboFex style (block, revoke, stop, sign out, maintenance); (3) your own visitor row says "this is you" and has no Block button, instead of an error; (4) the usage bars on the Server tab are now round gauges, with the shared machine numbers shown separately and not in red.
+- FIXED/NEW (pairing site v2.22.0, admin dashboard): (1) the audit log no longer says "Chain BROKEN" after a restart with Supabase; (2) "Trust this device for 30 days" at sign-in: that phone then needs only the password (not the 6-digit code), and Settings has "Forget trusted devices"; (3) one sign-in form so phones can offer to save the password; (4) the dashboard now sees people who only open the site (page visits and visitors on Overview and Visitors, counted once per visitor per 10 minutes, robots ignored); (5) the heap bar no longer shows red for no reason.
+- NEW (pairing site v2.21.0): permanent storage in Supabase for the admin dashboard data (blocks, settings, announcements, activity log, audit log), so they survive restarts and redeploys on free Render. Optional: it turns on when SUPABASE_URL and SUPABASE_SERVICE_KEY are set on Render (one-time table setup: tools/supabase-setup.sql). Session IDs, pairing codes, sessions and full numbers are never sent to it. If Supabase is down the site keeps working and catches up later. The dashboard's Server tab shows whether it is connected.
+- FIXED (pairing site v2.20.2, admin dashboard): the sign-in page no longer says "Your session ended" every time you open it (it only says that when you were really signed in and got signed out). Pressing the sign-out button now asks "Sign out of the admin dashboard?" first.
+- FIXED (pairing site v2.20.1, admin dashboard): (1) the maintenance on/off switch was invisible on phones - it is a proper switch now with a clear ON/OFF line; (2) the red number on Security counts only NEW alerts: once you open Security they are marked as read and stay read until more events join them.
+- NEW (pairing site v2.20.0): secure ADMIN DASHBOARD at /admin (404 until you set ADMIN_ACCOUNTS on Render). Separate login: password + 2FA code from an authenticator app (Google Authenticator, Microsoft Authenticator, Aegis...). Tabs: Overview (live stats, chart), Pairing (live session IDs and running attempts, revoke / stop), Visitors (visitors and numbers, block / unblock), Security (alerts worked out from real activity), Server (uptime, CPU, memory, storage), Activity (7-day log), Audit log (owner only, tamper-evident), Announcements (shown on the public pages), Settings (maintenance mode, pairing limits). Roles: viewer (look only), moderator (+ revoke, block, announce), owner (+ settings, audit). The server enforces every permission; the dashboard never shows session IDs, pairing codes, full numbers or full IPs. Set it up with: node tools/admin-setup.js (see the notes). Also: About, Terms and Privacy pages now have the same Dynamic Island bar as the home page, and their text was updated for the activity log.
+- CHANGED (pairing site v2.19.1): no FAQ question is open by default any more, and changing the FAQ tab (Linking / Safety / Problems) does not open one either. A question opens only when tapped.
+- REMOVED (pairing site v2.19.0): the background music is gone completely (the song file, its menu item, the music button on About/Terms/Privacy, and the music lines in those pages). The small tap sounds stay (Sound: On/Off in the menu).
+- CHANGED (pairing site v2.18.0): the FAQ has a completely new look: three topic tabs (Linking, Safety, Problems) with a gold underline on the open one, and the questions of that topic below as plain rows with a small gold arrow (no numbers, no boxes). One question open at a time; changing tab opens that topic's first question. Two new answers: code/QR expired, and the session ID did not arrive in WhatsApp (copy it from the page).
+- CHANGED (pairing site v2.17.2): FAQ look redone: the numbers 01-09 and the round arrows are gone. Now it is just the questions with thin lines, a gold + on the right that turns into a cross when the question is open, the open question in gold, and the answer with comfortable spacing.
+- FIXED (pairing site v2.17.1): (1) the hero picture no longer blinks when you refresh: the picture of the other mode used to show for a moment (the light one lay under the dark one); now only the picture of the current mode is ever visible, the hero stays empty until it is ready, then fades in once; (2) opening an FAQ question closes the one that was open; (3) nicer FAQ: numbers 01-09, a round gold arrow, the open question turns gold with a gold line beside its answer, and the answer slides in.
+- CHANGED (pairing site v2.17.0): (1) the "How to connect" and "Security tips" boxes (and the swipe slider) are gone; the FAQ is now a proper list of 9 questions that open and close, with no boxes, and it covers both (how to link, code or QR, which number, session ID, what pairing does, is it safe, "Couldn't link device", keep the page open, how to unlink); the footer link Security now says FAQ; (2) the site now follows the phone's light/dark setting: a phone in dark mode opens the site dark, a phone in light mode opens it light, and it follows the phone if it changes while the page is open - unless the visitor chose a mode with the sun/moon button (that choice is remembered and wins). Includes v2.16.0 (custom pairing code TFX + 5 random characters).
+- NEW (pairing site v2.16.0): the pairing code now looks like TFX7-K2M9 (TFX + 5 random letters/numbers) instead of a fully random code. If the WhatsApp library or WhatsApp itself does not accept the custom code, the site automatically asks for one normal code instead, so nobody sees an error because of it. Cannot be tested against real WhatsApp here - the first real try on Render decides (the Render log says "code shown (TurboFex code)" or "(normal code)"). To turn it off: set CUSTOM_CODE=0 on Render.
+- FIXED (pairing site v2.15.1): the music no longer stops on About, Terms and Privacy. The music code is now on every page, carries on from the same place in the song when you move between pages, and the three text pages have a small music on/off button at the top. Note: some phones (iPhone Safari) block sound on a freshly opened page until the first tap, so there the music continues after one tap.
+- NEW (pairing site v2.15.0): Privacy Policy page (/privacy), plain text like About and Terms, linked from the footer, the menu, About and Terms. Also: the background music is much quieter now (one third of before) so the tap sounds can be heard. It says only what the site really does (phone number not kept, session encrypted for at most 5 minutes, no tracking cookies, IP only for limits). Plain-language draft, not lawyer-checked.
+- CHANGED (pairing site v2.14.1): the About and Terms pages are plain text now - no cards or boxes (no frames, no boxed buttons or code chips), just headings and text on the page background.
+- NEW (pairing site v2.14.0): two new pages, About (/about) and Terms and Conditions (/terms), in light and dark mode with the same look. They are linked from the footer and from the menu. The texts only say what the site really does (one-time session ID, 5-minute expiry, encrypted storage, number not kept, not affiliated with WhatsApp). They are a plain-language draft, not lawyer-checked.
+- NEW (pairing site v2.13.0): (1) the number box now stops accepting digits once the country's longest number is reached (also when pasting), instead of showing "Too long: 1 digit too many"; (2) the "Server: Online / Session ID lasts 5 min" bar is removed; (3) soft background music (an original ambient loop made for TurboFex, free to use) starts at the visitor's first tap (phones do not allow sound before a tap), fades in quietly, pauses when the tab is hidden, and can be switched off in the menu (Music: On/Off, remembered).
+- NEW (pairing site v2.12.0): (1) number checking: country picker with flags and search, the country is guessed from the phone (time zone / language), a live "5 more digits needed" counter, and each country has its own length; a code is only asked for when the number is valid for that country (the SERVER checks again, never only the page); numbers are sent to WhatsApp in international form only; (2) one phone number can only be tried 5 times per 15 minutes (counted by a hash, the number is not kept); (3) WhatsApp error details are no longer shown to the visitor; (4) FIXED: dark-mode text sometimes stayed black while switching theme - the colour fade is gone, everything switches in the same instant; gold/green text is darker in light mode so it is readable; (5) refreshing brings you back to an unfinished attempt (otherwise the page starts at the top). Optional: VERIFY_WHATSAPP=1 asks WhatsApp whether the number has an account (off by default, see notes).
+- CHANGED (pairing site v2.11.4): (1) the circle that showed in the hero while switching light/dark is gone (the oval fade was removed); (2) opening or refreshing the page always starts at the top (no more jump to FAQ / Choose connection); (3) light mode has its ivory floating bar with gold edges again (dark mode keeps the black pill); (4) How to connect and Security tips are a swipe slider on phones: one card per screen, both exactly the same size, with dots.
+- CHANGED (pairing site v2.11.3): the floating bar is now exactly the reference: the same clean black pill with one thin gold outline in BOTH light and dark mode (logo tile, TURBOFEX, Pair, moon/sun button, divider, menu). No glow, moving light or sparks any more.
+- IMPROVED (pairing site v2.11.2): the hero now uses your two real pictures (true black + gold for dark, ivory + gold for light) at full 1672px size, with no recolouring. A smaller copy is used on small screens.
+- IMPROVED (pairing site v2.11.1): the floating bar in LIGHT mode is clean now - an ivory pill with one thin gold outline, thin gold rings on the buttons, no moving light, glow or sparks. The dark bar is unchanged.
+- NEW (pairing site v2.11.0): (1) a "Try again" button on the code and QR screens - gets a new code or QR on the same screen, same number, no need to start over; (2) the code box and QR box are never left empty: when an attempt expires or stops they show a message and Try again; (3) the dark hero picture is now true black with a gold skyline (like the reference) and an oval fade, so the hazy corners are gone; (4) the site allows 10 tries per 15 minutes (was 4) so Try again is not blocked, and Start over / Try again stop the old attempt on the server.
+- FIXED (pairing site v2.10.1): the hero picture is sharp now (it was only 800/1200 pixels wide and stretched on a phone; now the full 1672-pixel picture is used on Retina phones, with a smaller one for small screens). Switching light/dark no longer blinks: the old whole-page snapshot fade was removed (the hero could be missing from it), both pictures stay in the page, and the new one is decoded before the switch.
+- NEW (pairing site v2.10.0): new look from the approved picture. The three badges (Encrypted storage / Instant setup / Deleted after use) are gone from the top. The hero picture has no box any more: it runs full width and fades into the page. Light = warm ivory and champagne gold; dark = black and gold (the brown tint was taken out of the dark picture).
+- FIXED? (pairing site v2.9.2): the pairing code still failed because the site was still using an OLD WhatsApp Web version number (the log showed "library list (may be old)"). It now asks five places at once, uses the newest number and writes every result in the Render log ("version sources: ..."). Cannot be tested against real WhatsApp here.
+- FIXED? (pairing site v2.9.1): pairing codes made WhatsApp say "Couldn't link device". WhatsApp only accepts new links from a current WhatsApp Web version and the library's own number goes stale (and its lookup can fail silently). The site now asks WhatsApp for the current version, reads it from WhatsApp Web itself if the library fails, and writes the version used in the log. The code page also tells people to try the QR if WhatsApp says "Couldn't link device". Not confirmed against real WhatsApp yet
+- NEW (pairing site v2.9.0): the hero picture is now the new illustration (phone with chat, friendly golden assistant robot with a shield, chat bubbles, gold light trails and a soft city skyline) instead of the big TF logo. There is a light (ivory/gold) and a dark (charcoal/gold) version; they switch with the theme with a smooth cross-fade. The picture fits the box exactly (16:9) on phones and desktop, small files (about 20KB on phones, 35KB on bigger screens), and only the active theme's picture is loaded first
+- IMPROVED (pairing site v2.8.1): the "Choose connection method" card is shorter (tighter spacing, slightly smaller heading, tabs, input and button), about 90px less on a phone. The next steps (code, QR, done) keep their size
+- IMPROVED (pairing site v2.8.0): the floating bar is smoother on Android (no live blur behind it, its animations rest while you scroll, lighter glow effects on Android). The footer "Help" link now opens the Telegram community. Removed the site version text from the status bar and the sentence "Your session data is protected and deleted after collection" from the footer (the version is still at /health)
+- NEW (pairing site v2.7.0): when the bot logs in with the session ID, the page notices and shows a green "Your bot is logged in" message (the island says "Bot connected") instead of saying the ID expired. Expired is only shown when the ID ran out unused
+- NEW (pairing site v2.5.1): TURBOFEX_AI_NOTES.md now lives inside the pairing site project (not served to visitors). It holds the owner's preferences and usual commands for any new AI
+- NEW (pairing site v2.6.0): the WhatsApp messages after linking now come in this order: first ONE message with both our WhatsApp Channel and Telegram links under a crisp bold heading (the card is the real WhatsApp Channel preview with its own full-width picture), then a short note, and the session ID LAST and alone (press and hold it, tap Copy, only the ID is copied). If the preview cannot be read, the plain links are sent. If the first messages fail, the ID message is never affected
+- NEW (bot): the .qr command now sends a "Copy code" button under the QR picture. It copies ONLY the text inside the QR code (no caption, no words around it). If a phone does not show the button, the text is sent alone in its own message so one long-press copies just that. Our WhatsApp Channel and Telegram links are sent as their own message right after, so WhatsApp can show their previews
+- NEW (pairing site v2.3.0): an FAQ heading (gold chat icon, title and a curved gold line either side) above "How to connect" and "Security tips". On phones the two cards now sit side by side and both fit fully on the screen (only very narrow phones under 340px swipe). The page is lighter on low-end phones (smaller logo picture, glow animations and blur switched off when the phone has little memory or Data Saver is on)
+- CHANGED (pairing site): the button sounds are now soft round "tim" tones (no clicks or noise)
+- FIXED (pairing site v2.2.x): the floating bar was hidden behind its own fade on iPhone Safari; the TF logo is centred in its tile; opening or refreshing the page goes to the connection section and an unfinished link (or the session ID while it is valid) carries on after a refresh; less empty space under the footer
+- NEW (pairing site): sounds. Soft tones made in the browser (no files): a tick on taps, tab and menu sounds, a rising note when switching to light and a falling one for dark, a small chime when linking works, a low note on errors. The menu has a Sound on/off switch that is remembered. Nothing plays until the first touch
+- NEW (pairing site v2.0.0): the page is redesigned in black and gold: a hero picture (drawn golden skyline, the TF tile above a podium and a glowing ring), a gold "WhatsApp" heading with three short highlights, a centred "Choose connection method" panel, a "How to connect" guide, "Security tips" with what pairing does, a status bar (server online/offline from the real /health, session ID lifetime, site version), and a new footer. The floating pill keeps all its features (menu, theme, pairing status) and now shows the tagline and a "Pair" link. No made-up numbers or links are shown
+- IMPROVED (pairing site v1.9.0): the floating pill is brighter and more alive: a metallic gold outline whose light slowly slides along it, a gold light with a fading tail that runs all the way round the pill and repeats, a second faint line of light circling just outside it, a moving reflection across the glass, two blooms that swell and fade in turn, drifting sparks, and a pulsing glow behind the TF logo and the PAIR chip. All buttons now get a gold light that slides along their edge and a soft breathing glow. The footer has more room above the phone toolbar
+- NEW (pairing site v1.8.0): the header is now a floating black-glass pill (Dynamic-Island style) with a slow gold bloom, an occasional light streak around the border, a few drifting gold sparks and a breathing glow behind the TF logo. The pill grows to show the pairing status (connecting, linked, failed), has a menu button (Pairing code, QR code, Secure Connection) and a theme button. All motion stops for people who ask their phone to reduce motion
+- FIXED (pairing site v1.7.1): on some Android phones the header sat under the status bar and was cut off, and the footer was too close to the navigation bar. The page no longer asks the browser to draw under the status bar, the status bar takes the header colour, and the footer has more room at the bottom
+- CHANGED (pairing site): a session ID now expires 5 minutes after it is made (it was 24 hours) and still works only once. The site enforces this itself on every use, also after a restart, deletes expired IDs automatically (every 30 seconds and when it starts), and the page shows a live countdown that turns the ID into "Expired" when time is up. Start the bot soon after linking. The setting is now SESSION_TTL_SECONDS (default 300)
+- FIXED (pairing site): on phones the content now has comfortable side margins (18-24px, plus the iPhone safe areas) in light and dark; the PAIR badge no longer collides with "Secure Connection" in the header (the label shortens to "Secure" or just the lock on narrower screens); the light/dark switch now fades the whole page smoothly (about 0.3s)
+- NEW (pairing site): premium dark mode in black and champagne gold. Dark is the default; a sun/moon button in the header switches to light and remembers the choice. Pairing logic is unchanged
+- FIXED: the bot crashed on start with "Cannot find module './market'" (core/scheduler.js still loaded the removed market file)
+- NEW: the pairing site (folder pairsite/). People link their number with a pairing code on the site and get a short session ID (TFX-XXXX-XXXX-XXXX). Setting SESSION_ID on the bot (the site address is written once in config.js, pairSiteUrl) makes it log in with that ID on start (core/sessionid.js). IDs are one-use, expire after 5 minutes and are stored encrypted. See pairsite/README.md
+- NEW (pairing site): smoother interactions. Buttons press down and ease back, hover and loading/success/error states, a sliding tab indicator with a short fade between Pairing code and QR code, a sticky header, tap-to-copy session ID, and protection against double submits. Respects reduced-motion settings
+- FIXED (pairing site): a QR scan never finished on the site, because the WhatsApp library only marks a login as registered for pairing codes. QR logins are now recognised and complete. The bot also accepts such a login from a session ID
+- NEW (pairing site): when linking finishes, the session ID is also sent to the person's own WhatsApp chat
+- NEW: the pairing site has a new black, white and champagne gold design, made for phones, with copy buttons, number formatting and clear errors
+- NEW: the pairing site shows the TurboFex logo and lets people choose a pairing code or a QR code. The bot already knows the site address (config.js, pairSiteUrl)
+- NEW: tools/pairtest.js, a test that shows whether WhatsApp accepts a pairing code with different device identities
+
+TurboFex v0.7.7 - the Empire of Fex: a brand new economy, and God
+CHANGED IN 0.7.7
+- REMOVED the whole old coin economy: coins, jobs, gamble, rob, market and stocks, throne, governor, couples, pets, bounties, drops, quests, lottery, predictions, reports and their commands. Its saved data is deleted once, when this version starts first. Ranks and levels, games and everything else are untouched
+- NEW the Empire of Fex (phase 1): every group is a realm with its own citizens, money (Aurum) and treasury. Commands: daily, purse (balance), profile, bank, deposit, withdraw, give, wealth, shop, buy, realm. Ranks by net worth (Commoner, Citizen, Merchant, Noble, Lord) pay more. The bank pays interest, the shop sells a Fortune Charm, a Merchant's Satchel and titles. Chatting earns a little Aurum. Everybody starts from zero
+- NEW God (the bot owner, "god" command, also in a private chat with "god realm <number>"): every number of the Empire has a safe minimum and maximum and can be changed for all realms or one realm ("god set core.dailyBase 400 here"); every feature can be switched on or off; God can give, take, set the purse, set a rank, bless or curse a citizen, wipe a citizen or a realm (asks for the word "confirm"), close or open realms, and move citizens from one realm to another. Everything God changes is written in the Divine Ledger ("god ledger"), and the realm is told when God acts from somewhere else
+- NEW for the next phases: a settings registry (every feature registers its numbers, nothing is hard-coded), a job ticker for the scheduler, a common reply format and one command wrapper that checks the realm, the feature switch and private chats in one place
+- CHANGED: the Empire's commands have their own spam limit, set by God (8 commands in 20 seconds by default). Bets in blackjack and duel now use Aurum of the group and stop when the realm is closed
+- FIXED: the captcha test no longer fails at random
+
+TurboFex v0.4.1 - clear profit numbers, quests, the throne, predictions, alerts and dividends
+CHANGED IN 0.4.1
+- NEW "profit" (pnl, gains): are you winning? Your profit overall, this week and in the last 24 hours, in plain numbers with a green or red verdict, and how it adds up
+- NEW "guide" (learn, howto): the market explained in 1 minute, with pages: guide stocks / profit / mood / property / loans / tips
+- After you buy, the bot tells you the break-even price. The portfolio shows profit overall and in 24 hours. The market and the news show a tip for the current mood
+- NEW "quests" (missions): every day 3 quests for the group (chat, daily, jobs, win a gamble, invest, sell for a profit, collect). Coins are paid by themselves, all 3 give a bonus, 12 quests in a week give a weekly prize
+- NEW "throne" (king): take the throne of the group, the old king gets 70% of the price back, the king earns 100 coins an hour (throne collect) and can write a decree
+- NEW "predict": admins ask a yes/no question, members bet coins, the winners share the pool (5% is taken). Everybody is refunded if nobody is on the other side, or it is cancelled or never settled
+- NEW "alert" (watch): alert TECH above 300 pings you in the group when the price gets there (up to 5, sent even when the news is off)
+- NEW: dividends. Telecom, bank, farm, pharma, power, retail and cement stocks pay a small dividend every day. Take it with "collect"
+- FIXED: market tests, break-even and ledger for markets that were saved before this version
+
+TurboFex v0.4.0 - the market economy, per-group coins, owner luck and a cheaper economy
+CHANGED IN 0.4.0
+- NEW owner command "luck": set the gamble chance of one person, from your private chat or a group. luck 2348012345678 80 / luck 2348012345678 70 1d alpha / luck off 2348012345678 / luck list. They are not told.
+- NEW owner command "ecoboost": multipliers for pay (work, fish, hunt, mine, daily), chat coins and shop prices. ecoboost pay 1.5 / shop 0.5 / chat 2 / reset
+- Coins are easier to earn: daily 500 (+50 a day in a row, up to 1000), work 150-400, fish 40-250, hunt 60-350, mine 100-500, chatting 5 coins (level up 100)
+- Things are cheaper: Lucky Charm 800, VIP 2,500, Legend 10,000, Rich 25,000; businesses and property cost half
+- NEW: the market. An admin or the owner switches it on in a group with "economy on". Every group then has its own mood (Boom, Stable, Recession, Inflation, Crash), news, prices and investors
+- NEW commands: economy, market, invest, sell, portfolio, bonds, property, business, collect, loan, repay. "news economy" shows the latest market headline
+- 10 made-up stocks (telecom, bank, farm, tech, oil, transport, pharma, cement, retail, power), 4 coins with wild swings, bonds, 4 kinds of property and 4 businesses
+- The mood moves prices, bond yield, loan interest, shop prices, job pay, rent and business profit. News is posted in the group when the mood changes ("economy news off" mutes it)
+- Prices update every 30 minutes for everybody at the same time. A bot that was off plays the updates back (at most 2 days)
+- Coin sinks and protection: trading fee, property stamp duty and tax, business tax, loan fee and interest; one trade uses at most 25% of the wallet, 30 seconds between trades, no price can fall more than 12% (stocks) or 25% (coins) in 24 hours
+- Loans: up to half of what you own, 7 days. While you owe you cannot give, gamble, bank or rob. Too much debt sells your investments (margin call)
+- Weekly prize: the best profit in % of the week (Monday to Sunday) wins coins and the 👑 title
+- CHANGED: coins are now per group (one purse per person in every group). A person's old bot-wide coins move into the first group where they use coins again. In a private chat the old purse is still used
+- CHANGED: shop prices and job pay (work, fish, hunt, mine) follow the mood in groups where the market is on. Marriage is per group too
+
+TurboFex v0.3.8 - 42 new commands, repeating schedules, link previews and fixes
+CHANGED IN 0.3.8
+- NEW: AI category with the chatbot NelsonFx: ai, chatbot, imagine, memegen, quotecard, summarize, grammar
+- NEW: Economy is its own category: work, fish, hunt, mine, bank, deposit, withdraw, rob, lottery, inventory, marry, divorce (and balance, daily, give, gamble, shop, buy, richest moved here)
+- NEW games: blackjack, higherlower, mines, typerace, flags, capitals, bingo
+- NEW group tools: disable, enable, captcha, antiraid, autosticker, purge, pin, unpin
+- NEW tools: crypto, prayer, verse, urban, timein, morse, binary, bmi, split, readqr (needs npm install for the QR reader)
+- NEW owner: leaveall, maintenance, setmenu, blocklist
+- autotyping / autorecording: no longer shown while a command runs; shown when someone writes to the bot; "autotyping test" shows every step and what WhatsApp refused
+- game intros now tag the players
+
+CHANGED IN 0.3.7
+- Games: the countdown message keeps its tags when it is edited (Game on! ... GO!)
+- No prefix mode: the bot answers its commands while a game runs; only the lobby words join / quit / start belong to the game
+- Tags in private chats (richest, balance, notices to the owner...): the phone number is tagged, so WhatsApp shows the name saved in the phone or the number; a hidden id is written as the name
+- ping shows where the time goes: bot time and WhatsApp time
+- Faster: group info after a group change waits at most 250 ms (it was up to 8 seconds); the typing indicator waits 500 ms (was 1000)
+- Cleaned: unused functions and imports removed
+
+CHANGED IN 0.3.6
+- Games: only admins (and the owner) can start a game, everybody else joins by typing join
+- No prefix mode: "join", "quit", "start" and a player's own words go to the game, not to a command with the same name (join was also a command, so members could not join)
+- autotyping / autorecording now also show when someone WRITES to the bot (private chats by default; "autotyping where dms / groups / all"), not only while a command is answered
+
+CHANGED IN 0.3.5
+- ONE number: the bot's number is also the owner (no separate owner number or pairing number). OWNER_NUMBER and PAIRING_NUMBER still work for older setups
+- First start: the bot asks for the number, then asks pairing code or QR code and shows only the one chosen (PAIR_METHOD and NUMBER skip the questions)
+- setprefix none: the old prefix no longer works
+- richest shows only the members of the group it is used in
+- All games need joining again (riddle, emojiquiz, wordle too)
+- antibot rewritten: antibot add / remove / list / check / strict, detects more bots
+- Faster: finding who sent a message no longer walks through the whole member list (bigger groups gain the most)
+
+FIXES IN 0.3.4
+- autotyping and autorecording now really show: the bot subscribes to the chat, shows "typing..." or "recording..." until the answer is sent
+- autoreact: choose where it works (autoreact where all / groups / dms / selected, autoreact add / remove / list for chats and people)
+- richest and mutelist tag the members (WhatsApp shows their name); nobody's number is written
+- silence: the member is told the first time they write
+- tagadmins follows private mode (owner only when the bot is private)
+- setapi: send an API key to the bot and it saves it; removebg <key> works too
+- lyrics: real lyrics through a licensed Musixmatch key (free plan shows part of the song); a link without a key
+- image: only a picture that matches the words you wrote (best match, not a random one)
+- riddle, emojiquiz and wordle: anyone can play without joining, members can start them in private mode
+- antispam: antispam off / delete / warn / kick, limit, seconds, repeat, reset
+- pmblocker: not for people in your contacts, people you have written to, or people you allow (pmblocker allow / deny / list)
+
+FORMATTING
+- The replies of the new commands now use the same WhatsApp formatting as the rest (bold titles and labels, commands in monospace, hints in italics)
+NEW COMMANDS (42)
+- Owner: autotyping, autorecording, alwaysonline, autoread, autobio, autoreact, pmblocker
+- Economy: balance, daily, give, gamble, shop, buy, richest (coins come from chatting where ranks are on, the daily bonus and duels)
+- Group: antibot, antitag, tagadmins, exportrank, silence, unsilence, mutelist
+- Media: lyrics (link only), tts, tovn, ocr, removebg (needs REMOVEBG_API_KEY), image, ssweb, shorten
+- Lookup and fun: news, github, ip, horoscope, quote, fact, meme
+- Games: riddle, emojiquiz, wordle, connect4, duel (with coin bet), roast
+
+CHANGED (fixes in 0.3.1)
+- Play: looks at 10 results and picks the real song (no covers, remixes, slowed, long mixes); more ways past YouTube blocks without cookies (extra clients, Piped servers); SoundCloud/Audius only for close matches
+- Group commands (rank, top, rules, setrules, report, birthday, setbirthday, giveaway) are in the GROUP category; Community category removed; no numbers beside categories
+- Members can use rank, top, rules, report, birthday, setbirthday, feedback when the bot is private
+- Tags show names: group tags use the group's id type; notices to the owner write the name
+- Link previews show the full card (bigger picture)
+- Status: views are instant in their own lane; nothing waits after the daily like limit
+- Server guard: a high host load average alone no longer blocks commands
+- Rank: messages typed on the bot account earn XP; phone and hidden ids merge
+- The "no content / view-once" guess is off by default (EMPTY_NOTICE=1 turns it on)
+NEW
+- region: change the bot time zone (region Nigeria)
+- schedule: weekdays, weekends, weekly mon,thu, monthly 1, every 2h; the owner can schedule a bot command (schedule daily 07:00 run joke)
+- setprefix none: use the bot with no prefix
+- Birthday wishes use WhatsApp's tag-all
+- Notes up to 4000 characters
+
+NEW
+- Link previews: every message with a link now shows the preview card (picture, title, description). The WhatsApp library only makes them when an optional package is installed, which is why none ever showed. The bot makes them itself and only reads public web addresses (linkpreview on / off / test)
+- Security: ratelimit, anticall, privacy, antipromote, antidemote, antimedia, slowmode
+- Community (new category): rules, setrules, report, rank, top, giveaway, birthday, setbirthday, feedback
+- Lookup (new category): weather, define, wiki, currency, translate
+- Media and tools: dl (video download), take (change a sticker's pack and author), attp (text sticker), setgpp (group picture), note, todo
+- Owner: stats (usage, busiest groups, last errors), broadcast (all groups, paced, with confirmation), linkpreview
+CHANGED
+- Downloads (play, dl) refuse private and internal addresses
+- Menu: new categories Security, Community and Lookup (alphabetical like the others)
+- promote and demote respect antipromote / antidemote
+
+TurboFex v0.3.0 - production release
+NEW
+- Login backup: a copy of the WhatsApp login is made daily (last 3 kept, never sent over WhatsApp) and restored automatically if the login file gets damaged. Commands: loginbackup, sessionclean. Old encryption files of chats silent for 90+ days are cleaned monthly
+- Safer updates: a downloaded update is checked before any file is replaced (every file must compile, required files must exist). A broken zip is rejected and nothing changes
+- Sticker credit: the stickers the bot makes show a pack name and author. Change it with stickerpack
+- Reactions: new "smart" mode (cmdreact smart): only slow commands get a reaction. Fewer messages, less ban risk
+- Status safety: daily like limit (statuslimit, default 200) and a pause between likes. Views are never limited
+- Tests and CI: 61 automated tests run on every push (npm test), a README for GitHub
+CHANGED
+- Every command reply now uses WhatsApp formatting (bold titles and labels, bullets, commands and examples in monospace). Content commands (jokes, translations, text tools) keep their content untouched
+- Menu categories are listed alphabetically
+- statusinfo rewritten and fixed
+FIXED
+- "flip" was defined by two commands (coin and picture flip) and "mute" by two (group close and video mute): one silently replaced the other. The coin command keeps "coin", the group command keeps "close"
+- Two login backups in the same second no longer fail
+
+TurboFex v0.2.9 - pairing code and QR together
+CHANGED
+- Linking shows the QR code AND, when PAIRING_NUMBER is set, a pairing code. The bot now checks WhatsApp's answer to the code request: if WhatsApp refuses it (as it does at the moment) you are told at once to use the QR instead of being given a code that can never work. If WhatsApp (or a library update) accepts codes again, the code simply works. PAIRING_CODE=1 is no longer needed
+
+TurboFex v0.2.8 - linking a new device works again (QR)
+FIXED
+- "Couldn't link device": since 28 July 2026 WhatsApp changed how new devices are linked and the WhatsApp library does not handle the new step. The bot now handles it itself: after you scan, it makes a new secret and shows the QR again, and the next scan completes the link. Linking now uses a QR code (the 8-letter pairing code is refused by WhatsApp at the moment, the library hands out a code that was never registered). While linking, the current WhatsApp Web version is looked up and the standard device identity is used
+CHANGED
+- relink is switched off: it logs the bot out first, and a failed new link would leave the bot offline. Use "vv" for view-once files
+- To try a pairing code anyway set PAIRING_CODE=1 (with PAIRING_NUMBER)
+
+TurboFex v0.2.7 - professional menu, formatted replies, AFK
+CHANGED
+- New menu: short lines that fit a phone screen (the long lines wrapped), no emojis in the categories, the details in an aligned monospace block, WhatsApp formatting throughout. "list" and "menu <command>" use the same style
+- Command replies get WhatsApp formatting automatically: bold title, bold labels, symbol bullets and commands in monospace. Replies that are content (fun, games, media, text tools) are left as they are. A command can opt out with format: false
+- The "update complete" / restart message uses the same style
+- AFK: everybody who messages or mentions you is told ONCE per AFK session, never again. AFK now stays ON until you send "afk off" (writing again no longer switches it off, and there is no "welcome back" message)
+
+TurboFex v0.2.6 - anti-edit, simple ping, locked bot name
+FIXED
+- Anti-edit: newer WhatsApp seals every edit in a secret envelope that the WhatsApp library cannot open, so the bot never saw the new text. The bot now opens it itself, using the secret key of the original message. It only works for messages the bot saw BEFORE they were edited (the saved copies are lost when the bot restarts). If the original was not saved you get a notice saying so instead of silence
+CHANGED
+- ping now shows just one line: Pong and the response time in ms
+- The bot name is locked: it comes only from the code (core/brand.js). If it is edited, the bot refuses to start until the file is restored or the bot is updated
+- "status" shows how many edits arrived sealed and how many could not be read
+
+TurboFex v0.2.5 - faster replies in groups
+FIXED
+- Encryption keys are now written to disk a moment AFTER sending instead of before it. On a host with a slow disk, replies in busy groups queued behind those writes (seconds). Everything is written when the bot stops or restarts. Switch off with FAST_KEYS=off
+- When someone joins, leaves or is promoted/demoted, or the group name/settings change, the saved group info is updated directly instead of being thrown away and fetched again (that fetch made the next reply slow)
+- Anti-delete picture/video saving: at most 2 at a time and only files under 2 MB, so a busy group cannot slow the bot down
+- Our own replies are no longer sent back to the bot as incoming events
+NEW
+- ping (owner) in a group shows where the time goes: "Group info" and "Encrypt and send"
+
+TurboFex v0.2.4 - instant status view, status like
+FIXED
+- Status view is now instant. The "statusdelay" setting used to hold back the view as well as the like; now the view always goes out at once and the delay (if you set one) only applies to the like and save
+- Status like: on accounts using hidden LID addresses, WhatsApp refuses a like whose recipient list mixes LID and phone-number addresses. The like now uses a LID-only list first, then phone numbers only, then the old list, reading WhatsApp's real answer after each. "statusinfo" shows the route that worked, how many likes were refused and how long the view took
+
+TurboFex v0.2.3 - status, "Waiting for this message", play and view-once
+FIXED
+- "Waiting for this message" in your private chat: notifications (copies, restart/update messages) were sent to your phone number, which many phones cannot open. They now go to you the way WhatsApp itself addresses you, and every private message to a known person uses that form
+- Reconnects every ~50 minutes: WhatsApp's new "status" notices were never acknowledged, so WhatsApp cut the connection. They are acknowledged now (this also explains repeated "Finished syncing" notices and the bot "sleeping")
+- Status like: the WhatsApp library has a known bug where likes on statuses are refused by WhatsApp while looking successful. The bot now reads WhatsApp's answer and, when refused, sends the like straight to the poster instead. "statusinfo" shows how many were refused and which route works
+- Status speed: statuses are handled 3 at a time (after a reconnect dozens arrive together), expired ones are skipped, and statusinfo shows how long WhatsApp took to bring the last status to the bot
+- Group speed: the list of who has which devices is now remembered for 30 minutes instead of 5, so the first message to a group after a quiet period no longer waits for WhatsApp
+- play: if YouTube blocks the server, the same song is looked up on SoundCloud and Audius. New "ytcookies" command saves a cookies.txt so YouTube works again
+NEW
+- relink android: one command logs the bot out and restarts it with the identity that can receive view-once files (you link it again once). The "no content" notice is now sent at most every 6 hours
+TurboFex v0.2.2 - status, anti-edit and play
+FIXED
+- Auto like status: back to the recipient list that worked before, and the like no longer waits behind the view. View and like now start together (the real "viewed" receipt goes first), so statuses are viewed and liked in about a second instead of several
+- Anti-edit: edit notices are no longer dropped as "already seen", and every shape WhatsApp uses for edits is understood. The console now logs each edit event it receives and "status" shows how many arrived
+CHANGED
+- play now ALWAYS sends audio, from a song name or from a link on almost any site (YouTube, TikTok, SoundCloud, Instagram, Facebook...). It uses the free yt-dlp tool, which the bot downloads once by itself the first time play is used and keeps up to date. Limits: 60 MB / 60 minutes (PLAY_MAX_MB, PLAY_MAX_SECONDS). If the downloader fails, a song name falls back to free music from Audius
+
+TurboFex v0.2.1 - view-once and group speed
+FIXED
+- View-once: a message that arrived with no content (WhatsApp does not give view-once files to linked devices) used to be thrown away silently. Now you are told, with the fix. Console also logs every view-once it sees
+- Group speed: the hourglass reaction only appears when a command takes longer than a moment, so quick commands (ping, menu) send just one reaction and the reply is no longer slowed down by it
+
+TurboFex v0.2.0 - speed, private-by-default, new menu, reactions, server protection
+CHANGED
+- Default prefix is now "." and the default mode is PRIVATE. In private mode the bot gives NO reply to anyone but the owner (running games, auto-replies and group protection still work)
+- New professional menu: small-caps fonts, a symbol per category, no prefix in front of every command. Technical details (RAM, platform) are shown to the owner only
+- Messages for normal users no longer show developer details (error reasons, "npm install", config.js...). The owner still sees them
+- WhatsApp library upgraded to 7.0.0-rc14 (needed for group status). The bot loads both old and new library versions
+FIXED
+- Bot "sleeping": a health check every minute reconnects a dead connection, group info is no longer fetched while you wait, messages that waited during a reconnect are answered, reconnects back off instead of looping
+- Repeated "Finished syncing with WhatsApp" notification: no more reconnect loops (another running copy of the bot now makes this one wait longer instead of fighting it)
+- Auto view status: the real "viewed" receipt is now sent directly, so the poster sees it even when the bot account has read receipts off. Auto like waits a moment after viewing and retries with a smaller list
+- Anti-edit: edits wrapped by WhatsApp are now understood; you are told if a copy cannot be sent
+- View-once: new command "vv" (reply to a view-once). Auto view-once now tells you when WhatsApp did not give the file to this device, instead of staying silent. Optional BOT_BROWSER=android (link again) lets the bot receive them
+- gstatus, antigstatus, antigm: work with the new library
+NEW
+- Server protection: heavy commands are blocked with a clear message when a tool is missing, memory is low, the server is overloaded or too many run at once ("server" command to see it or switch it off)
+- Command reactions: hourglass while working, tick when done, warning/cross on problems ("cmdreact on / clean / off")
+- Watermark under the result of media/audio/video/editor commands (and qr, fancy, play...) once they worked ("watermark on / off / text")
+- The bot now messages you "update complete" after an update, and "I am back" with a short menu and links after a restart ("restartmsg on / off")
+
+TurboFex v0.1.8 - fixes for slowness, "Waiting for this message", status, watchers and play
+FIXED
+- "Waiting for this message": the bot now keeps what it sent so WhatsApp can ask for it again (it was missing). The timing overrides added in v0.1.7 that could make connections and sends fail were removed
+- Slow sending (group replies took ~27 s): encryption keys are now kept in memory instead of being read from the disk every time
+- Missed commands: a command never waits behind another command (or a long job) in the same chat any more. Only game answers stay in order
+- Anti-delete: the copy is now a REPLY to the original message in its chat, names who sent it AND who deleted it (the admin or the sender), and also catches deletions that WhatsApp reports as updates. Never shown twice
+- Anti-edit: now also catches edits that WhatsApp reports as message updates or as wrapped messages, and replies to the original
+- Auto view-once: when WhatsApp refuses the download you are told why instead of silence
+- Status auto view/like/save: counters and a fallback way of marking a status as seen; the status owner is added to the like list in both id forms. !statusinfo shows what arrived and any problem
+- .block: phone numbers behind hidden ids are learned from messages, contacts and your groups (kept on disk), so blocking in a private chat now has the number. More request shapes are tried and the reply lists exactly what was tried
+- play: a song name now sends REAL AUDIO when it is on Audius (free music by independent artists); otherwise it shows YouTube links and says why
+- Auto repair of "Bad MAC" runs at most every 3 hours (each repair makes the next sends slower while WhatsApp sets up new keys)

@@ -24,6 +24,9 @@ Before you share the bot, write your site's address once in `config.js` (`pairSi
 SESSION_ID=TFX-XXXX-XXXX-XXXX
 ```
 
+## Plugins page
+`/plugins` shows the approved TurboFex plugins. The list is read from the signed TurboFex-Registry on GitHub (see `registry.js`); a list with a wrong signature is never shown.
+
 ## Safety notes
 - A session ID is the key to someone's WhatsApp. It is high-entropy, works once, expires, and the stored login is encrypted with a key made from the ID itself, so a copy of the site's disk is not enough to use it.
 - Pairing attempts are rate limited per visitor (`PAIR_LIMIT`) and limited in total (`MAX_JOBS`).

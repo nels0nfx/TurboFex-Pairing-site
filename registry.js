@@ -1,0 +1,77 @@
+// The plugin list for the Plugins page. It reads the public TurboFex-Registry (index.json + index.json.sig from GitHub), checks the
+// signature with the registry's public key (the same key the bots trust) and keeps the answer for a few minutes. The visitor's
+// browser never talks to GitHub: only this server does, and it sends nothing about the visitor.
+const crypto = require('crypto');
+
+const BASE = 'https://raw.githubusercontent.com/nels0nfx/TurboFex-Registry/main/';
+const PUBLIC_KEY = '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA+QWRwLFB3HTFZI5W3zMy91aYJko0py7oCo4MCGC5/vU=\n-----END PUBLIC KEY-----\n';
+const FRESH_MS = 10 * 60 * 1000;      // the list is asked for again after 10 minutes
+const STALE_MS = 24 * 60 * 60 * 1000; // if GitHub cannot be reached, the last good list is shown for up to a day
+// what each permission means, in plain words (the same wording the bot shows when installing)
+const PERMS = {
+  'chat.send': ['low', 'Send messages in the chat where it is used'],
+  storage: ['low', 'Keep its own small saved notes'],
+  'group.read': ['low', 'See the group name and how many members and admins it has'],
+  'media.send': ['low', 'Send pictures, stickers and files in the chat where it is used'],
+  schedule: ['medium', 'Run by itself on a timer'],
+  'owner.notify': ['medium', 'Send the bot owner a short message now and then'],
+  network: ['medium', 'Connect to the internet (only the sites it lists)'],
+  'events.message': ['medium', 'Read the text of messages sent in the groups where it is allowed'],
+  'events.members': ['medium', 'Know when members join or leave a group (no phone numbers)'],
+  'group.manage': ['high', 'Remove members, and open or close the group (only where the bot is an admin, never the owner or an admin)'],
+};
+const semverCmp = (a, b) => { const x = String(a).split('.').map(Number); const y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
+const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+
+function makeView(index) {
+  const revoked = Array.isArray(index.revoked) ? index.revoked : [];
+  const out = [];
+  for (const [id, p] of Object.entries(index.plugins || {})) {
+    if (!/^[a-z0-9-]{3,32}$/.test(id) || !p || typeof p.versions !== 'object') continue;
+    const versions = Object.keys(p.versions).filter((v) => /^\d+\.\d+\.\d+$/.test(v) && !revoked.some((r) => r && r.id === id && (!r.version || r.version === v))).sort(semverCmp);
+    if (!versions.length) continue;
+    const version = versions[versions.length - 1]; const e = p.versions[version] || {};
+    out.push({
+      id, name: str(p.name, 40) || id, description: str(p.description, 200), author: str(p.author, 60), version, publishedAt: str(e.publishedAt, 40),
+      permissions: (Array.isArray(e.permissions) ? e.permissions : []).slice(0, 12).map((k) => ({ key: str(k, 30), risk: (PERMS[k] || ['medium'])[0], text: (PERMS[k] || [0, 'Another permission'])[1] })),
+      domains: (Array.isArray(e.domains) ? e.domains : []).slice(0, 10).map((d) => str(d, 80)).filter(Boolean),
+    });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return { updated: str(index.updated, 40), total: out.length, plugins: out };
+}
+
+function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {
+  const base = String(env.REGISTRY_URL || BASE).replace(/\/?$/, '/');
+  const key = env.REGISTRY_PUBLIC_KEY || PUBLIC_KEY;
+  const get = fetcher || (async (url, max) => {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'TurboFex-Pair' } });
+    if (!r.ok) throw new Error('status ' + r.status);
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > max) throw new Error('too big');
+    return buf;
+  });
+  let cache = null; let pending = null;
+
+  async function load() {
+    const bytes = await get(base + 'index.json', 1024 * 1024);
+    const sig = (await get(base + 'index.json.sig', 4096)).toString('utf8').trim();
+    let ok = false;
+    try { ok = crypto.verify(null, bytes, crypto.createPublicKey(key), Buffer.from(sig, 'base64')); } catch (e) { ok = false; }
+    if (!ok) throw new Error('bad signature');
+    const index = JSON.parse(bytes.toString('utf8'));
+    if (!index || index.format !== 1 || typeof index.plugins !== 'object') throw new Error('bad index');
+    return makeView(index);
+  }
+  async function list() {
+    if (cache && now() - cache.t < FRESH_MS) return cache.view;
+    if (!pending) {
+      pending = load().then((view) => { cache = { t: now(), view }; return view; })
+        .catch((e) => { if (cache && now() - cache.t < STALE_MS && e.message !== 'bad signature') return cache.view; throw e; })
+        .finally(() => { pending = null; });
+    }
+    return pending;
+  }
+  return { list };
+}
+module.exports = { createRegistry, makeView, PERMS, PUBLIC_KEY };

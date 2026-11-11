@@ -1,0 +1,35 @@
+/* Plugins page (works in light and dark mode through the colours of style.css) */
+.plug { max-width: 820px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pfind { margin: 0 0 18px; }
+.pfind input { width: 100%; box-sizing: border-box; padding: 14px 16px; font-size: 16px; color: var(--text); background: var(--field); border: 1px solid var(--card-border); border-radius: 14px; outline: none; -webkit-appearance: none; appearance: none; }
+.pfind input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pfind input:disabled { opacity: .6; }
+.pcount { margin: 8px 2px 0; color: var(--muted); font-size: 14px; }
+.plist { display: grid; gap: 14px; }
+.pcard { background: var(--surface); border: 1px solid var(--card-border); border-radius: 18px; overflow: hidden; }
+.pcard.open { border-color: var(--gold); }
+.phead { display: grid; gap: 6px; width: 100%; text-align: left; padding: 16px 18px; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.phead:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 18px; }
+.ptitle { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pname { font-size: 19px; font-weight: 650; color: var(--gold-text); }
+.pver { font-size: 13px; color: var(--muted); }
+.pdesc { font-size: 15.5px; line-height: 1.55; color: var(--text); }
+.pby { font-size: 13.5px; color: var(--muted); }
+.pmore { padding: 2px 18px 18px; border-top: 1px solid var(--line); }
+.pmore h3 { margin: 16px 0 8px; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.pchips { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.chip { font-size: 14.5px; line-height: 1.5; color: var(--text); padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--track); }
+.chip b { display: inline-block; margin-right: 4px; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; }
+.chip.low b { color: var(--ok); }
+.chip.medium b { color: var(--gold-text); }
+.chip.high { border-color: var(--bad); }
+.chip.high b { color: var(--bad); }
+.pdom { margin: 10px 0 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.prow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prow code { padding: 10px 12px; border-radius: 12px; background: var(--track); border: 1px solid var(--line); font-size: 15px; color: var(--gold-text); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
+.pcopy { padding: 10px 14px; font: inherit; font-size: 14.5px; font-weight: 600; color: var(--text); background: var(--ghost-bg); border: 1px solid var(--ghost-border); border-radius: 12px; cursor: pointer; }
+.pcopy:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pempty { margin: 6px 2px 24px; padding: 16px 18px; border: 1px dashed var(--card-border); border-radius: 16px; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.pinfo { margin-top: 30px; }
+.pinfo ol + p { margin-top: 14px; }

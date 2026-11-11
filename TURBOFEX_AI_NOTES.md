@@ -205,3 +205,10 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Identity is fixed at link time; already linked sessions keep their old identity. Android-identity pairing CODE is unverified; never silently fall back, report the exact error.
 - `complete()` logs `Linked as platform: <creds.platform>` (no keys). render.yaml has PAIR_BROWSER=android. Tests: pickBrowser unit test in test/engine.test.js (fake lib has ubuntu only in other tests).
 - Version history add: **v2.26.0**.
+
+## 24. v2.27.0 - Plugins page (marketplace, part B)
+- `/plugins` (public/plugins.html, plugins.js, plugins.css) + `GET /api/plugins` (server.js, rate limited 60/min per visitor). Data: `registry.js` downloads `index.json` + `index.json.sig` from the public GitHub repo `nels0nfx/TurboFex-Registry`, verifies the Ed25519 signature with the registry public key (constant in registry.js, same key as the bot's core/plugins/registry-key.json), caches 10 min, serves the last good list up to 24 h when GitHub is down; a failed signature is never served (503).
+- The page script uses textContent only (never innerHTML). Colours only from style.css variables (both themes). The "Plugins" menu item (`id="m-plugins"`) is in the menus of index, about, terms, privacy and plugins pages.
+- Only true claims: counts shown are the real list length; the risk marks use the same plain wording as the bot's install screen.
+- Next (part C): Developer Centre with GitHub login, submissions and an admin review screen (admin dashboard classes start with `a`). The registry is signed on the owner's phone with tools/registry.js in the bot repo; the site never holds the signing key.
+- Version history add: **v2.27.0**.
