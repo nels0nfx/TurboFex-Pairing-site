@@ -14,6 +14,7 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
   const enabled = /^https:\/\/[^/\s]+$/.test(base) && !!key && typeof fetchImpl === 'function';
   const st = { ok: null, lastOkAt: 0, lastError: '', restored: false };
   let evQueue = [], auQueue = [], stateDirty = null, flushing = false, stateTimer = null;
+  const kvQueue = new Map();   // key -> value (the Developer Centre's records; the newest value of a key wins)
 
   const headers = (extra) => {
     const h = { apikey: key, 'content-type': 'application/json', ...extra };
@@ -58,9 +59,33 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
     } catch (err) { log('Supabase: could not restore (' + err.message + '); starting from local files'); return false; }
   }
 
+  // ---- records of the Developer Centre: keys that start with a prefix such as "dc:" are written back as small files (dir/<key with : as _>.json) ----
+  async function restoreKv(prefix, dir) {
+    if (!enabled || !/^[a-z]{1,8}:$/.test(prefix)) return 0;
+    try {
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+      let n = 0;
+      for (let off = 0; off < 20000; off += 500) {
+        const rows = await call('GET', `tfx_kv?select=key,value&key=like.${encodeURIComponent(prefix)}*&order=key.asc&limit=500&offset=${off}`);
+        for (const r of rows || []) {
+          const name = String(r.key).slice(prefix.length).replace(/[^a-z0-9:_-]/gi, '').replace(/:/g, '_');
+          if (!name || r.value == null) continue;
+          fs.writeFileSync(path.join(dir, name + '.json'), JSON.stringify(r.value), { mode: 0o600 }); n++;
+        }
+        if (!rows || rows.length < 500) break;
+      }
+      log(`Supabase: restored ${n} developer records`);
+      return n;
+    } catch (err) { log('Supabase: could not restore developer records (' + err.message + ')'); return 0; }
+  }
+
   // ---- send changes up (queued, so a slow or broken connection never slows the site) ----
   function pushEvent(e) { if (!enabled) return; evQueue.push({ t: e.t, e }); if (evQueue.length > 5000) evQueue = evQueue.slice(-4000); }
   function pushAudit(line) { if (!enabled) return; auQueue.push({ line }); if (auQueue.length > 5000) auQueue = auQueue.slice(-4000); }
+  function pushKv(key, value) {
+    if (!enabled) return; kvQueue.set(String(key), value);
+    clearTimeout(stateTimer); stateTimer = setTimeout(() => { flush().catch(() => {}); }, 500); stateTimer.unref();
+  }
   function pushState(state) {
     if (!enabled) return; stateDirty = state;
     clearTimeout(stateTimer); stateTimer = setTimeout(() => { flush().catch(() => {}); }, 500); stateTimer.unref();
@@ -69,6 +94,7 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
     if (!enabled || flushing) return; flushing = true;
     try {
       if (stateDirty) { const s = stateDirty; await call('POST', 'tfx_kv?on_conflict=key', { key: 'state', value: s, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=minimal' }); if (stateDirty === s) stateDirty = null; }
+      for (const [k, v] of [...kvQueue]) { await call('POST', 'tfx_kv?on_conflict=key', { key: k, value: v, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=minimal' }); if (kvQueue.get(k) === v) kvQueue.delete(k); }
       while (auQueue.length) { const part = auQueue.slice(0, 200); await call('POST', 'tfx_audit', part, { Prefer: 'return=minimal' }); auQueue = auQueue.slice(part.length); }
       while (evQueue.length) { const part = evQueue.slice(0, 500); await call('POST', 'tfx_events', part, { Prefer: 'return=minimal' }); evQueue = evQueue.slice(part.length); }
     } catch (err) { /* kept in the queue, tried again at the next tick */ } finally { flushing = false; }
@@ -77,9 +103,9 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
 
   const timer = enabled ? setInterval(() => { flush(); }, flushMs) : null; if (timer) timer.unref();
   const pruneTimer = enabled ? setInterval(prune, 3600 * 1000) : null; if (pruneTimer) pruneTimer.unref();
-  const status = () => ({ enabled, ok: enabled ? st.ok : null, lastOkAt: st.lastOkAt, lastError: st.lastError, restored: st.restored, queued: evQueue.length + auQueue.length + (stateDirty ? 1 : 0) });
+  const status = () => ({ enabled, ok: enabled ? st.ok : null, lastOkAt: st.lastOkAt, lastError: st.lastError, restored: st.restored, queued: evQueue.length + auQueue.length + kvQueue.size + (stateDirty ? 1 : 0) });
   async function close() { if (timer) clearInterval(timer); if (pruneTimer) clearInterval(pruneTimer); clearTimeout(stateTimer); await flush(); }
-  return { enabled, restore, pushEvent, pushAudit, pushState, flush, status, close };
+  return { enabled, restore, restoreKv, pushEvent, pushAudit, pushState, pushKv, flush, status, close };
 }
 
 const fromEnv = (env) => createCloud({ url: env.SUPABASE_URL, key: env.SUPABASE_SERVICE_KEY });

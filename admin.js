@@ -16,7 +16,7 @@ const phone = require('./phone');
 const PERMS = {
   viewer: ['view'],
   moderator: ['view', 'sessions.revoke', 'blocks.manage', 'announce.manage'],
-  owner: ['view', 'sessions.revoke', 'blocks.manage', 'announce.manage', 'settings.manage', 'audit.view'],
+  owner: ['view', 'sessions.revoke', 'blocks.manage', 'announce.manage', 'settings.manage', 'audit.view', 'plugins.review'],
 };
 const SESSION_IDLE_MS = 20 * 60 * 1000;
 const SESSION_MAX_MS = 8 * 3600 * 1000;
@@ -85,7 +85,7 @@ function parseAccounts(raw) {
 }
 
 // ---------- the dashboard ----------
-function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, stopJob, version, defaults, cloud = null, now = () => Date.now() }) {
+function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, stopJob, version, defaults, cloud = null, devcentre = null, now = () => Date.now() }) {
   const accounts = parseAccounts(env.ADMIN_ACCOUNTS);
   const enabled = accounts.length > 0;
   const trustProxy = String(env.TRUST_PROXY || '') === '1';
@@ -442,6 +442,33 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       if (!a) { json(res, 404, { error: 'Not found.' }); return true; }
       if (route.endsWith('delete')) state.announcements = state.announcements.filter((x) => x !== a); else a.active = !a.active;
       save(); act(route.endsWith('delete') ? 'announcement.delete' : (a.active ? 'announcement.show' : 'announcement.hide'), a.id, ''); json(res, 200, { ok: true }); return true;
+    }
+    // --- plugin submissions from the Developer Centre (owner only: the owner decides what may be published) ---
+    if (route.startsWith('plugins/')) {
+      if (!devcentre) { json(res, 404, { error: 'Not found.' }); return true; }
+      if (!need('plugins.review')) return true;
+      if (!post && route === 'plugins/submissions') { json(res, 200, devcentre.adminList()); return true; }
+      if (!post && route === 'plugins/devs') { json(res, 200, { developers: devcentre.adminDevs() }); return true; }
+      if (!post && route === 'plugins/submission') {
+        const one = devcentre.adminGet(new URL(req.url, 'http://x').searchParams.get('id') || '');
+        if (!one) { json(res, 404, { error: 'Not found.' }); return true; }
+        json(res, 200, one); return true;
+      }
+      if (post && route === 'plugins/review') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.adminReview(b.id, b.decision, b.note, sess.user);
+        if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        const one = devcentre.adminGet(b.id); act('plugin.' + (b.decision === 'approve' ? 'approve' : 'reject'), String(b.id).slice(0, 12), `${one.pluginId}@${one.version} by ${one.login}` + (b.note ? ': ' + String(b.note).slice(0, 120) : ''));
+        json(res, 200, { ok: true }); return true;
+      }
+      if (post && route === 'plugins/dev') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.adminDev(b.githubId, { verified: b.verified, blocked: b.blocked });
+        if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        act('plugin.developer', String(b.githubId).slice(0, 12), (typeof b.verified === 'boolean' ? 'verified=' + b.verified : '') + (typeof b.blocked === 'boolean' ? ' blocked=' + b.blocked : ''));
+        json(res, 200, { ok: true }); return true;
+      }
+      json(res, 404, { error: 'Not found.' }); return true;
     }
     json(res, 404, { error: 'Not found.' }); return true;
   }

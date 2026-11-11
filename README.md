@@ -47,6 +47,9 @@ git push
 Render redeploys by itself after the push.
 
 
+## Developer Centre (optional)
+Developers sign in with GitHub at `/developers` and send plugins; you review them in the admin dashboard (Plugins). It turns on when GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are set on Render. Approved plugins are collected by the phone command (`node tools/registry.js pull`) when REGISTRY_PULL_TOKEN is set. See TURBOFEX_AI_NOTES.md section 25.
+
 ## Admin dashboard (optional)
 Open `/admin` on your site. It does not exist until you set `ADMIN_ACCOUNTS` (see `TURBOFEX_AI_NOTES.md`, section 17). Create an account with `node tools/admin-setup.js`, scan the QR in an authenticator app, paste the printed `ADMIN_ACCOUNTS=...` line into Render -> Environment, then redeploy.
 

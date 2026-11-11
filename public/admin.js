@@ -82,10 +82,10 @@
   var ICON = {
     overview: 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z', pairing: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1',
     visitors: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 20c1-4 4-5 8-5s7 1 8 5', security: 'M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z', server: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01',
-    activity: 'M3 12h4l3-8 4 16 3-8h4', audit: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5', announce: 'M4 10v4h3l7 4V6L7 10zM17 9a4 4 0 0 1 0 6', settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z' };
+    activity: 'M3 12h4l3-8 4 16 3-8h4', audit: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5', announce: 'M4 10v4h3l7 4V6L7 10zM17 9a4 4 0 0 1 0 6', plugins: 'M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5', settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z' };
   var TABS = [
     ['overview', 'Overview', null], ['pairing', 'Pairing', null], ['visitors', 'Visitors', null], ['security', 'Security', null], ['server', 'Server', null],
-    ['activity', 'Activity', null], ['audit', 'Audit log', 'audit.view'], ['announce', 'Announcements', null], ['settings', 'Settings', null],
+    ['activity', 'Activity', null], ['audit', 'Audit log', 'audit.view'], ['announce', 'Announcements', null], ['plugins', 'Plugins', 'plugins.review'], ['settings', 'Settings', null],
   ];
   var alertCount = 0;
   function drawNav() {
@@ -122,9 +122,9 @@
     var sel = $('tab-' + t); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
   window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (me && t !== tab && VIEWS[t]) go(t); });
-  var VIEWS = { overview: vOverview, pairing: vPairing, visitors: vVisitors, security: vSecurity, server: vServer, activity: vActivity, audit: vAudit, announce: vAnnounce, settings: vSettings };
-  var REFRESH = { overview: 15000, pairing: 5000, visitors: 20000, security: 15000, server: 5000, activity: 8000, audit: 0, announce: 0, settings: 0 };
-  var state = { visitors: { days: 1, kind: 'clients' }, activity: { type: '' } };
+  var VIEWS = { overview: vOverview, pairing: vPairing, visitors: vVisitors, security: vSecurity, server: vServer, activity: vActivity, audit: vAudit, announce: vAnnounce, plugins: vPlugins, settings: vSettings };
+  var REFRESH = { overview: 15000, pairing: 5000, visitors: 20000, security: 15000, server: 5000, activity: 8000, audit: 0, announce: 0, plugins: 0, settings: 0 };
+  var state = { visitors: { days: 1, kind: 'clients' }, activity: { type: '' }, plug: { open: '' } };
 
   var lastLoad = 0;
   function skeleton() { return h('div', { class: 'askel', 'aria-label': 'Loading' }, h('i', { class: 'sk t' }), h('i', { class: 'sk s' }), h('div', { class: 'sk-g' }, h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' })), h('i', { class: 'sk p' })); }
@@ -431,6 +431,74 @@
           can('announce.manage') ? [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'announcements/toggle', { id: a.id }); }, a.active ? 'Hidden' : 'Showing', function () { load(false); }); } }, a.active ? 'Hide' : 'Show'), ' ', h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; confirmThen('Delete this announcement?', function () { act(b, function () { return api('POST', 'announcements/delete', { id: a.id }); }, 'Deleted', function () { load(false); }); }); } }, 'Delete')] : null);
       });
       n.appendChild(panel('All announcements', String(j.announcements.length), table(['Status', 'Style', 'Message', 'By', 'Until', ''], rows, 'No announcements yet.')));
+      return n;
+    });
+  }
+
+  // ---------- Plugins (submissions from the Developer Centre) ----------
+  var PSTAT = { pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], withdrawn: ['Withdrawn', ''] };
+  function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
+  function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
+  function vPluginList() {
+    return api('GET', 'plugins/submissions').then(function (j) {
+      var n = h('div');
+      n.appendChild(head('Plugins', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', null));
+      if (!j.configured) n.appendChild(h('p', { class: 'note warn', text: 'GitHub sign-in is not set up yet (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are missing on the server), so developers cannot send plugins.' }));
+      if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'The phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));
+      n.appendChild(h('div', { class: 'grid' }, stat('Waiting', String(j.counts.pending), 'for your review', j.counts.pending ? 'warn' : ''), stat('Approved', String(j.counts.approved), 'wait for the phone command', j.counts.approved ? 'good' : ''), stat('Published', String(j.counts.published), 'in the registry', ''), stat('Rejected', String(j.counts.rejected), '', '')));
+      var rows = j.submissions.map(function (s) {
+        return row([{ l: 'Status', node: pstat(s.status) }, { l: 'Plugin', v: s.name + ' (' + s.pluginId + ')' }, { l: 'Version', v: s.version }, { l: 'Developer', v: s.login + (s.verified ? ' ✓' : '') }, { l: 'Risk', node: h('span', { class: 'tag ' + s.risk, text: s.risk + (s.flags ? ' · ' + s.flags + ' flag' + (s.flags > 1 ? 's' : '') : '') }) }, { l: 'Sent', v: when(s.createdAt) }],
+          [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
+      });
+      n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
+      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers')));
+      return n;
+    });
+  }
+  function vPluginOne(id) {
+    if (id === '#devs') return vPluginDevs();
+    return api('GET', 'plugins/submission?id=' + encodeURIComponent(id)).then(function (s) {
+      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
+      n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
+      var m = s.manifest;
+      n.appendChild(panel('Overview', null,
+        h('p', null, h('b', { text: 'Status: ' }), pstat(s.status)),
+        h('p', null, h('b', { text: 'Developer: ' }), s.login + (s.verified ? ' (verified)' : '') + ' · GitHub #' + (s.dev ? s.dev.githubId : '?')),
+        h('p', { text: m.description }),
+        h('p', { class: 'muted', text: 'Repository: ' + s.repo + ' · tag ' + s.tag + (s.folder ? ' · folder ' + s.folder : '') }),
+        h('p', { class: 'muted mono', text: 'plugin file sha256 ' + s.entrySha }),
+        s.note ? h('p', { text: 'Note: ' + s.note + (s.reviewedBy ? ' (' + s.reviewedBy + ')' : '') }) : null,
+        s.otherVersions.length ? h('p', { class: 'muted', text: 'Other versions: ' + s.otherVersions.map(function (o) { return o.version + ' ' + o.status; }).join(', ') }) : null));
+      n.appendChild(panel('What it asks for', s.risk + ' risk', m.permissions.length ? h('ul', { class: 'alist' }, m.permissions.map(function (x) { return h('li', { text: x }); })) : h('p', { class: 'muted', text: 'Nothing special.' }),
+        m.domains.length ? h('p', { text: 'Websites: ' + m.domains.join(', ') }) : null,
+        h('p', { class: 'muted', text: 'Commands: ' + (m.commands.join(', ') || 'none') + (m.events.length ? ' · Events: ' + m.events.join(', ') : '') })));
+      n.appendChild(panel('Automatic checks', s.flagList.length ? String(s.flagList.length) + ' to look at' : 'none', s.flagList.length ? h('ul', { class: 'alist' }, s.flagList.map(function (x) { return h('li', { text: x }); })) : h('p', { class: 'muted', text: 'Nothing unusual found. This never means safe: read the code.' })));
+      n.appendChild(panel('turbofex-plugin.json', null, h('pre', { class: 'apre', tabindex: '0', text: s.manifestRaw })));
+      n.appendChild(panel('Plugin code', String(s.entrySource.split('\n').length) + ' lines', h('pre', { class: 'apre tall', tabindex: '0', text: s.entrySource })));
+      var bar = h('div', { class: 'abar' });
+      if (s.status === 'pending') {
+        bar.appendChild(h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Approve ' + s.name + ' ' + s.version + '?', text: 'It then waits for your phone command (node tools/registry.js pull). Nothing is published yet. You read the code above, and this approves exactly that code.', fields: [{ name: 'note', label: 'Private note (optional)' }], ok: 'Approve' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'approve', note: v.note }); }, 'Approved', function () { load(false); }); }); } }, 'Approve'));
+      }
+      if (s.status === 'pending' || s.status === 'approved') {
+        bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Reject ' + s.name + ' ' + s.version + '?', text: 'The developer sees this reason, so keep it short and kind.', fields: [{ name: 'note', label: 'Reason' }], ok: 'Reject', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'reject', note: v.note }); }, 'Rejected', function () { load(false); }); }); } }, 'Reject'));
+      }
+      if (s.dev) {
+        bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: s.dev.githubId, verified: !s.dev.verified }); }, s.dev.verified ? 'Verified mark removed' : 'Developer verified', function () { load(false); }); } }, s.dev.verified ? 'Remove verified mark' : 'Mark developer as verified'));
+      }
+      n.appendChild(bar);
+      return n;
+    });
+  }
+  function vPluginDevs() {
+    return api('GET', 'plugins/devs').then(function (j) {
+      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
+      n.appendChild(head('Developers', 'People who signed in with GitHub. Blocking stops them from signing in and sending plugins.', back));
+      var rows = j.developers.map(function (d) {
+        return row([{ l: 'Developer', v: d.login }, { l: 'GitHub #', v: String(d.githubId), mono: true }, { l: 'Status', node: h('span', { class: 'tag ' + (d.blocked ? 'bad' : d.verified ? 'ok' : ''), text: d.blocked ? 'blocked' : d.verified ? 'verified' : 'new' }) }, { l: 'Plugins', v: String(d.submissions) }, { l: 'Last sign-in', v: when(d.lastLogin) }],
+          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, verified: !d.verified }); }, d.verified ? 'Verified mark removed' : 'Verified', function () { load(false); }); } }, d.verified ? 'Unverify' : 'Verify'), ' ',
+            h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; var go2 = function () { act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, blocked: !d.blocked }); }, d.blocked ? 'Unblocked' : 'Blocked', function () { load(false); }); }; if (d.blocked) go2(); else confirmThen('Block ' + d.login + '? They can no longer sign in or send plugins.', go2, 'Block'); } }, d.blocked ? 'Unblock' : 'Block')]);
+      });
+      n.appendChild(panel('Developers', String(j.developers.length), table(['Developer', 'GitHub #', 'Status', 'Plugins', 'Last sign-in', ''], rows, 'Nobody has signed in yet.')));
       return n;
     });
   }

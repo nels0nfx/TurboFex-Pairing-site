@@ -10,6 +10,7 @@ const { createEvents } = require('./events');
 const { createAdmin } = require('./admin');
 const { fromEnv: cloudFromEnv } = require('./cloud');
 const { createRegistry } = require('./registry');
+const { createDevCentre } = require('./devcentre');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -55,8 +56,9 @@ function createApp(opts = {}) {
   const jobs = new Map(); // id -> job
   const cloud = opts.cloud || cloudFromEnv(env);   // optional Supabase copy of the admin data (see cloud.js)
   const events = createEvents({ dir: path.join(dataDir, 'admin'), onRecord: (e) => cloud.pushEvent(e) });
+  const devcentre = opts.devcentre || createDevCentre({ env, dataDir, secret, cloud, fetchImpl: opts.fetchImpl });   // developer sign-in, plugin submissions and the owner's review
   const admin = createAdmin({
-    env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION, cloud,
+    env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION, cloud, devcentre,
     jobs: () => [...jobs.values()], stopJob: (j, m) => stopJob(j, m),
     defaults: { pair: pairLimit, number: Number(env.NUMBER_LIMIT) || 5, maxJobs },
   });
@@ -228,6 +230,9 @@ function createApp(opts = {}) {
       }
     }
 
+    // the Developer Centre: GitHub sign-in, plugin submissions, and the phone command's download (see devcentre.js)
+    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/')) && await devcentre.handle(req, res, p, { ip, send, readBody, limited })) return;
+
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {
       const who = { client: admin.idOf('client', ip), ipm: admin.maskIp(ip) };
@@ -301,7 +306,7 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html' }; // clean addresses for the two text pages
+      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html' }; // clean addresses for the text pages
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
@@ -334,7 +339,7 @@ function createApp(opts = {}) {
   }, 30 * 1000);
   sweeper.unref();
 
-  return { server, store, jobs, events, admin, cloud, close: () => { clearInterval(sweeper); admin.close(); events.close(); cloud.close().catch(() => {}); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
+  return { server, store, jobs, events, admin, cloud, devcentre, close: () => { clearInterval(sweeper); admin.close(); events.close(); cloud.close().catch(() => {}); for (const j of jobs.values()) { clearTimeout(j.timer); try { j.handle.cancel(); } catch (e) {} } server.close(); } };
 }
 
 module.exports = { createApp, dmText, dmMessages, bold };
@@ -345,7 +350,7 @@ if (require.main === module) {
   (async () => {
     const cloud = cloudFromEnv(process.env);
     const dataDir = path.join(__dirname, 'data');
-    if (cloud.enabled) await cloud.restore(path.join(dataDir, 'admin'));   // bring the saved admin data back before the site reads its files
+    if (cloud.enabled) { await cloud.restore(path.join(dataDir, 'admin')); await cloud.restoreKv('dc:', path.join(dataDir, 'devcentre')); }   // bring the saved admin data back before the site reads its files
     const app = createApp({ cloud, dataDir });
     const port = Number(process.env.PORT) || 3000;
     app.server.listen(port, () => console.log(`TurboFex pairing site running on port ${port}` + (cloud.enabled ? ' (Supabase storage on)' : '')));

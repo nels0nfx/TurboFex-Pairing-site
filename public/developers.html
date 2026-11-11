@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developers — TurboFex Pair</title>
+<meta name="description" content="Build a plugin for the TurboFex WhatsApp bot and send it in for review.">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/plugins.css">
+<link rel="stylesheet" href="/developers.css">
+<script src="/theme.js"></script>
+</head>
+<body class="docpage">
+<div class="scrim" aria-hidden="true"></div>
+<header class="bar" id="bar">
+  <nav class="island" id="island" data-state="idle" aria-label="TurboFex Pair">
+    <span class="ring" aria-hidden="true"></span>
+    <span class="glass" aria-hidden="true"></span>
+    <div class="isl-main">
+      <div class="isl-left">
+        <a class="brand" href="/" aria-label="TurboFex Pair home">
+          <span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span>
+          <span class="wm"><span class="word">TURBOFEX</span></span>
+        </a>
+        <a class="navlink badge" href="/#connect" aria-label="Pair: go to the connection panel"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></svg><span class="bt">Pair</span></a>
+      </div>
+      <div class="isl-actions">
+        <button id="theme" class="ibtn themebtn" type="button" aria-label="Switch to light mode" aria-pressed="true" title="Switch theme">
+          <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.2A8 8 0 0 1 9.800 4 8.500 8.500 0 1 0 20 14.200z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600l1.400 1.400M17 17l1.400 1.400M5.600 18.400L7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <i class="vr" aria-hidden="true"></i>
+        <button id="menu" class="ibtn menubtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menupanel" title="Menu">
+          <span class="burger" aria-hidden="true"><i></i><i></i><i></i></span>
+        </button>
+      </div>
+    </div>
+    <div class="menu" id="menupanel" hidden>
+      <a class="mi" id="m-home" href="/" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></a>
+      <a class="mi" id="m-pair" href="/#connect" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Pair your WhatsApp</span></a>
+      <a class="mi" id="m-wa" href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg><span>WhatsApp Channel</span></a>
+      <a class="mi" id="m-tg" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg><span>Telegram</span></a>
+      <a class="mi" id="m-plugins" href="/plugins" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Plugins</span></a>
+      <a class="mi" id="m-dev" href="/developers" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Developers</span></a>
+      <a class="mi" id="m-about" href="/about" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 11v5M12 7.500v.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>About</span></a>
+      <a class="mi" id="m-terms" href="/terms" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Terms and Conditions</span></a>
+      <a class="mi" id="m-privacy" href="/privacy" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Privacy Policy</span></a>
+      <div class="secure" id="secure" title="Secure connection">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="10.500" width="14" height="10" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.500"/><path d="M8.500 10.500V8a3.500 3.500 0 0 1 7 0v2.500" fill="none" stroke="currentColor" stroke-width="1.500" stroke-linecap="round"/><circle cx="12" cy="15.500" r="1.300" fill="currentColor"/></svg>
+        <span id="secure-text"><span class="long">Secure Connection</span><span class="short">Secure</span></span>
+      </div>
+    </div>
+  </nav>
+</header>
+<main class="doc plug dev">
+  <a class="back" href="/">← Back to TurboFex Pair</a>
+  <h1>Developer <span class="gold">Centre</span></h1>
+  <p class="lead">Build a plugin for the TurboFex bot and send it in. A person reads every plugin before it is published, then it is signed so bots can trust it.</p>
+  <p class="dnotice" id="dnotice" role="status" hidden></p>
+  <section class="dcard" id="dstate" aria-live="polite"><p class="dmuted">Loading…</p></section>
+  <section class="dcard" id="dform" hidden>
+    <h2>Send a plugin</h2>
+    <form id="dsend" novalidate>
+      <div class="dfld"><label for="drepo">Repository address</label><input id="drepo" type="url" inputmode="url" placeholder="https://github.com/yourname/your-plugin" autocomplete="off" maxlength="200"><p class="dhint">It must be public and belong to your own GitHub account.</p></div>
+      <div class="dfld"><label for="dtag">Release tag</label><input id="dtag" type="text" placeholder="v1.0.0" autocomplete="off" autocapitalize="off" maxlength="60"><p class="dhint">The tag of the release you want reviewed. The code is copied now, so changing the tag later changes nothing.</p></div>
+      <div class="dfld"><label for="dfolder">Folder <span class="dopt">(optional)</span></label><input id="dfolder" type="text" placeholder="Leave empty if the plugin is at the top of the repository" autocomplete="off" autocapitalize="off" maxlength="80"></div>
+      <button class="dbtn" id="dgo" type="submit">Send for review</button>
+      <p class="dmsg" id="dmsg" role="alert" hidden></p>
+      <ul class="dprob" id="dprob" hidden></ul>
+    </form>
+  </section>
+  <section class="dcard" id="dlist" hidden>
+    <h2>Your plugins</h2>
+    <div id="dsubs"></div>
+  </section>
+  <section class="docsec">
+    <h2>How it works</h2>
+    <ol class="how2">
+      <li>Write your plugin with the plugin guide and examples, and put it in a public GitHub repository with a <code>turbofex-plugin.json</code> file.</li>
+      <li>Make a release tag on GitHub, sign in here with GitHub and send the repository address and the tag.</li>
+      <li>The site checks that the plugin is well formed. Then it waits for a person to read it. We aim to answer within 14 days.</li>
+      <li>If it is approved, it is signed and added to the plugin list. Bot owners can then install it with one command.</li>
+    </ol>
+    <h2>The rules</h2>
+    <ul class="drules">
+      <li>Plugins are free. Paid plugins are not supported.</li>
+      <li>A plugin can only do what it lists in <code>permissions</code>. Ask for as little as you can: plugins that ask for a lot get read more carefully.</li>
+      <li>Every new version is reviewed again. Raise the <code>version</code> number for each release.</li>
+      <li>The plugin id belongs to the first developer who gets it approved.</li>
+      <li>Approval is not a guarantee. We can withdraw a plugin at any time, and bots stop using a withdrawn plugin.</li>
+    </ul>
+    <h2>What we keep about you</h2>
+    <p>Signing in with GitHub gives us your public GitHub number and username. We do not ask for your email address or any permission on your account, and we do not keep the GitHub access token. We keep your submissions, the code you sent and the review notes. See the <a href="/privacy">Privacy Policy</a>.</p>
+    <p>Examples to start from: <a href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer">the TurboFex examples folder</a>.</p>
+  </section>
+</main>
+<footer class="docfoot">
+  <nav class="foot-links" aria-label="Footer"><a href="/">Home</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Help</a></nav>
+  <p class="copy">© <span id="yr">2026</span> TurboFex. All rights reserved.</p>
+</footer>
+<script src="/notice.js"></script>
+<script src="/page.js"></script>
+<script src="/developers.js"></script>
+</body>
+</html>

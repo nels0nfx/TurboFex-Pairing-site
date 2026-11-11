@@ -26,7 +26,7 @@ function fakeSupabase() {
     }
     if (o.method === 'DELETE') { const lt = Number(u.searchParams.get('t').replace('lt.', '')); db[table] = rows.filter((r) => !(r.t < lt)); return ok(undefined, 204); }
     let out = rows.slice();
-    const k = u.searchParams.get('key'); if (k) out = out.filter((r) => 'eq.' + r.key === k);
+    const k = u.searchParams.get('key'); if (k && k.startsWith('like.')) out = out.filter((r) => r.key.startsWith(k.slice(5, -1))); else if (k) out = out.filter((r) => 'eq.' + r.key === k);
     const tt = u.searchParams.get('t'); if (tt) out = out.filter((r) => r.t >= Number(tt.replace('gte.', '')));
     const off = Number(u.searchParams.get('offset') || 0), lim = Number(u.searchParams.get('limit') || 1000);
     return ok(out.slice(off, off + lim));
@@ -108,4 +108,22 @@ test('a wrong key is reported as an error, never crashes, and without settings n
   const off = createCloud({ url: '', key: '' }); assert.strictEqual(off.enabled, false);
   off.pushEvent({ t: 1 }); await off.flush(); assert.strictEqual(fake.calls.length, 1, 'only the one failed restore call');
   assert.strictEqual(createCloud({ url: 'http://insecure.example', key: 'k' }).enabled, false, 'https only');
+});
+
+test('developer records are copied to Supabase and come back after a restart (and nothing else is touched)', async () => {
+  const { createCloud } = require('../cloud');
+  const fake = fakeSupabase();
+  const c = createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, flushMs: 60000, log() {} });
+  c.pushKv('dc:dev:42', { githubId: 42, login: 'alice' }); c.pushKv('dc:sub:ab12cd34', { id: 'ab12cd34', old: 1 }); c.pushKv('dc:sub:ab12cd34', { id: 'ab12cd34', old: 2 }); // the newest value of a key wins
+  assert.strictEqual(c.status().queued, 2);
+  await c.flush(); assert.strictEqual(c.status().queued, 0);
+  assert.deepStrictEqual(fake.db.tfx_kv.map((r) => r.key).sort(), ['dc:dev:42', 'dc:sub:ab12cd34']);
+  fake.db.tfx_kv.push({ key: 'state', value: { keep: 1 } });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-kv-'));
+  assert.strictEqual(await createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, log() {} }).restoreKv('dc:', dir), 2);
+  assert.deepStrictEqual(fs.readdirSync(dir).sort(), ['dev_42.json', 'sub_ab12cd34.json']);
+  assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sub_ab12cd34.json'), 'utf8')).old, 2);
+  assert.strictEqual(await createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, log() {} }).restoreKv('bad prefix', dir), 0);
+  fake.setDown(true); assert.strictEqual(await createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, log() {} }).restoreKv('dc:', dir), 0, 'offline: quiet');
+  await c.close();
 });

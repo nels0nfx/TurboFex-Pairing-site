@@ -251,3 +251,11 @@ body.adm { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--b
   .td.act { grid-column: 1 / -1; }
   .tr .td:nth-child(2):not(.st) { margin-top: 0; }
 }
+
+/* Plugins review screen */
+.apre { margin: 0; padding: 12px 14px; max-height: 260px; overflow: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--track); color: var(--text); font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: pre; tab-size: 2; }
+.apre.tall { max-height: 520px; }
+.apre:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.alist { margin: 0 0 8px; padding-left: 20px; line-height: 1.6; }
+.abar { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 8px; }
+.note.warn { border-color: var(--gold); }

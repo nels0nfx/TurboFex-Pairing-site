@@ -212,3 +212,13 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Only true claims: counts shown are the real list length; the risk marks use the same plain wording as the bot's install screen.
 - Next (part C): Developer Centre with GitHub login, submissions and an admin review screen (admin dashboard classes start with `a`). The registry is signed on the owner's phone with tools/registry.js in the bot repo; the site never holds the signing key.
 - Version history add: **v2.27.0**.
+
+## 25. v2.28.0 - Developer Centre (marketplace, part C)
+- `devcentre.js` (createDevCentre): GitHub OAuth sign-in (`/auth/github`, `/auth/github/callback`; state cookie `tfx_oauth`, Path=/auth, 10 min; no scope; the access token is used once to read id + login and is never stored), developer cookie `tfx_dev` (`<githubId>.<exp>.<hmac>`, 7 days, HttpOnly, SameSite=Lax), `/api/dev/{me,submit,withdraw,logout}` (POSTs need header `x-requested-with: tfx` + same-origin), submissions fetched from raw.githubusercontent.com at the developer's tag (repo owner must equal their GitHub login) and STORED as a copy; `plugin-check.js` validates (must stay in step with the bot's core/plugins/manifest.js) and flags risky code. Plugin id belongs to the first developer with a live submission; same id+version cannot be sent twice; max 5 waiting, 10 per day.
+- Storage: small files in `data/devcentre/` (dev_<id>.json, sub_<id>.json) mirrored to Supabase `tfx_kv` keys `dc:dev:<id>` / `dc:sub:<id>` (cloud.js `pushKv`, `restoreKv`, run at boot). No new tables.
+- Admin dashboard: new "Plugins" section (owner only, permission `plugins.review`): list, detail (manifest, code, flags, risk), approve / reject (reason shown to the developer), verified mark, block. Routes `/admin/api/plugins/{submissions,submission,review,dev,devs}`; all audited.
+- Phone command: `GET /api/registry/approved` and `POST /api/registry/published` with `Authorization: Bearer REGISTRY_PULL_TOKEN` (>= 24 chars; the routes do not exist without it). Used by `tools/registry.js pull` / `published` in the bot repo (v1.4.2). The site never holds the signing key.
+- Render env: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SITE_URL (https://turbofex-pair.onrender.com, no slash), REGISTRY_PULL_TOKEN. GitHub OAuth app callback: `<SITE_URL>/auth/github/callback`.
+- Public page `/developers` (developers.html/js/css, textContent only), menu item `id="m-dev"` on all pages, privacy.html has the developer-data paragraph.
+- Not done: "Verified" mark in the marketplace list; GitHub 2FA is not verifiable through OAuth so it is not required.
+- Version history add: **v2.28.0**.
