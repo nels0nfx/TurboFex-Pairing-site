@@ -295,3 +295,18 @@ test('withdrawing a published plugin: hidden at once, handed to the phone comman
     assert.match((await send(t, c, GOOD)).json.error, /already sent/, 'the same version cannot come back');
   } finally { t.close(); }
 });
+
+test('the Plugin Guide page is served, linked, and its examples are valid plugins', async () => {
+  const html = fs.readFileSync(path.join(__dirname, '../public/plugin-guide.html'), 'utf8');
+  assert.ok(!/<script>[^<]/.test(html) && !/onclick=|style=/.test(html), 'no inline script or style');
+  assert.match(fs.readFileSync(path.join(__dirname, '../public/developers.html'), 'utf8'), /href="\/plugin-guide"/);
+  assert.match(html, /<meta name="description" content="How to write a TurboFex plugin/);
+  // the manifest and code in the guide pass the very check that submissions go through
+  const blocks = [...html.matchAll(/<pre class="gcode"><code>([\s\S]*?)<\/code><\/pre>/g)].map((m) => m[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+  assert.ok(blocks.length >= 3);
+  const r = checkPlugin(blocks[0], blocks[1]); assert.strictEqual(r.ok, true, r.errors && r.errors.join()); assert.deepStrictEqual(r.flags, []);
+  // every permission of the real list is in the guide's table
+  for (const k of Object.keys(require('../registry').PERMS)) assert.ok(html.includes('<code>' + k + '</code>'), k);
+  const t = await boot();
+  try { const r2 = await t.req('GET', '/plugin-guide'); assert.strictEqual(r2.status, 200); assert.match(r2.text, /Plugin <span class="gold">Guide/); } finally { t.close(); }
+});

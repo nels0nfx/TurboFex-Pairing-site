@@ -232,3 +232,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Admin route `POST /admin/api/plugins/revoke {id, reason}` (owner, audited as `plugin.revoke`): only a `published` submission, once, reason >= 3 chars. The Plugins page hides it at once (`devcentre.hidden()`), `GET /api/registry/approved` also returns `revocations`, and `POST /api/registry/published` accepts `{ids, revoked}`; a confirmed withdrawal sets the status to `revoked` (the id and version stay taken: published versions never change).
 - The signed withdrawal itself is made on the owner's phone: bot tools/registry.js `pull` runs `revoke` for each request, `published` reports it back (bot v1.4.6).
 - Version history add: **v2.30.0**.
+
+## 28. v2.31.0 - Plugin Guide page
+- `/plugin-guide` (public/plugin-guide.html, styles in developers.css under `.guide`): the developer guide (the two files, commands and `c` fields, permission table, API calls with their real limits, events/schedules, limits, how to submit). Linked from /developers. It was written from core/plugins/{manifest,broker,host,worker}.js of bot v1.4.4: when the plugin API or its limits change in the bot, UPDATE THIS PAGE too. A test runs the guide's manifest and code through plugin-check.js and checks that every permission of registry.js PERMS is in the table.
+- Version history add: **v2.31.0**.

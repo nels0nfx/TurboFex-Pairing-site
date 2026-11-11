@@ -31,3 +31,20 @@
 .dtag.wait { color: var(--gold-text); border-color: var(--gold); }
 .dreason { padding: 10px 12px; border-radius: 12px; background: var(--track); border: 1px solid var(--line); font-size: 14.5px; overflow-wrap: anywhere; }
 .drules { padding-left: 20px; line-height: 1.7; }
+
+/* Plugin guide */
+.guide .gcode { margin: 8px 0 16px; padding: 14px 16px; overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); background: var(--track); color: var(--text); font: 13.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; -webkit-overflow-scrolling: touch; }
+.guide .gcode:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.guide code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92em; color: var(--gold-text); overflow-wrap: anywhere; }
+.guide .gcode code { color: var(--text); font-size: inherit; overflow-wrap: normal; }
+.guide .gtable { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 14.5px; }
+.guide .gtable th, .guide .gtable td { text-align: left; vertical-align: top; padding: 9px 8px; border-top: 1px solid var(--line); line-height: 1.5; }
+.guide .gtable th { border-top: 0; color: var(--muted); font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; }
+.guide .gtable td:last-child { white-space: nowrap; }
+@media (max-width: 560px) { .guide .gtable td:last-child, .guide .gtable th:last-child { display: none; } }
+.guide .docsec { margin: 28px 0 0; }
+.guide .docsec h2 { font-size: 21px; margin: 0 0 10px; }
+.guide .docsec p, .guide .docsec li { line-height: 1.65; }
+.guide .gcode, .guide .gcode code { white-space: pre; overflow-wrap: normal; word-break: normal; }
+.guide .gtable td:first-child { white-space: nowrap; }
+.guide .gtable td:first-child code { overflow-wrap: normal; }

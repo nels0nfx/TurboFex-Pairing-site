@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plugin Guide — TurboFex Pair</title>
+<meta name="description" content="How to write a TurboFex plugin: the files, the permissions, the commands you can use and the limits.">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/plugins.css">
+<link rel="stylesheet" href="/developers.css">
+<script src="/theme.js"></script>
+</head>
+<body class="docpage">
+<div class="scrim" aria-hidden="true"></div>
+<header class="bar" id="bar">
+  <nav class="island" id="island" data-state="idle" aria-label="TurboFex Pair">
+    <span class="ring" aria-hidden="true"></span>
+    <span class="glass" aria-hidden="true"></span>
+    <div class="isl-main">
+      <div class="isl-left">
+        <a class="brand" href="/" aria-label="TurboFex Pair home">
+          <span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span>
+          <span class="wm"><span class="word">TURBOFEX</span></span>
+        </a>
+        <a class="navlink badge" href="/#connect" aria-label="Pair: go to the connection panel"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></svg><span class="bt">Pair</span></a>
+      </div>
+      <div class="isl-actions">
+        <button id="theme" class="ibtn themebtn" type="button" aria-label="Switch to light mode" aria-pressed="true" title="Switch theme">
+          <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.2A8 8 0 0 1 9.800 4 8.500 8.500 0 1 0 20 14.200z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600l1.400 1.400M17 17l1.400 1.400M5.600 18.400L7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <i class="vr" aria-hidden="true"></i>
+        <button id="menu" class="ibtn menubtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menupanel" title="Menu">
+          <span class="burger" aria-hidden="true"><i></i><i></i><i></i></span>
+        </button>
+      </div>
+    </div>
+    <div class="menu" id="menupanel" hidden>
+      <a class="mi" id="m-home" href="/" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></a>
+      <a class="mi" id="m-pair" href="/#connect" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Pair your WhatsApp</span></a>
+      <a class="mi" id="m-wa" href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg><span>WhatsApp Channel</span></a>
+      <a class="mi" id="m-tg" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg><span>Telegram</span></a>
+      <a class="mi" id="m-plugins" href="/plugins" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Plugins</span></a>
+      <a class="mi" id="m-dev" href="/developers" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Developers</span></a>
+      <a class="mi" id="m-about" href="/about" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 11v5M12 7.500v.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>About</span></a>
+      <a class="mi" id="m-terms" href="/terms" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Terms and Conditions</span></a>
+      <a class="mi" id="m-privacy" href="/privacy" role="menuitem"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Privacy Policy</span></a>
+      <div class="secure" id="secure" title="Secure connection">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="10.500" width="14" height="10" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.500"/><path d="M8.500 10.500V8a3.500 3.500 0 0 1 7 0v2.500" fill="none" stroke="currentColor" stroke-width="1.500" stroke-linecap="round"/><circle cx="12" cy="15.500" r="1.300" fill="currentColor"/></svg>
+        <span id="secure-text"><span class="long">Secure Connection</span><span class="short">Secure</span></span>
+      </div>
+    </div>
+  </nav>
+</header>
+<main class="doc plug dev guide">
+  <a class="back" href="/developers">← Back to the Developer Centre</a>
+  <h1>Plugin <span class="gold">Guide</span></h1>
+  <p class="lead">A plugin is two small files: one describing it and one with its code. This page shows everything a plugin can do, and the limits it runs under.</p>
+
+  <section class="docsec">
+    <h2>1. The two files</h2>
+    <p>Put both in one folder (or at the top of a public GitHub repository). The plugin code is one JavaScript file of up to 1 MB. There is no <code>require</code>, no <code>import</code>, no files and no internet unless you ask for it: your code runs in a sealed sandbox, and a global object called <code>tfx</code> is the only way out.</p>
+    <p><b>turbofex-plugin.json</b></p>
+<pre class="gcode"><code>{
+  "manifestVersion": 1,
+  "id": "hello-plugin",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": "Hello",
+  "description": "Greets you and counts the greetings.",
+  "author": { "name": "Your name" },
+  "permissions": ["chat.send", "storage"],
+  "commands": [
+    { "name": "hello", "who": "everyone",
+      "description": "Greets you and counts the greetings" }
+  ]
+}</code></pre>
+    <p><b>index.js</b></p>
+<pre class="gcode"><code>tfx.command('hello', async (c) => {
+  const count = Number((await tfx.storage.get('count')) || 0) + 1;
+  await tfx.storage.set('count', String(count));
+  await c.reply('👋 *Hello ' + (c.sender.name || 'there') + '!*\n▸ *Times used:* ' + count);
+});</code></pre>
+    <ul class="drules">
+      <li><code>id</code>: 3 to 32 characters, lowercase letters, numbers and dashes. <code>version</code> looks like <code>1.0.0</code> and goes up with every release. <code>apiVersion</code> is always 1.</li>
+      <li><code>name</code> up to 40 characters, <code>description</code> up to 200. Only free plugins (leave out <code>pricing</code>).</li>
+      <li>Optional: <code>"entry": "index.js"</code> (the code file name) and <code>"minBotVersion": "1.4.0"</code>.</li>
+      <li>A plugin needs at least one command, schedule or event.</li>
+    </ul>
+  </section>
+
+  <section class="docsec">
+    <h2>2. Commands</h2>
+    <p>Each command has a <code>name</code> (2 to 20 lowercase letters or numbers), up to 5 <code>aliases</code>, a <code>description</code> (up to 120 characters), and <code>who</code> can use it: <code>everyone</code>, <code>admin</code> or <code>owner</code>. Add <code>"groupOnly": true</code> to allow it only in groups, and <code>"usage"</code> for a short help line. Up to 20 commands. A name already used by the bot or another plugin is refused.</p>
+    <p>Your handler receives <code>c</code>:</p>
+    <ul class="drules">
+      <li><code>c.args</code> (the words after the command), <code>c.rest</code> (the same as one text), <code>c.prefix</code></li>
+      <li><code>c.sender</code>: <code>{ id, name, isAdmin, isOwner }</code>. The id is a private code made for your plugin. You never see phone numbers.</li>
+      <li><code>c.chat</code>: <code>{ id, isGroup, name }</code></li>
+      <li><code>c.mentions</code>: the people tagged in the command (private codes)</li>
+      <li><code>await c.reply(text)</code> sends a message in the same chat.</li>
+    </ul>
+  </section>
+
+  <section class="docsec">
+    <h2>3. Permissions</h2>
+    <p>A plugin can only do what it lists in <code>permissions</code>. The bot owner sees the list, in plain words, before installing. Ask for as little as you can.</p>
+    <table class="gtable">
+      <thead><tr><th>Permission</th><th>What it allows</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td><code>chat.send</code></td><td><code>c.reply</code> and sending messages</td><td>Low</td></tr>
+        <tr><td><code>storage</code></td><td><code>tfx.storage.get / set</code>: its own small notes</td><td>Low</td></tr>
+        <tr><td><code>group.read</code></td><td><code>tfx.group.info()</code>: group name, size, number of admins</td><td>Low</td></tr>
+        <tr><td><code>schedule</code></td><td>run now and then (<code>schedules</code> in the manifest)</td><td>Low</td></tr>
+        <tr><td><code>owner.notify</code></td><td><code>tfx.owner.notify(text)</code>: message the bot owner</td><td>Medium</td></tr>
+        <tr><td><code>media.send</code></td><td><code>tfx.media.send</code>: pictures, stickers, files</td><td>Low</td></tr>
+        <tr><td><code>network</code></td><td><code>tfx.net.fetch</code> to the https websites you list in <code>network.domains</code></td><td>Medium</td></tr>
+        <tr><td><code>events.message</code></td><td>read the text of group messages that are not commands</td><td>Medium</td></tr>
+        <tr><td><code>events.members</code></td><td>know when someone joins or leaves a group</td><td>Medium</td></tr>
+        <tr><td><code>group.manage</code></td><td>remove a member, open or close the group</td><td>High</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="docsec">
+    <h2>4. What you can call</h2>
+    <ul class="drules">
+      <li><code>tfx.storage.get(key)</code> and <code>tfx.storage.set(key, value)</code>: text only. Up to 200 keys, 64,000 characters per value, 1 MB in total.</li>
+      <li><code>tfx.net.fetch(url)</code> returns <code>{ status, text }</code> (first 256,000 characters). Only https, only the domains you listed, up to 3 requests per call, 5 seconds each. <code>tfx.net.fetchBytes(url)</code> returns <code>{ status, base64 }</code> (up to 1 MB), for pictures.</li>
+      <li><code>tfx.media.send({ kind, data, mimetype, fileName, caption })</code>: <code>kind</code> is <code>image</code>, <code>sticker</code> (WebP) or <code>document</code>; <code>data</code> is base64, up to 1 MB. The bot checks that the file really is what you say. Up to 3 per call, 6 per minute.</li>
+      <li><code>tfx.group.info()</code> returns <code>{ name, size, admins }</code> (inside a command in a group).</li>
+      <li><code>tfx.group.kick(member)</code>, <code>tfx.group.open()</code>, <code>tfx.group.close()</code>: only where the bot is an admin, and only on people in the very command or event (never the owner, an admin or the bot). Up to 3 removals per call and 20 per hour.</li>
+      <li><code>tfx.owner.notify(text)</code>: up to 500 characters, 3 per hour.</li>
+      <li><code>tfx.log(text)</code> writes to the plugin log the owner can read.</li>
+      <li><code>tfx.util.toBase64(text)</code> turns text into base64 (the sandbox has no Buffer).</li>
+    </ul>
+  </section>
+
+  <section class="docsec">
+    <h2>5. Events and schedules</h2>
+    <p>Add <code>"events": ["member.join"]</code> to the manifest (with the permission it needs: <code>message</code> needs <code>events.message</code>; <code>member.join</code> and <code>member.leave</code> need <code>events.members</code>), then:</p>
+<pre class="gcode"><code>tfx.on('member.join', async (c) => {
+  await c.reply('👋 *Welcome to the group!*');
+});</code></pre>
+    <p>In a <code>message</code> event, <code>c.text</code> is the text of the message. In a join or leave event, <code>c.members</code> holds the people involved (private codes, up to 50). Events work in groups only, and the owner can switch a plugin off in a group with <code>plugin groups &lt;id&gt; deny</code>.</p>
+    <p>For a repeating job, add the <code>schedule</code> permission and <code>"schedules": [{ "id": "daily", "everyMinutes": 1440 }]</code> (1 to 10,080 minutes, up to 5), then <code>tfx.schedule('daily', async () => { ... });</code>. A scheduled run has no chat to answer in, so it can use <code>tfx.owner.notify</code>, <code>tfx.storage</code> and <code>tfx.net</code>.</p>
+  </section>
+
+  <section class="docsec">
+    <h2>6. The limits</h2>
+    <ul class="drules">
+      <li>Each call may use about 1.5 seconds of computing time and 5 seconds in total, and 32 MB of memory.</li>
+      <li>Up to 5 messages per call and 20 per minute, up to 4,000 characters each.</li>
+      <li>A plugin that crashes 3 times in 10 minutes, runs out of time or memory, or keeps asking for things it did not list is switched off, and the bot owner is told.</li>
+      <li>Any change to the plugin files switches the plugin off until the owner installs it again, so every release is a new version.</li>
+    </ul>
+  </section>
+
+  <section class="docsec">
+    <h2>7. Send it in</h2>
+    <ol class="how2">
+      <li>Put the two files in a public repository on your GitHub account.</li>
+      <li>On GitHub, make a release with a tag such as <code>v1.0.0</code>.</li>
+      <li>Open the <a href="/developers">Developer Centre</a>, sign in, and send the repository address and the tag.</li>
+    </ol>
+    <p>You can test a plugin yourself first: copy the folder into the bot's <code>data/plugins</code> folder, send <code>.plugin on</code> once, then <code>.plugin install your-plugin-id</code>.</p>
+    <p>Reviewers read the code. Keep it plain and readable: code that is minified, hides what it does, or builds code while running is flagged and is much more likely to be refused.</p>
+  </section>
+</main>
+<footer class="docfoot">
+  <nav class="foot-links" aria-label="Footer"><a href="/">Home</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Help</a></nav>
+  <p class="copy">© <span id="yr">2026</span> TurboFex. All rights reserved.</p>
+</footer>
+<script src="/notice.js"></script>
+<script src="/page.js"></script>
+</body>
+</html>
