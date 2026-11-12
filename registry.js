@@ -19,7 +19,8 @@ const PERMS = {
   network: ['medium', 'Connect to the internet (only the sites it lists)'],
   'events.message': ['medium', 'Read the text of messages sent in the groups where it is allowed'],
   'events.members': ['medium', 'Know when members join or leave a group (no phone numbers)'],
-  'group.manage': ['high', 'Remove members, and open or close the group (only where the bot is an admin, never the owner or an admin)'],
+  'group.manage': ['high', 'Remove members, open or close the group, and rename it (only where the bot is an admin, never the owner or an admin)'],
+  'group.admins': ['high', 'Make a member an admin or take admin away (only through a command used by a group admin, where the bot is an admin; never the owner or the group creator)'],
 };
 const semverCmp = (a, b) => { const x = String(a).split('.').map(Number); const y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');

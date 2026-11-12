@@ -275,3 +275,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `plugin-check.js` now validates `settings` in a submitted manifest with the same rules as the bot's `core/plugins/manifest.js` (up to 10; types text/number/toggle/choice; key, label, default, limits; optional perGroup). Keep the two in step. The plugin guide has a new section 5b. Settings need no permission and are not part of the permission/risk screens.
 - Bot side (v1.5.0): owner commands `.plugin options <name>` and `.plugin option <name> <key> <value|reset>` (NOT `.plugin set`, which already sets the plugin limits); the plugin reads `ctx.settings`; values stored in `data/plugins.json` under the plugin's record (`settings.values`, `settings.groups[jid]`), kept across updates.
 - Version history add: **v2.38.0**.
+
+## 36. v2.39.0 - new permission group.admins, rename under group.manage (site side of bot v1.5.1)
+- `registry.js` PERMS has `group.admins` (high risk) and the `group.manage` text now says it can rename the group; `plugin-check.js` reads PERMS, so submissions using them pass. Guide updated. Keep in step with the bot's `core/plugins/manifest.js`.
+- Bot rules (v1.5.1): `tfx.group.promote/demote(member)` need `group.admins`; `tfx.group.rename(name)` needs `group.manage`. All three work ONLY inside a command used by a group admin or the owner (never listeners or timers), where the bot is an admin; promote/demote act on one person per call that was part of the command, 6 an hour, never the owner, the bot or a sudo user; demote never the group creator; promote skips someone who is already admin.
+- Version history add: **v2.39.0**.

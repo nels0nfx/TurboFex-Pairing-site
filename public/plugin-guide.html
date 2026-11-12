@@ -122,7 +122,8 @@
         <tr><td><code>network</code></td><td><code>tfx.net.fetch</code> to the https websites you list in <code>network.domains</code></td><td>Medium</td></tr>
         <tr><td><code>events.message</code></td><td>read the text of group messages that are not commands</td><td>Medium</td></tr>
         <tr><td><code>events.members</code></td><td>know when someone joins or leaves a group</td><td>Medium</td></tr>
-        <tr><td><code>group.manage</code></td><td>remove a member, open or close the group</td><td>High</td></tr>
+        <tr><td><code>group.manage</code></td><td>remove a member, open or close the group, rename it</td><td>High</td></tr>
+        <tr><td><code>group.admins</code></td><td>make a member an admin, or take admin away</td><td>High</td></tr>
       </tbody>
     </table>
   </section>
@@ -135,7 +136,7 @@
       <li><code>tfx.net.fetch(url)</code> returns <code>{ status, text }</code> (first 256,000 characters). Only https, only the domains you listed, up to 3 requests per call, 5 seconds each. <code>tfx.net.fetchBytes(url)</code> returns <code>{ status, base64 }</code> (up to 1 MB), for pictures.</li>
       <li><code>tfx.media.send({ kind, data, mimetype, fileName, caption })</code>: <code>kind</code> is <code>image</code>, <code>sticker</code> (WebP) or <code>document</code>; <code>data</code> is base64, up to 1 MB. The bot checks that the file really is what you say. Up to 3 per call, 6 per minute.</li>
       <li><code>tfx.group.info()</code> returns <code>{ name, size, admins }</code> (inside a command in a group).</li>
-      <li><code>tfx.group.kick(member)</code>, <code>tfx.group.open()</code>, <code>tfx.group.close()</code>: only where the bot is an admin, and only on people in the very command or event (never the owner, an admin or the bot). Up to 3 removals per call and 20 per hour.</li>
+      <li><code>tfx.group.kick(member)</code>, <code>tfx.group.open()</code>, <code>tfx.group.close()</code>, <code>tfx.group.rename(name)</code> (1 to 100 plain characters), and with <code>group.admins</code> also <code>tfx.group.promote(member)</code> and <code>tfx.group.demote(member)</code> (one person per call, 6 an hour; promote, demote and rename work only inside a command used by a group admin, never from a listener or a timer; the group creator is never demoted): only where the bot is an admin, and only on people in the very command or event (never the owner, an admin or the bot). Up to 3 removals per call and 20 per hour.</li>
       <li><code>tfx.owner.notify(text)</code>: up to 500 characters, 3 per hour.</li>
       <li><code>tfx.log(text)</code> writes to the plugin log the owner can read.</li>
       <li><code>tfx.util.toBase64(text)</code> turns text into base64 (the sandbox has no Buffer).</li>
