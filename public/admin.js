@@ -436,7 +436,7 @@
   }
 
   // ---------- Plugins (submissions from the Developer Centre) ----------
-  var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], withdrawn: ['Withdrawn', ''] };
+  var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], changes: ['Changes asked', 'warn'], withdrawn: ['Withdrawn', ''] };
   function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
   function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
   function vPluginList() {
@@ -476,11 +476,24 @@
         m.domains.length ? h('p', { text: 'Websites: ' + m.domains.join(', ') }) : null,
         h('p', { class: 'muted', text: 'Commands: ' + (m.commands.join(', ') || 'none') + (m.events.length ? ' · Events: ' + m.events.join(', ') : '') })));
       n.appendChild(panel('Automatic checks', s.flagList.length ? String(s.flagList.length) + ' to look at' : 'none', s.flagList.length ? h('ul', { class: 'alist' }, s.flagList.map(function (x) { return h('li', { text: x }); })) : h('p', { class: 'muted', text: 'Nothing unusual found. This never means safe: read the code.' })));
+      if (s.changes) {
+        var c = s.changes, cl = [];
+        if (c.permsAdded.length) cl.push(h('p', { class: 'note warn', text: 'New permissions since ' + c.version + ': ' + c.permsAdded.join(', ') }));
+        if (c.permsRemoved.length) cl.push(h('p', { class: 'muted', text: 'Permissions dropped: ' + c.permsRemoved.join(', ') }));
+        if (c.domainsAdded.length) cl.push(h('p', { class: 'note warn', text: 'New websites since ' + c.version + ': ' + c.domainsAdded.join(', ') }));
+        var dl = function (d) { return d.tooBig ? h('p', { class: 'muted', text: 'Too long to compare here. Read the full code below.' }) : d.lines.length ? h('pre', { class: 'apre tall', tabindex: '0' }, d.lines.map(function (l) { return h('span', { class: l.t === '+' ? 'dadd' : l.t === '-' ? 'ddel' : 'dctx', text: (l.t === '~' ? '  ' : l.t + ' ') + l.s + '\n' }); })) : h('p', { class: 'muted', text: 'No change.' }); };
+        cl.push(h('p', { class: 'muted', text: 'Code: ' + (c.code.tooBig ? 'too long to compare' : '+' + c.code.added + ' / -' + c.code.removed + ' lines') + ' · compared with version ' + c.version + ' (' + c.status + ')' }));
+        cl.push(dl(c.code)); cl.push(h('p', { class: 'muted', text: 'turbofex-plugin.json' })); cl.push(dl(c.manifest));
+        n.appendChild(panel.apply(null, ['What changed since ' + c.version, c.permsAdded.length ? 'new permissions' : null].concat(cl)));
+      }
       n.appendChild(panel('turbofex-plugin.json', null, h('pre', { class: 'apre', tabindex: '0', text: s.manifestRaw })));
       n.appendChild(panel('Plugin code', String(s.entrySource.split('\n').length) + ' lines', h('pre', { class: 'apre tall', tabindex: '0', text: s.entrySource })));
       var bar = h('div', { class: 'abar' });
       if (s.status === 'pending') {
         bar.appendChild(h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Approve ' + s.name + ' ' + s.version + '?', text: 'It then waits for your phone command (node tools/registry.js pull). Nothing is published yet. You read the code above, and this approves exactly that code.', fields: [{ name: 'note', label: 'Private note (optional)' }], ok: 'Approve' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'approve', note: v.note }); }, 'Approved', function () { load(false); }); }); } }, 'Approve'));
+      }
+      if (s.status === 'pending') {
+        bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Ask for changes to ' + s.name + ' ' + s.version + '?', text: 'The developer sees this note, fixes the plugin and sends it again (the same version number is fine). Use this instead of Reject when it can be fixed.', fields: [{ name: 'note', label: 'What should change' }], ok: 'Ask for changes' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'changes', note: v.note }); }, 'Sent back to the developer', function () { load(false); }); }); } }, 'Ask for changes'));
       }
       if (s.status === 'pending' || s.status === 'approved') {
         bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Reject ' + s.name + ' ' + s.version + '?', text: 'The developer sees this reason, so keep it short and kind.', fields: [{ name: 'note', label: 'Reason' }], ok: 'Reject', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'reject', note: v.note }); }, 'Rejected', function () { load(false); }); }); } }, 'Reject'));

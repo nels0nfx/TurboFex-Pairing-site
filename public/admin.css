@@ -259,3 +259,7 @@ body.adm { margin: 0; min-height: 100vh; min-height: 100dvh; background: var(--b
 .alist { margin: 0 0 8px; padding-left: 20px; line-height: 1.6; }
 .abar { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 8px; }
 .note.warn { border-color: var(--gold); }
+
+.apre .dadd { color: #2e9e5b; background: rgba(46,158,91,.12); display: block; }
+.apre .ddel { color: #d0473f; background: rgba(208,71,63,.12); display: block; }
+.apre .dctx { color: var(--muted, inherit); display: block; }

@@ -254,3 +254,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 31. v2.34.0 - plugin store pause switch (second gap from the final audit)
 - Admin > Plugins: "Pause the store" / "Open the store again". State in `data/devcentre/switch.json` (Supabase key `dc:switch`, restored at boot). While paused: `/api/plugins` returns `{paused:true, plugins:[]}` (the Plugins page says it is paused), `/api/dev/submit|rate|report` answer 503. Still working: GitHub sign-in, sign-out, withdraw by a developer, the admin dashboard, the phone command routes `/api/registry/*`, and the signed registry itself, so bots and installed plugins are never affected. Audited as `plugin.store.pause/open`.
 - Version history add: **v2.34.0**.
+
+## 32. v2.35.0 - ask for changes + "what changed" view (third gap from the final audit)
+- New review decision `changes` (admin `POST plugins/review {id, decision:'changes', note}`, note >= 3 characters, only from "pending"). Status `changes` ("Changes requested"): the developer sees the note on /developers. It is NOT in the LIVE list, so the developer can fix the plugin and send the SAME version again (move or re-tag). Audited as `plugin.changes`.
+- `adminGet` now returns `changes` (null for a first version): compared with the newest earlier published/approved version of the same plugin by the same developer: permissions added/removed, websites added, and a line diff (2 lines of context, max 600 lines, `tooBig` over 1500 lines) of the code and of turbofex-plugin.json (`lineDiff`, `changesSince` in devcentre.js). Admin shows it as a panel "What changed since <version>" with green/red lines (`.dadd/.ddel` in admin.css).
+- Not built from the audit item: a back-and-forth conversation (developer replies); this is one note from the owner per round.
+- Version history add: **v2.35.0**.

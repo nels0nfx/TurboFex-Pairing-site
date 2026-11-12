@@ -421,3 +421,37 @@ test('pause switch: the store hides, sending/rating/reporting stop, withdraw and
     assert.strictEqual((await t.req('POST', '/api/dev/rate', { ...t.dev(await t.signIn('bob')), body: { plugin: 'hello-plugin', stars: 5 } })).status, 200);
   } finally { t.close(); }
 });
+
+test('ask for changes: sent back with a note, the developer can fix and resend the same version; the owner sees what changed since the last accepted version', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn('good'); const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const s1 = (await send(t, c, GOOD)).json.submission;
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s1.id, decision: 'approve' } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/submission?id=' + s1.id, A)).json.changes, null, 'first version: nothing to compare');
+    // version 1.1.0 asks for more and changes code
+    const CODE2 = CODE.replace('hi', 'hello there') + "turbofex.command('more', async (ctx) => { await ctx.reply('x'); });\n";
+    t.put('alice', 'hello', 'v1.1.0', '', manifest({ version: '1.1.0', permissions: ['chat.send', 'storage'] }), CODE2);
+    const s2 = (await send(t, c, { ...GOOD, tag: 'v1.1.0' })).json.submission;
+    const g = (await t.req('GET', '/admin/api/plugins/submission?id=' + s2.id, A)).json;
+    assert.strictEqual(g.changes.version, '1.0.0'); assert.deepStrictEqual(g.changes.permsAdded, ['storage']); assert.deepStrictEqual(g.changes.permsRemoved, []);
+    assert.ok(g.changes.code.added >= 2 && g.changes.code.removed >= 1, JSON.stringify([g.changes.code.added, g.changes.code.removed]));
+    assert.ok(g.changes.code.lines.some((l) => l.t === '+' && /hello there/.test(l.s)) && g.changes.code.lines.some((l) => l.t === '-' && /'hi'/.test(l.s)));
+    // asking for changes: needs a note, only from "waiting", owner only
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { cookie: (await t.admin('mod')).cookie, body: { id: s2.id, decision: 'changes', note: 'x y z' } })).status, 403);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'changes', note: '' } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s1.id, decision: 'changes', note: 'too late' } })).status, 400, 'an approved one cannot be sent back');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'changes', note: 'Please drop the storage permission' } })).status, 200);
+    const me = (await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions.find((x) => x.id === s2.id);
+    assert.strictEqual(me.status, 'changes'); assert.strictEqual(me.note, 'Please drop the storage permission');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'approve' } })).status, 400, 'cannot approve while changes are open');
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.changes'));
+    // the developer fixes it and sends the SAME version again
+    t.put('alice', 'hello', 'v1.1.0', '', manifest({ version: '1.1.0' }), CODE2);
+    const again = await send(t, c, { ...GOOD, tag: 'v1.1.0' }); assert.strictEqual(again.status, 200, again.text);
+    const g2 = (await t.req('GET', '/admin/api/plugins/submission?id=' + again.json.submission.id, A)).json;
+    assert.deepStrictEqual(g2.changes.permsAdded, []);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: again.json.submission.id, decision: 'approve' } })).status, 200);
+  } finally { t.close(); }
+});

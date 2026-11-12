@@ -100,7 +100,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // ---------- submissions ----------
-  const pubSub = (s) => ({ id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, note: s.status === 'rejected' ? s.note || '' : '', createdAt: s.createdAt, repo: s.repo, tag: s.tag });
+  const pubSub = (s) => ({ id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, note: (s.status === 'rejected' || s.status === 'changes') ? s.note || '' : '', createdAt: s.createdAt, repo: s.repo, tag: s.tag });
   const mine = (d) => [...subs.values()].filter((s) => s.githubId === d.githubId).sort((a, b) => b.createdAt - a.createdAt).map(pubSub);
 
   function parseRepo(text, d) {
@@ -151,12 +151,33 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
-  const order = { pending: 0, approved: 1, published: 2, revoked: 3, rejected: 4, withdrawn: 5 };
+  const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
   const adminList = () => ({ paused, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
+  function lineDiff(a, b) {
+    const x = a.split('\n'), y = b.split('\n');
+    if (x.length > 1500 || y.length > 1500) return { tooBig: true, lines: [] };
+    const n = x.length, m = y.length, L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+    for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const all = []; let i = 0, j = 0;
+    while (i < n && j < m) { if (x[i] === y[j]) { all.push({ t: ' ', s: x[i] }); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) all.push({ t: '-', s: x[i++] }); else all.push({ t: '+', s: y[j++] }); }
+    while (i < n) all.push({ t: '-', s: x[i++] }); while (j < m) all.push({ t: '+', s: y[j++] });
+    const keep = new Array(all.length).fill(false);
+    all.forEach((l, k) => { if (l.t !== ' ') for (let q = Math.max(0, k - 2); q <= Math.min(all.length - 1, k + 2); q++) keep[q] = true; });
+    const lines = []; let skipped = false;
+    all.forEach((l, k) => { if (keep[k]) { if (skipped) lines.push({ t: '~', s: '…' }); skipped = false; lines.push({ t: l.t, s: l.s.slice(0, 300) }); } else skipped = true; });
+    return { tooBig: false, lines: lines.slice(0, 600), added: all.filter((l) => l.t === '+').length, removed: all.filter((l) => l.t === '-').length };
+  }
+  function changesSince(s) {
+    const prev = [...subs.values()].filter((o) => o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId === s.githubId && ['published', 'approved'].includes(o.status) && o.createdAt < s.createdAt).sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (!prev) return null;
+    const pp = prev.manifest.permissions || [], cp = s.manifest.permissions || [], pd = (prev.manifest.network && prev.manifest.network.domains) || prev.manifest.domains || [], cd = (s.manifest.network && s.manifest.network.domains) || s.manifest.domains || [];
+    return { version: prev.manifest.version, status: prev.status, permsAdded: cp.filter((x) => !pp.includes(x)), permsRemoved: pp.filter((x) => !cp.includes(x)), domainsAdded: cd.filter((x) => !pd.includes(x)), code: lineDiff(String(prev.entrySource || ''), String(s.entrySource || '')), manifest: lineDiff(String(prev.manifestRaw || ''), String(s.manifestRaw || '')) };
+  }
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -171,6 +192,10 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!['pending', 'approved'].includes(s.status)) return { status: 400, error: 'This submission cannot be rejected now.' };
       if (note.length < 3) return { status: 400, error: 'Write a short reason (at least 3 characters). The developer will see it.' };
       s.status = 'rejected';
+    } else if (decision === 'changes') {
+      if (s.status !== 'pending') return { status: 400, error: 'Only a waiting submission can be sent back for changes.' };
+      if (note.length < 3) return { status: 400, error: 'Say what should change (at least 3 characters). The developer will see it.' };
+      s.status = 'changes';
     } else return { status: 400, error: 'Bad request.' };
     s.note = note; s.reviewedBy = String(by || '').slice(0, 40); s.reviewedAt = now(); s.updatedAt = now(); save('sub', s);
     return { status: 200, ok: true };
