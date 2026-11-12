@@ -153,6 +153,21 @@
   </section>
 
   <section class="docsec">
+    <h2>5b. Options the owner can change</h2>
+    <p>Add <code>"settings"</code> to <code>turbofex-plugin.json</code> and the bot builds the screens for you (<code>.plugin options your-plugin</code> and <code>.plugin option your-plugin key value</code>). No permission is needed. Your code reads the values from <code>ctx.settings</code> (for example <code>ctx.settings.greeting</code>); they are always valid and always there, because the default is used when nothing was set.</p>
+    <pre class="gcode" tabindex="0">"settings": [
+  { "key": "greeting", "type": "text", "label": "Greeting", "default": "hello", "maxLength": 20, "perGroup": true },
+  { "key": "times", "type": "number", "label": "Repeat", "default": 1, "min": 1, "max": 5 },
+  { "key": "shout", "type": "toggle", "label": "Shout", "default": false },
+  { "key": "mood", "type": "choice", "label": "Mood", "default": "calm", "options": ["calm", "happy"] }
+]</pre>
+    <ul>
+      <li>Up to 10 options. A <code>key</code> is a lowercase letter followed by letters and numbers (up to 20). A <code>label</code> is up to 60 characters, an optional <code>description</code> up to 120.</li>
+      <li>Types: <code>text</code> (plain text, <code>maxLength</code> 1 to 200), <code>number</code> (<code>min</code> and <code>max</code>), <code>toggle</code> (true or false) and <code>choice</code> (2 to 10 different <code>options</code>). The <code>default</code> must fit.</li>
+      <li><code>"perGroup": true</code> lets the owner give one group its own value (by using the command inside that group). Without it the value is the same everywhere.</li>
+      <li>The owner's choices are kept when the plugin updates. A saved value that no longer fits the new definition is ignored and the default is used.</li>
+    </ul>
+
     <h2>6. The limits</h2>
     <ul class="drules">
       <li>Each call may use about 1.5 seconds of computing time and 5 seconds in total, and 32 MB of memory.</li>

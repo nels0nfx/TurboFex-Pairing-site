@@ -471,3 +471,10 @@ test('backup download: owner only, one file with everything, nothing secret in i
     assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.export'));
   } finally { t.close(); }
 });
+
+test('settings in a submitted manifest are checked with the same rules as the bot', () => {
+  const good = [{ key: 'greeting', type: 'text', label: 'Greeting', default: 'hello', maxLength: 20, perGroup: true }, { key: 'times', type: 'number', label: 'Repeat', default: 1, min: 1, max: 5 }, { key: 'shout', type: 'toggle', label: 'Shout', default: false }, { key: 'mood', type: 'choice', label: 'Mood', default: 'calm', options: ['calm', 'happy'] }];
+  assert.strictEqual(checkPlugin(manifest({ settings: good }), CODE).ok, true);
+  for (const bad of ['nope', [{ key: 'Bad', type: 'text', label: 'x', default: '' }], [{ key: 'aa', type: 'file', label: 'x', default: 'a' }], [{ key: 'aa', type: 'number', label: 'x', default: 9, min: 1, max: 5 }], [{ key: 'aa', type: 'toggle', label: 'x', default: 'yes' }], [{ key: 'aa', type: 'choice', label: 'x', default: 'c', options: ['a', 'b'] }], [{ key: 'aa', type: 'choice', label: 'x', default: 'a', options: ['a'] }], [{ key: 'aa', type: 'text', label: 'x', default: 'long text here', maxLength: 5 }], [{ key: 'aa', type: 'text', label: '', default: 'a' }], Array.from({ length: 11 }, (_, i) => ({ key: 'k' + i + 'x', type: 'toggle', label: 'x', default: true }))])
+    assert.strictEqual(checkPlugin(manifest({ settings: bad }), CODE).ok, false, JSON.stringify(bad).slice(0, 60));
+});

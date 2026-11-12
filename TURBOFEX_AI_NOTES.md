@@ -270,3 +270,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 34. v2.37.0 - new permission chat.react (site side of bot v1.4.8)
 - `registry.js` PERMS now has `chat.react` (low risk), so submissions that use it pass `plugin-check.js` (it reads PERMS) and the Plugins page shows its text. The plugin guide documents `ctx.react`, `tfx.storage.delete` and `tfx.storage.list`. Keep PERMS in step with the bot's `core/plugins/manifest.js` PERMISSIONS.
 - Version history add: **v2.37.0**.
+
+## 35. v2.38.0 - plugin settings in the manifest (site side of bot v1.5.0)
+- `plugin-check.js` now validates `settings` in a submitted manifest with the same rules as the bot's `core/plugins/manifest.js` (up to 10; types text/number/toggle/choice; key, label, default, limits; optional perGroup). Keep the two in step. The plugin guide has a new section 5b. Settings need no permission and are not part of the permission/risk screens.
+- Bot side (v1.5.0): owner commands `.plugin options <name>` and `.plugin option <name> <key> <value|reset>` (NOT `.plugin set`, which already sets the plugin limits); the plugin reads `ctx.settings`; values stored in `data/plugins.json` under the plugin's record (`settings.values`, `settings.groups[jid]`), kept across updates.
+- Version history add: **v2.38.0**.

@@ -7,6 +7,7 @@ const { PERMS } = require('./registry');
 const PERMISSIONS = Object.keys(PERMS);
 const EVENTS = { message: 'events.message', 'member.join': 'events.members', 'member.leave': 'events.members' };
 const WHO = ['everyone', 'admin', 'owner'];
+const reKey = /^[a-z][a-z0-9]{1,19}$/, SETTING_TYPES = ['text', 'number', 'toggle', 'choice'];
 const reId = /^[a-z0-9-]{3,32}$/, reCmd = /^[a-z0-9]{2,20}$/, reSemver = /^\d+\.\d+\.\d+$/;
 const reHost = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const MAX_ENTRY = 1024 * 1024;
@@ -42,6 +43,38 @@ function checkPlugin(manifestRaw, entrySource) {
     for (const n of [c.name, ...(Array.isArray(c.aliases) ? c.aliases : [])]) { if (typeof n !== 'string' || !reCmd.test(n)) { bad('bad command name: ' + String(n).slice(0, 20)); continue; } if (names.has(n)) bad('command name used twice: ' + n); names.add(n); }
     if (!WHO.includes(c.who)) bad('command ' + c.name + ': who must be everyone, admin or owner');
     if (typeof c.description !== 'string' || !c.description.trim() || c.description.length > 120) bad('command ' + c.name + ': description is required (up to 120 characters)');
+  }
+  // settings: options the owner can change with `.plugin option` (the bot builds the screens, the plugin has no settings code). Keep in step with the pair site's plugin-check.js
+  const setts = Array.isArray(m.settings) ? m.settings : [];
+  if (m.settings !== undefined && !Array.isArray(m.settings)) bad('settings must be a list');
+  if (setts.length > 10) bad('too many settings (up to 10)');
+  const outSetts = []; const seenKeys = new Set();
+  for (const t of setts.slice(0, 10)) {
+    if (!t || typeof t !== 'object' || typeof t.key !== 'string' || !reKey.test(t.key) || seenKeys.has(t.key)) { bad('a setting needs its own key: a lowercase letter, then letters and numbers (up to 20)'); continue; }
+    seenKeys.add(t.key); const k = t.key;
+    if (!SETTING_TYPES.includes(t.type)) { bad('setting ' + k + ': type must be text, number, toggle or choice'); continue; }
+    if (typeof t.label !== 'string' || !t.label.trim() || t.label.length > 60) bad('setting ' + k + ': label is required (up to 60 characters)');
+    if (t.description !== undefined && (typeof t.description !== 'string' || t.description.length > 120)) bad('setting ' + k + ': description is too long (up to 120 characters)');
+    if (t.perGroup !== undefined && typeof t.perGroup !== 'boolean') bad('setting ' + k + ': perGroup must be true or false');
+    const o = { key: k, type: t.type, label: String(t.label || '').trim().slice(0, 60), description: String(t.description || '').slice(0, 120), perGroup: t.perGroup === true };
+    if (t.type === 'toggle') { if (typeof t.default !== 'boolean') bad('setting ' + k + ': default must be true or false'); o.default = t.default === true; }
+    else if (t.type === 'number') {
+      const lo = t.min === undefined ? 0 : t.min; const hi = t.max === undefined ? 1000000 : t.max;
+      if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo > hi || Math.abs(lo) > 1e9 || Math.abs(hi) > 1e9) bad('setting ' + k + ': min and max are not valid');
+      else if (typeof t.default !== 'number' || !Number.isFinite(t.default) || t.default < lo || t.default > hi) bad('setting ' + k + ': default must be a number between min and max');
+      o.min = lo; o.max = hi; o.default = t.default;
+    } else if (t.type === 'choice') {
+      const opts = Array.isArray(t.options) ? t.options : [];
+      if (opts.length < 2 || opts.length > 10 || opts.some((x) => typeof x !== 'string' || !x.trim() || x.length > 30) || new Set(opts.map((x) => x.toLowerCase())).size !== opts.length) bad('setting ' + k + ': options must be 2 to 10 different short texts');
+      else if (typeof t.default !== 'string' || !opts.includes(t.default)) bad('setting ' + k + ': default must be one of the options');
+      o.options = opts.slice(0, 10); o.default = t.default;
+    } else {
+      const max = t.maxLength === undefined ? 100 : t.maxLength;
+      if (!Number.isInteger(max) || max < 1 || max > 200) bad('setting ' + k + ': maxLength must be 1-200');
+      else if (typeof t.default !== 'string' || t.default.length > max || /[\u0000-\u001f\u007f]/.test(t.default)) bad('setting ' + k + ': default must be plain text within maxLength');
+      o.maxLength = max; o.default = t.default;
+    }
+    outSetts.push(o);
   }
   const sched = Array.isArray(m.schedules) ? m.schedules : [];
   if (sched.length) { if (!perms || !perms.includes('schedule')) bad('schedules need the schedule permission'); for (const s of sched.slice(0, 5)) if (!s || !reCmd.test(String(s.id)) || !Number.isInteger(s.everyMinutes) || s.everyMinutes < 1 || s.everyMinutes > 10080) bad('a schedule is not valid'); if (sched.length > 5) bad('too many schedules (up to 5)'); }
