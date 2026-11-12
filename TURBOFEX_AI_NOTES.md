@@ -244,3 +244,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Admin: Plugins > "Ratings and reviews": hide/show one rating (hidden = not shown and not counted). Routes `plugins/reviews`, `plugins/review-hide`; audited.
 - privacy.html says ratings and reviews are public with the GitHub username.
 - Version history add: **v2.32.0**.
+
+## 30. v2.33.0 - plugin reports (first gap from the final audit)
+- Anyone signed in with GitHub can press "Report this plugin" on a plugin card (reason from a fixed list + optional note up to 300 characters, cleaned like reviews). One report per person per plugin (sending again replaces it and opens it again); max 10 new reports per person per day; only plugins in the store.
+- Storage: one record per plugin, file `data/devcentre/rep_<pluginId>.json`, Supabase key `dc:rep:<pluginId>`.
+- Routes: `POST /api/dev/report {plugin, reason, text}` (header `x-requested-with: tfx`); admin `GET plugins/reports`, `POST plugins/report-set {plugin, githubId, status: open|closed}`; audited as `plugin.report.close/reopen`. Admin: Plugins > Reports (open ones first). Reports are never public. Reports do not remove a plugin by themselves: the owner uses Withdraw.
+- privacy.html mentions reports. Version history add: **v2.33.0**.

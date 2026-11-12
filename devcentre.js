@@ -29,17 +29,18 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 
   // ---------- records (small files, copied to Supabase when it is on) ----------
-  const devs = new Map(), subs = new Map(), ratings = new Map();   // ratings: plugin id -> { pluginId, votes: { githubId: { stars, text, login, at, hidden } } }
+  const devs = new Map(), subs = new Map(), ratings = new Map(), reports = new Map();   // reports: plugin id -> { pluginId, items: { githubId: { reason, text, login, at, status } } }   // ratings: plugin id -> { pluginId, votes: { githubId: { stars, text, login, at, hidden } } }
   for (const f of fs.readdirSync(dir)) {
     try {
       const v = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
       if (/^dev_\d+\.json$/.test(f) && v && v.githubId) devs.set(String(v.githubId), v);
       else if (/^sub_[a-f0-9]{8}\.json$/.test(f) && v && v.id) subs.set(v.id, v);
       else if (/^rat_[a-z0-9-]{3,32}\.json$/.test(f) && v && v.pluginId && v.votes) ratings.set(v.pluginId, v);
+      else if (/^rep_[a-z0-9-]{3,32}\.json$/.test(f) && v && v.pluginId && v.items) reports.set(v.pluginId, v);
     } catch (err) { /* a damaged file is skipped */ }
   }
   function save(kind, rec) {
-    const name = kind === 'dev' ? 'dev_' + rec.githubId : kind === 'rat' ? 'rat_' + rec.pluginId : 'sub_' + rec.id;
+    const name = kind === 'dev' ? 'dev_' + rec.githubId : kind === 'rat' ? 'rat_' + rec.pluginId : kind === 'rep' ? 'rep_' + rec.pluginId : 'sub_' + rec.id;
     const f = path.join(dir, name + '.json'), tmp = f + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
     if (cloud && cloud.pushKv) cloud.pushKv('dc:' + name.replace('_', ':'), rec);
@@ -219,6 +220,31 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     v.hidden = hide === true; save('rat', rec); return { status: 200, ok: true };
   }
 
+  // ---------- reports: a signed-in person tells you a plugin is a problem; you see them in the admin dashboard ----------
+  const REASONS = { harmful: 'Harmful or dangerous', spam: 'Spam or unwanted messages', stealing: 'Takes data or does things it did not say', copy: 'Copies someone else\'s work', broken: 'Does not work', other: 'Something else' };
+  async function report(d, b, listed) {
+    const id = String(b.plugin || '');
+    if (!rePlug.test(id)) return { status: 400, error: 'Unknown plugin.' };
+    if (!Object.prototype.hasOwnProperty.call(REASONS, b.reason)) return { status: 400, error: 'Choose a reason.' };
+    if (!(await listed(id))) return { status: 404, error: 'That plugin is not in the store.' };
+    let rec = reports.get(id); if (!rec) { rec = { pluginId: id, items: {} }; reports.set(id, rec); }
+    const old = rec.items[d.githubId];
+    if (!old && Object.keys(rec.items).length >= MAX_VOTES) return { status: 429, error: 'This plugin has reached the limit of reports.' };
+    const mineToday = [...reports.values()].reduce((n, r) => n + ((r.items[d.githubId] && now() - r.items[d.githubId].at < 86400000) ? 1 : 0), 0);
+    if (!old && mineToday >= 10) return { status: 429, error: 'You have sent many reports today. Please try again tomorrow.' };
+    rec.items[d.githubId] = { reason: b.reason, text: clean(b.text), login: d.login, at: now(), status: 'open' };   // reporting again replaces the earlier report and opens it again
+    save('rep', rec);
+    return { status: 200, ok: true };
+  }
+  const adminReports = () => { const out = []; for (const r of reports.values()) for (const [gid, v] of Object.entries(r.items)) out.push({ plugin: r.pluginId, githubId: Number(gid), login: v.login, reason: v.reason, reasonText: REASONS[v.reason] || v.reason, text: v.text, at: v.at, status: v.status }); return out.sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.at - a.at).slice(0, 300); };
+  const openReports = () => adminReports().filter((r) => r.status === 'open').length;
+  function adminReportSet(plugin, githubId, status) {
+    const rec = reports.get(String(plugin)), v = rec && rec.items[String(githubId)];
+    if (!v) return { status: 404, error: 'Not found.' };
+    if (status !== 'open' && status !== 'closed') return { status: 400, error: 'Bad request.' };
+    v.status = status; save('rep', rec); return { status: 200, ok: true };
+  }
+
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
     const all = [...subs.values()].filter((s) => s.status === 'published' && s.manifest.id === pluginId);
@@ -282,7 +308,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
       return send(res, 200, rePlug.test(id) ? { rating: ratingOf(id), reviews: reviewsOf(id) } : { rating: null, reviews: [] }), true;
     }
-    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate') {
+    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report') {
       if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
       // a form on another website cannot send this header, and the cookie is SameSite=Lax: together they stop cross-site requests
       let sameSite = req.headers['x-requested-with'] === 'tfx';
@@ -293,7 +319,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
       if (limited('devpost', ip, 30, 10 * 60 * 1000)) return send(res, 429, { error: 'Please slow down a little.' }), true;
       let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : withdraw(d, b.id);
+      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : withdraw(d, b.id);
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 
@@ -311,7 +337,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, _subs: subs, _devs: devs };
+  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

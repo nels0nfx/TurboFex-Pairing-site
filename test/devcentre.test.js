@@ -371,3 +371,31 @@ test('sign in from the Plugins page lands back on the Plugins page', async () =>
     assert.strictEqual(b2.loc, '/developers', 'any other value goes to the Developer Centre');
   } finally { t.close(); }
 });
+
+test('reports: signed-in people report a plugin, the owner sees and closes them', async () => {
+  const view = { updated: 'x', total: 1, plugins: [{ id: 'hello-plugin', name: 'Hello', description: 'd', author: 'A', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const rep = (c, body) => t.req('POST', '/api/dev/report', { ...t.dev(c), body });
+    const bob = await t.signIn('bob');
+    assert.strictEqual((await t.req('POST', '/api/dev/report', { headers: { 'x-requested-with': 'tfx' }, body: { plugin: 'hello-plugin', reason: 'spam' } })).status, 401, 'signed out');
+    assert.strictEqual((await t.req('POST', '/api/dev/report', { cookie: bob, body: { plugin: 'hello-plugin', reason: 'spam' } })).status, 403, 'needs the header');
+    assert.strictEqual((await rep(bob, { plugin: 'hello-plugin', reason: 'nope' })).status, 400);
+    assert.strictEqual((await rep(bob, { plugin: 'hello-plugin', reason: '__proto__' })).status, 400);
+    assert.strictEqual((await rep(bob, { plugin: '../x', reason: 'spam' })).status, 400);
+    assert.strictEqual((await rep(bob, { plugin: 'nothere-plugin', reason: 'spam' })).status, 404);
+    assert.strictEqual((await rep(bob, { plugin: 'hello-plugin', reason: 'spam', text: '<b>bad</b>\u202e ' + 'x'.repeat(400) })).status, 200);
+    assert.strictEqual((await rep(bob, { plugin: 'hello-plugin', reason: 'harmful' })).status, 200);   // same person again: replaces
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/reports', { cookie: (await t.admin('mod')).cookie })).status, 403);
+    const list = (await t.req('GET', '/admin/api/plugins/reports', A)).json.reports;
+    assert.strictEqual(list.length, 1); assert.strictEqual(list[0].reason, 'harmful'); assert.strictEqual(list[0].status, 'open'); assert.strictEqual(list[0].login, 'bob');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/report-set', { ...A, body: { plugin: 'hello-plugin', githubId: list[0].githubId, status: 'closed' } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/reports', A)).json.reports[0].status, 'closed');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/report-set', { ...A, body: { plugin: 'hello-plugin', githubId: list[0].githubId, status: 'x' } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/report-set', { ...A, body: { plugin: 'hello-plugin', githubId: 999, status: 'closed' } })).status, 404);
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.report.close'));
+    await rep(bob, { plugin: 'hello-plugin', reason: 'spam' });   // reporting again opens it again
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/reports', A)).json.reports[0].status, 'open');
+  } finally { t.close(); }
+});

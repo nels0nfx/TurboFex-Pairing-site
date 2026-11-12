@@ -451,13 +451,14 @@
           [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
       });
       n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
-      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews')));
+      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports')));
       return n;
     });
   }
   function vPluginOne(id) {
     if (id === '#devs') return vPluginDevs();
     if (id === '#reviews') return vPluginReviews();
+    if (id === '#reports') return vPluginReports();
     return api('GET', 'plugins/submission?id=' + encodeURIComponent(id)).then(function (s) {
       var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
       n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
@@ -503,6 +504,19 @@
           [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/review-hide', { plugin: r.plugin, githubId: r.githubId, hidden: !r.hidden }); }, r.hidden ? 'Shown again' : 'Hidden', function () { load(false); }); } }, r.hidden ? 'Show' : 'Hide')]);
       });
       n.appendChild(panel('Ratings', String(j.reviews.length), table(['Plugin', 'Stars', 'By', 'Review', 'State', 'Sent', ''], rows, 'Nobody has rated a plugin yet.')));
+      return n;
+    });
+  }
+  function vPluginReports() {
+    return api('GET', 'plugins/reports').then(function (j) {
+      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
+      n.appendChild(head('Reports', 'People who signed in with GitHub and reported a plugin. Open ones first. To remove a plugin, open it under Submissions and use Withdraw.', back));
+      var rows = j.reports.map(function (r) {
+        var open = r.status === 'open';
+        return row([{ l: 'Plugin', v: r.plugin }, { l: 'Reason', v: r.reasonText }, { l: 'Details', v: r.text || '(none)' }, { l: 'By', v: r.login }, { l: 'State', node: h('span', { class: 'tag ' + (open ? 'bad' : 'ok'), text: open ? 'open' : 'closed' }) }, { l: 'Sent', v: when(r.at) }],
+          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/report-set', { plugin: r.plugin, githubId: r.githubId, status: open ? 'closed' : 'open' }); }, open ? 'Closed' : 'Reopened', function () { load(false); }); } }, open ? 'Close' : 'Reopen')]);
+      });
+      n.appendChild(panel('Reports', String(j.reports.filter(function (r) { return r.status === 'open'; }).length) + ' open', table(['Plugin', 'Reason', 'Details', 'By', 'State', 'Sent', ''], rows, 'Nobody has reported a plugin.')));
       return n;
     });
   }

@@ -469,6 +469,14 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
         act(b.hidden ? 'plugin.review.hide' : 'plugin.review.show', String(b.plugin).slice(0, 32), 'rating by GitHub #' + String(b.githubId).slice(0, 12));
         json(res, 200, { ok: true }); return true;
       }
+      if (!post && route === 'plugins/reports') { json(res, 200, { reports: devcentre.adminReports() }); return true; }
+      if (post && route === 'plugins/report-set') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.adminReportSet(b.plugin, b.githubId, b.status);
+        if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        act(b.status === 'closed' ? 'plugin.report.close' : 'plugin.report.reopen', String(b.plugin).slice(0, 32), 'report by GitHub #' + String(b.githubId).slice(0, 12));
+        json(res, 200, { ok: true }); return true;
+      }
       if (post && route === 'plugins/revoke') {
         const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
         const r = devcentre.adminRevoke(b.id, b.reason, sess.user);

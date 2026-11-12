@@ -57,6 +57,23 @@
           f.appendChild(msg); box.appendChild(f);
         }
       }
+      if (me && me.user) {
+        var rb = el('button', 'dbtn ghost', 'Report this plugin'); rb.type = 'button';
+        rb.addEventListener('click', function () {
+          rb.hidden = true;
+          var f2 = el('div', 'pform'), sel = el('select', 'ptext'); sel.setAttribute('aria-label', 'Reason');
+          [['', 'Choose a reason'], ['harmful', 'Harmful or dangerous'], ['spam', 'Spam or unwanted messages'], ['stealing', 'Takes data or does things it did not say'], ['copy', 'Copies someone else\'s work'], ['broken', 'Does not work'], ['other', 'Something else']].forEach(function (o) { var op = el('option', null, o[1]); op.value = o[0]; sel.appendChild(op); });
+          var t2 = el('textarea', 'ptext'); t2.maxLength = 300; t2.rows = 3; t2.placeholder = 'What is wrong? (optional, up to 300 characters)'; t2.setAttribute('aria-label', 'Details');
+          var go = el('button', 'dbtn', 'Send report'); go.type = 'button'; var m2 = el('p', 'pmsg'); m2.setAttribute('role', 'alert'); m2.hidden = true;
+          go.addEventListener('click', function () {
+            if (!sel.value) { m2.textContent = 'Choose a reason first.'; m2.hidden = false; return; }
+            go.disabled = true; m2.hidden = true;
+            post('/api/dev/report', { plugin: p.id, reason: sel.value, text: t2.value }).then(function (x) { if (x.ok) { f2.textContent = ''; f2.appendChild(el('p', 'pdom', 'Thank you. The report was sent to the TurboFex owner.')); } else { m2.textContent = x.j.error || 'Could not send.'; m2.hidden = false; go.disabled = false; } }, function () { m2.textContent = 'The site could not be reached.'; m2.hidden = false; go.disabled = false; });
+          });
+          f2.appendChild(sel); f2.appendChild(t2); f2.appendChild(go); f2.appendChild(m2); box.appendChild(f2);
+        });
+        box.appendChild(rb);
+      }
       ((data && data.reviews) || []).forEach(function (v) {
         var it = el('div', 'prv'); var top = el('div', 'prv-t'); top.appendChild(el('span', 'prv-s', stars(v.stars))); top.appendChild(el('b', null, v.login)); top.appendChild(el('span', 'pdom', new Date(v.at).toLocaleDateString()));
         it.appendChild(top); it.appendChild(el('p', null, v.text)); box.appendChild(it);
