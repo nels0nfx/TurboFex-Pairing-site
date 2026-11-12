@@ -52,3 +52,6 @@
 .prv p { margin: 4px 0 0; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
 .prv-t { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .prv-s { color: var(--gold); letter-spacing: 1px; }
+
+.pdocbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 8px; }
+.pdoc { margin: 0 0 10px; padding: 12px 14px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.55; font-family: inherit; color: var(--text, inherit); background: rgba(255,255,255,.03); }

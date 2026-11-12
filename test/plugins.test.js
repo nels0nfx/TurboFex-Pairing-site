@@ -40,7 +40,7 @@ test('the list is read from the registry, the signature is checked, withdrawn pl
   assert.strictEqual(v.total, 3);
   const lock = v.plugins.find((p) => p.id === 'lock-plugin');
   assert.strictEqual(lock.version, '1.1.0'); assert.strictEqual(lock.permissions[0].risk, 'high'); assert.match(lock.permissions[0].text, /Remove members/);
-  assert.deepStrictEqual(Object.keys(v.plugins[0]).sort(), ['author', 'description', 'domains', 'history', 'id', 'name', 'permissions', 'publishedAt', 'version']); // no hashes or file names
+  assert.deepStrictEqual(Object.keys(v.plugins[0]).sort(), ['author', 'description', 'docs', 'domains', 'history', 'id', 'name', 'permissions', 'publishedAt', 'version']); // no hashes or file names
   const w = makeView({ plugins: { 'lock-plugin': INDEX.plugins['lock-plugin'] }, revoked: [{ id: 'lock-plugin', version: '1.1.0' }] });
   assert.strictEqual(w.plugins[0].version, '1.0.0'); // only the withdrawn version is hidden; an unknown permission is shown as medium
   assert.strictEqual(w.plugins[0].permissions[1].risk, 'medium');
@@ -98,4 +98,29 @@ test('both themes are covered and the page stays inside the screen on phones', (
 test('the list carries the version history, newest first', () => {
   const v = makeView({ format: 1, plugins: { 'multi-plug': { name: 'M', versions: { '1.0.0': { publishedAt: '2026-01-01' }, '1.2.0': { publishedAt: '2026-03-01' }, '1.1.0': { publishedAt: '2026-02-01' } } } } });
   assert.deepStrictEqual(v.plugins[0].history.map((h) => h.version), ['1.2.0', '1.1.0', '1.0.0']); assert.strictEqual(v.plugins[0].version, '1.2.0');
+});
+
+test('README and CHANGELOG: shown only when they match the fingerprint in the signed index', async () => {
+  const sha = (t) => crypto.createHash('sha256').update(Buffer.from(t)).digest('hex');
+  const README = '# Hello\nGreets people.\n', LOG = '1.0.0 first version\n';
+  const index = JSON.parse(JSON.stringify(INDEX)); const e = index.plugins['hello-plugin'].versions['1.0.0'];
+  e.readmeSha = sha(README); e.changelogSha = sha(LOG);
+  const store = { 'plugins/hello-plugin/1.0.0/README.md': README, 'plugins/hello-plugin/1.0.0/CHANGELOG.md': 'EVIL replaced text' };
+  const bytes = Buffer.from(JSON.stringify(index, null, 1)); const idxFiles = { 'index.json': bytes, 'index.json.sig': Buffer.from(sign(bytes)) };
+  const fetcher = async (url, max) => { const k = url.split('/').slice(-4).join('/'); if (store[k] !== undefined) return Buffer.from(store[k]); const f = url.split('/').pop(); if (idxFiles[f]) return idxFiles[f]; throw new Error('404'); };
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher });
+  const view = await reg.list(); const hello = view.plugins.find((p) => p.id === 'hello-plugin');
+  assert.deepStrictEqual(hello.docs, { readme: true, changelog: true }); assert.deepStrictEqual(view.plugins.find((p) => p.id === 'net-plugin').docs, { readme: false, changelog: false });
+  assert.strictEqual(await reg.doc('hello-plugin', '1.0.0', 'readme'), README);
+  assert.strictEqual(await reg.doc('hello-plugin', '1.0.0', 'changelog'), null, 'text that does not match the signed fingerprint is never shown');
+  assert.strictEqual(await reg.doc('net-plugin', '1.0.0', 'readme'), null, 'no document announced');
+  for (const bad of [['../x', '1.0.0', 'readme'], ['hello-plugin', '1.0', 'readme'], ['hello-plugin', '1.0.0', 'constructor'], ['hello-plugin', '1.0.0', '__proto__']]) assert.strictEqual(await reg.doc(...bad), null, JSON.stringify(bad));
+  // through the website
+  const t = await boot(reg);
+  try {
+    const ok = await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0&f=readme').then((r) => r.json()); assert.strictEqual(ok.text, README);
+    assert.strictEqual((await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0&f=changelog')).status, 404);
+    assert.strictEqual((await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0')).status, 404);
+    assert.deepStrictEqual((await fetch(t.base + '/api/plugins').then((r) => r.json())).plugins.find((p) => p.id === 'hello-plugin').docs, { readme: true, changelog: true });
+  } finally { t.close(); }
 });

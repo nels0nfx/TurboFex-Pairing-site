@@ -25,6 +25,13 @@ const PERMS = {
 const semverCmp = (a, b) => { const x = String(a).split('.').map(Number); const y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
+const reSha = { test: (x) => typeof x === 'string' && /^[0-9a-f]{64}$/.test(x) };
+// the fingerprints of the optional README.md / CHANGELOG.md of every version, taken from the SIGNED index
+function docShasOf(index) {
+  const m = new Map();
+  for (const [id, p] of Object.entries(index.plugins || {})) { if (!/^[a-z0-9-]{3,32}$/.test(id) || !p || typeof p.versions !== 'object') continue; for (const [v, e] of Object.entries(p.versions)) if (/^\d+\.\d+\.\d+$/.test(v) && e) m.set(id + '@' + v, { readme: reSha.test(e.readmeSha) ? e.readmeSha : '', changelog: reSha.test(e.changelogSha) ? e.changelogSha : '' }); }
+  return m;
+}
 function makeView(index) {
   const revoked = Array.isArray(index.revoked) ? index.revoked : [];
   const out = [];
@@ -38,6 +45,7 @@ function makeView(index) {
       permissions: (Array.isArray(e.permissions) ? e.permissions : []).slice(0, 12).map((k) => ({ key: str(k, 30), risk: (PERMS[k] || ['medium'])[0], text: (PERMS[k] || [0, 'Another permission'])[1] })),
       history: versions.slice().reverse().slice(0, 10).map((v) => ({ version: v, publishedAt: str((p.versions[v] || {}).publishedAt, 40) })),
       domains: (Array.isArray(e.domains) ? e.domains : []).slice(0, 10).map((d) => str(d, 80)).filter(Boolean),
+      docs: { readme: reSha.test(e.readmeSha), changelog: reSha.test(e.changelogSha) },
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
@@ -54,7 +62,7 @@ function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {
     if (buf.length > max) throw new Error('too big');
     return buf;
   });
-  let cache = null; let pending = null;
+  let cache = null; let pending = null; let docShas = new Map(); const docCache = new Map();
 
   async function load() {
     const bytes = await get(base + 'index.json', 1024 * 1024);
@@ -64,6 +72,7 @@ function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {
     if (!ok) throw new Error('bad signature');
     const index = JSON.parse(bytes.toString('utf8'));
     if (!index || index.format !== 1 || typeof index.plugins !== 'object') throw new Error('bad index');
+    docShas = docShasOf(index);
     return makeView(index);
   }
   async function list() {
@@ -75,6 +84,17 @@ function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {
     }
     return pending;
   }
-  return { list };
+  // README.md or CHANGELOG.md of one version, read from the registry and accepted only when it matches the fingerprint in the signed index
+  const FILES = { readme: 'README.md', changelog: 'CHANGELOG.md' };
+  async function doc(id, version, which) {
+    if (!/^[a-z0-9-]{3,32}$/.test(String(id)) || !/^\d+\.\d+\.\d+$/.test(String(version)) || !Object.prototype.hasOwnProperty.call(FILES, which)) return null;
+    await list();
+    const want = (docShas.get(id + '@' + version) || {})[which]; if (!want) return null;
+    if (docCache.has(want)) return docCache.get(want);
+    const buf = await get(base + `plugins/${id}/${version}/${FILES[which]}`, 16 * 1024 + 1);
+    if (crypto.createHash('sha256').update(buf).digest('hex') !== want) return null;
+    const text = buf.toString('utf8'); if (docCache.size > 200) docCache.clear(); docCache.set(want, text); return text;
+  }
+  return { list, doc };
 }
-module.exports = { createRegistry, makeView, PERMS, PUBLIC_KEY };
+module.exports = { createRegistry, makeView, docShasOf, PERMS, PUBLIC_KEY };

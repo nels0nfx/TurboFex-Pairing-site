@@ -478,3 +478,31 @@ test('settings in a submitted manifest are checked with the same rules as the bo
   for (const bad of ['nope', [{ key: 'Bad', type: 'text', label: 'x', default: '' }], [{ key: 'aa', type: 'file', label: 'x', default: 'a' }], [{ key: 'aa', type: 'number', label: 'x', default: 9, min: 1, max: 5 }], [{ key: 'aa', type: 'toggle', label: 'x', default: 'yes' }], [{ key: 'aa', type: 'choice', label: 'x', default: 'c', options: ['a', 'b'] }], [{ key: 'aa', type: 'choice', label: 'x', default: 'a', options: ['a'] }], [{ key: 'aa', type: 'text', label: 'x', default: 'long text here', maxLength: 5 }], [{ key: 'aa', type: 'text', label: '', default: 'a' }], Array.from({ length: 11 }, (_, i) => ({ key: 'k' + i + 'x', type: 'toggle', label: 'x', default: true }))])
     assert.strictEqual(checkPlugin(manifest({ settings: bad }), CODE).ok, false, JSON.stringify(bad).slice(0, 60));
 });
+
+test('README and CHANGELOG next to the plugin: fetched at the tag, limits enforced, shown to the reviewer, handed to the phone command with fingerprints', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn('good'); const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const base = 'alice/hello/v1.0.0/';
+    t.gh.files.set(base + 'README.md', '# Hello\nGreets people. <b>not html</b>\n'); t.gh.files.set(base + 'CHANGELOG.md', '1.0.0 first\n');
+    // too big and not plain text are refused with a plain message
+    t.gh.files.set(base + 'README.md', 'x'.repeat(16 * 1024 + 1)); let r = await send(t, c, GOOD); assert.strictEqual(r.status, 400); assert.match(r.json.error, /README\.md is bigger than 16 KB/);
+    t.gh.files.set(base + 'README.md', 'a\u0000b'); r = await send(t, c, GOOD); assert.strictEqual(r.status, 400); assert.match(r.json.error, /plain text/);
+    t.gh.files.set(base + 'README.md', 'é'.repeat(9000)); r = await send(t, c, GOOD); assert.strictEqual(r.status, 400, 'bytes are counted, not letters');
+    t.gh.files.set(base + 'README.md', '# Hello\nGreets people. <b>not html</b>\n');
+    r = await send(t, c, GOOD); assert.strictEqual(r.status, 200, r.text);
+    const id = r.json.submission.id;
+    const g = (await t.req('GET', '/admin/api/plugins/submission?id=' + id, A)).json; assert.match(g.readme, /Greets people/); assert.strictEqual(g.changelog, '1.0.0 first\n');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id, decision: 'approve' } })).status, 200);
+    const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json.plugins[0];
+    const sha = (x) => require('crypto').createHash('sha256').update(Buffer.from(x)).digest('hex');
+    assert.strictEqual(pull.readmeSha, sha(pull.readme)); assert.strictEqual(pull.changelogSha, sha(pull.changelog)); assert.strictEqual(pull.changelog, '1.0.0 first\n');
+    // a plugin without documents still works and the fields are simply absent
+    t.put('alice', 'hello', 'v1.1.0', '', manifest({ version: '1.1.0' }), CODE);
+    const r2 = await send(t, c, { ...GOOD, tag: 'v1.1.0' }); assert.strictEqual(r2.status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: r2.json.submission.id, decision: 'approve' } })).status, 200);
+    const list = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json.plugins;
+    assert.strictEqual(list.find((x) => x.version === '1.1.0').readme, undefined);
+  } finally { t.close(); }
+});

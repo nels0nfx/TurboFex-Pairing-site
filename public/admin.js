@@ -488,6 +488,7 @@
       }
       n.appendChild(panel('turbofex-plugin.json', null, h('pre', { class: 'apre', tabindex: '0', text: s.manifestRaw })));
       n.appendChild(panel('Plugin code', String(s.entrySource.split('\n').length) + ' lines', h('pre', { class: 'apre tall', tabindex: '0', text: s.entrySource })));
+      [['README.md', s.readme], ['CHANGELOG.md', s.changelog]].forEach(function (d) { if (d[1]) n.appendChild(panel(d[0], String(d[1].split('\n').length) + ' lines (shown on the Plugins page as plain text)', h('pre', { class: 'apre tall', tabindex: '0', text: d[1] }))); });
       var bar = h('div', { class: 'abar' });
       if (s.status === 'pending') {
         bar.appendChild(h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Approve ' + s.name + ' ' + s.version + '?', text: 'It then waits for your phone command (node tools/registry.js pull). Nothing is published yet. You read the code above, and this approves exactly that code.', fields: [{ name: 'note', label: 'Private note (optional)' }], ok: 'Approve' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'approve', note: v.note }); }, 'Approved', function () { load(false); }); }); } }, 'Approve'));

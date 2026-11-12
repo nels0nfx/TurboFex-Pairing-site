@@ -220,6 +220,16 @@ function createApp(opts = {}) {
     // what every page asks once: is the site paused, and is there an announcement (set in the admin dashboard)
     if (req.method === 'GET' && p === '/api/status') return send(res, 200, admin.publicStatus());
 
+    // README.md / CHANGELOG.md of a plugin version (only text that matches the signed index)
+    if (req.method === 'GET' && p === '/api/plugin-doc') {
+      if (limited('plugindoc', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
+      if (devcentre.isPaused()) return send(res, 200, { paused: true });
+      try {
+        const u = new URL(req.url, 'http://x'); const text = await registry.doc(u.searchParams.get('id'), u.searchParams.get('v'), u.searchParams.get('f'));
+        return text === null ? send(res, 404, { error: 'Not found.' }) : send(res, 200, { text });
+      } catch (err) { return send(res, 503, { error: 'This could not be loaded right now.' }); }
+    }
+
     // the plugin list (read from the signed registry; see registry.js)
     if (req.method === 'GET' && p === '/api/plugins') {
       if (limited('plugins', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });

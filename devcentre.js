@@ -130,6 +130,15 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       entrySource = await rawText(base + entryName, 1024 * 1024 + 1);
       if (entrySource === null) entrySource = '';
     } catch (err) { return { status: 502, error: /too big/.test(err.message) ? err.message : 'GitHub could not be reached just now. Please try again in a minute.' }; }
+    // optional README.md and CHANGELOG.md next to the plugin: plain text, up to 16 KB, only ever shown as text
+    const docs = {};
+    for (const [k, f] of [['readme', 'README.md'], ['changelog', 'CHANGELOG.md']]) {
+      let t = null;
+      try { t = await rawText(base + f, 16 * 1024); } catch (err) { if (/too big/.test(err.message)) return { status: 400, error: f + ' is bigger than 16 KB. Make it shorter.' }; return { status: 502, error: 'GitHub could not be reached just now. Please try again in a minute.' }; }
+      if (t === null || !t.trim()) continue;
+      if (Buffer.byteLength(t) > 16 * 1024 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ufffd]/.test(t)) return { status: 400, error: f + ' must be plain text (UTF-8) up to 16 KB.' };
+      docs[k] = t; docs[k + 'Sha'] = crypto.createHash('sha256').update(Buffer.from(t)).digest('hex');
+    }
     const c = checkPlugin(manifestRaw, entrySource);
     if (!c.ok) return { status: 400, error: 'The plugin cannot be accepted yet:', problems: c.errors };
     const { id, version } = c.manifest;
@@ -138,7 +147,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (s.githubId !== d.githubId && LIVE.includes(s.status)) return { status: 409, error: 'The plugin id "' + id + '" already belongs to another developer. Choose a different id.' };
       if (s.githubId === d.githubId && s.manifest.version === version && LIVE.includes(s.status)) return { status: 409, error: 'Version ' + version + ' of "' + id + '" was already sent. Raise the version number for a new release.' };
     }
-    const s = { id: crypto.randomBytes(4).toString('hex'), githubId: d.githubId, login: d.login, repo: `https://github.com/${r.owner}/${r.repo}`, tag, folder, status: 'pending', createdAt: now(), updatedAt: now(), manifest: c.manifest, manifestRaw, entrySource, manifestSha: c.manifestSha, entrySha: c.entrySha, flags: c.flags, risk: c.risk, note: '', reviewedBy: '' };
+    const s = { id: crypto.randomBytes(4).toString('hex'), githubId: d.githubId, login: d.login, repo: `https://github.com/${r.owner}/${r.repo}`, tag, folder, status: 'pending', createdAt: now(), updatedAt: now(), manifest: c.manifest, manifestRaw, entrySource, manifestSha: c.manifestSha, entrySha: c.entrySha, ...docs, flags: c.flags, risk: c.risk, note: '', reviewedBy: '' };
     subs.set(s.id, s); save('sub', s);
     return { status: 200, submission: pubSub(s), flags: c.flags.length };
   }
@@ -177,7 +186,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -293,7 +302,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- the phone command ----------
   const pullAuthorized = (req) => { const m = /^Bearer (.{24,200})$/.exec(String(req.headers.authorization || '')); return pullOn && !!m && eq(m[1], pullToken); };
-  const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
+  const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, ...(s.readme ? { readme: s.readme, readmeSha: s.readmeSha } : {}), ...(s.changelog ? { changelog: s.changelog, changelogSha: s.changelogSha } : {}), developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
   const revocationsForPull = () => [...subs.values()].filter((s) => s.revoke && !s.revoke.done).map((s) => ({ submission: s.id, id: s.manifest.id, version: s.manifest.version, reason: s.revoke.reason }));
   function markRevoked(ids) {
     let n = 0;
