@@ -113,7 +113,8 @@
       <thead><tr><th>Permission</th><th>What it allows</th><th>Risk</th></tr></thead>
       <tbody>
         <tr><td><code>chat.send</code></td><td><code>c.reply</code> and sending messages</td><td>Low</td></tr>
-        <tr><td><code>storage</code></td><td><code>tfx.storage.get / set</code>: its own small notes</td><td>Low</td></tr>
+        <tr><td><code>storage</code></td><td><code>tfx.storage.get / set / delete / list</code>: its own small notes</td><td>Low</td></tr>
+        <tr><td><code>chat.react</code></td><td><code>ctx.react</code>: react with one emoji to the message that used it</td><td>Low</td></tr>
         <tr><td><code>group.read</code></td><td><code>tfx.group.info()</code>: group name, size, number of admins</td><td>Low</td></tr>
         <tr><td><code>schedule</code></td><td>run now and then (<code>schedules</code> in the manifest)</td><td>Low</td></tr>
         <tr><td><code>owner.notify</code></td><td><code>tfx.owner.notify(text)</code>: message the bot owner</td><td>Medium</td></tr>
@@ -129,7 +130,8 @@
   <section class="docsec">
     <h2>4. What you can call</h2>
     <ul class="drules">
-      <li><code>tfx.storage.get(key)</code> and <code>tfx.storage.set(key, value)</code>: text only. Up to 200 keys, 64,000 characters per value, 1 MB in total.</li>
+      <li><code>tfx.storage.get(key)</code> and <code>tfx.storage.set(key, value)</code>: text only. Up to 200 keys, 64,000 characters per value, 1 MB in total. <code>tfx.storage.delete(key)</code> removes a note and <code>tfx.storage.list()</code> gives the list of keys (sorted).</li>
+      <li><code>ctx.react(emoji)</code> (needs <code>chat.react</code>): reacts to the message that used the command or was heard by the listener. One emoji only (an empty text removes the reaction), 1 per call and 10 per minute. A plugin cannot react to any other message.</li>
       <li><code>tfx.net.fetch(url)</code> returns <code>{ status, text }</code> (first 256,000 characters). Only https, only the domains you listed, up to 3 requests per call, 5 seconds each. <code>tfx.net.fetchBytes(url)</code> returns <code>{ status, base64 }</code> (up to 1 MB), for pictures.</li>
       <li><code>tfx.media.send({ kind, data, mimetype, fileName, caption })</code>: <code>kind</code> is <code>image</code>, <code>sticker</code> (WebP) or <code>document</code>; <code>data</code> is base64, up to 1 MB. The bot checks that the file really is what you say. Up to 3 per call, 6 per minute.</li>
       <li><code>tfx.group.info()</code> returns <code>{ name, size, admins }</code> (inside a command in a group).</li>

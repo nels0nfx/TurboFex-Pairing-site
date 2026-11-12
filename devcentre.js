@@ -279,6 +279,9 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     v.status = status; save('rep', rec); return { status: 200, ok: true };
   }
 
+  // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
     const all = [...subs.values()].filter((s) => s.status === 'published' && s.manifest.id === pluginId);
@@ -372,7 +375,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, isPaused: () => paused, setPaused, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

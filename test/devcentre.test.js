@@ -455,3 +455,19 @@ test('ask for changes: sent back with a note, the developer can fix and resend t
     assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: again.json.submission.id, decision: 'approve' } })).status, 200);
   } finally { t.close(); }
 });
+
+test('backup download: owner only, one file with everything, nothing secret in it, audited', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn('good'); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE); await send(t, c, GOOD);
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/export', { cookie: (await t.admin('mod')).cookie })).status, 403);
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/export')).status >= 400, true, 'signed out');
+    const r = await t.req('GET', '/admin/api/plugins/export', { cookie: o.cookie });
+    assert.strictEqual(r.status, 200); assert.match(r.headers.headers.get('content-disposition') || '', /attachment; filename="turbofex-plugin-store-backup\.json"/);
+    const b = r.json; assert.strictEqual(b.format, 'turbofex-devcentre-backup-1');
+    assert.strictEqual(b.developers.length, 1); assert.strictEqual(b.submissions.length, 1); assert.ok(Array.isArray(b.ratings) && Array.isArray(b.reports));
+    assert.ok(!/token|secret|password/i.test(JSON.stringify({ ...b, submissions: [] })), 'no secrets in the records');
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.export'));
+  } finally { t.close(); }
+});

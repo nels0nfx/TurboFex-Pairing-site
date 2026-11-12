@@ -12,6 +12,7 @@ const PERMS = {
   'chat.send': ['low', 'Send messages in the chat where it is used'],
   storage: ['low', 'Keep its own small saved notes'],
   'group.read': ['low', 'See the group name and how many members and admins it has'],
+  'chat.react': ['low', 'React to the message that used it with an emoji'],
   'media.send': ['low', 'Send pictures, stickers and files in the chat where it is used'],
   schedule: ['medium', 'Run by itself on a timer'],
   'owner.notify': ['medium', 'Send the bot owner a short message now and then'],

@@ -452,7 +452,7 @@
           [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
       });
       n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
-      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports')));
+      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports'), ' ', h('a', { class: 'btn', href: '/admin/api/plugins/export', download: 'turbofex-plugin-store-backup.json' }, 'Download backup')));
       return n;
     });
   }

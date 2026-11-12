@@ -260,3 +260,13 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `adminGet` now returns `changes` (null for a first version): compared with the newest earlier published/approved version of the same plugin by the same developer: permissions added/removed, websites added, and a line diff (2 lines of context, max 600 lines, `tooBig` over 1500 lines) of the code and of turbofex-plugin.json (`lineDiff`, `changesSince` in devcentre.js). Admin shows it as a panel "What changed since <version>" with green/red lines (`.dadd/.ddel` in admin.css).
 - Not built from the audit item: a back-and-forth conversation (developer replies); this is one note from the owner per round.
 - Version history add: **v2.35.0**.
+
+## 33. v2.36.0 - backup download (fourth gap from the final audit)
+- Admin > Plugins > "Download backup": `GET /admin/api/plugins/export` (owner only, perm `plugins.review`) returns one JSON file `turbofex-plugin-store-backup.json` (format `turbofex-devcentre-backup-1`): developers, submissions (with the stored code), ratings, reports, pause state. Audited as `plugin.export`. There are no tokens or passwords in these records. It is a manual backup because the free Supabase plan has none.
+- NOT built (needs secrets or an outside service, decided with the owner first): automatic scheduled export to a private GitHub repository, and an outside keep-alive pinger (Render sleeps; Supabase pauses after a week idle). Suggested free option for the owner: a free uptime pinger (for example UptimeRobot) on the site address, which also keeps Supabase active because the site writes to it.
+- Bot v1.4.7 (separate zip): saved notes of a removed plugin are kept 30 days, then erased (`purgeOldNotes` in core/plugins/index.js, `removed` map in data/plugins.json).
+- Version history add: **v2.36.0**.
+
+## 34. v2.37.0 - new permission chat.react (site side of bot v1.4.8)
+- `registry.js` PERMS now has `chat.react` (low risk), so submissions that use it pass `plugin-check.js` (it reads PERMS) and the Plugins page shows its text. The plugin guide documents `ctx.react`, `tfx.storage.delete` and `tfx.storage.list`. Keep PERMS in step with the bot's `core/plugins/manifest.js` PERMISSIONS.
+- Version history add: **v2.37.0**.

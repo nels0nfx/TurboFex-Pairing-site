@@ -447,6 +447,10 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     if (route.startsWith('plugins/')) {
       if (!devcentre) { json(res, 404, { error: 'Not found.' }); return true; }
       if (!need('plugins.review')) return true;
+      if (!post && route === 'plugins/export') {
+        const all = devcentre.exportAll(); act('plugin.export', 'backup', `${all.developers.length} developers, ${all.submissions.length} submissions`);
+        json(res, 200, all, { 'Content-Disposition': 'attachment; filename="turbofex-plugin-store-backup.json"', 'Cache-Control': 'no-store' }); return true;
+      }
       if (!post && route === 'plugins/submissions') { json(res, 200, devcentre.adminList()); return true; }
       if (!post && route === 'plugins/devs') { json(res, 200, { developers: devcentre.adminDevs() }); return true; }
       if (!post && route === 'plugins/submission') {
