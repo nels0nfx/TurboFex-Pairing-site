@@ -223,6 +223,7 @@ function createApp(opts = {}) {
     // the plugin list (read from the signed registry; see registry.js)
     if (req.method === 'GET' && p === '/api/plugins') {
       if (limited('plugins', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
+      if (devcentre.isPaused()) return send(res, 200, { paused: true, total: 0, plugins: [] });
       try {
         const view = await registry.list();
         // add who sent each plugin and whether the owner verified them (kept on this site, not in the signed registry)

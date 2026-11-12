@@ -39,6 +39,15 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       else if (/^rep_[a-z0-9-]{3,32}\.json$/.test(f) && v && v.pluginId && v.items) reports.set(v.pluginId, v);
     } catch (err) { /* a damaged file is skipped */ }
   }
+  // the owner's pause switch: while paused the store shows nothing and nobody can send, rate or report (bots and the signed registry are not affected)
+  let paused = false;
+  try { paused = JSON.parse(fs.readFileSync(path.join(dir, 'switch.json'), 'utf8')).paused === true; } catch (err) { /* not set: open */ }
+  function setPaused(v) {
+    paused = v === true; const rec = { paused, at: now() };
+    const f = path.join(dir, 'switch.json'), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:switch', rec);
+    return paused;
+  }
   function save(kind, rec) {
     const name = kind === 'dev' ? 'dev_' + rec.githubId : kind === 'rat' ? 'rat_' + rec.pluginId : kind === 'rep' ? 'rep_' + rec.pluginId : 'sub_' + rec.id;
     const f = path.join(dir, name + '.json'), tmp = f + '.tmp';
@@ -143,7 +152,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, approved: 1, published: 2, revoked: 3, rejected: 4, withdrawn: 5 };
-  const adminList = () => ({ submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
@@ -314,6 +323,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       let sameSite = req.headers['x-requested-with'] === 'tfx';
       const o = req.headers.origin; if (o) { try { sameSite = sameSite && new URL(o).host === req.headers.host; } catch (err) { sameSite = false; } }
       if (!sameSite) return send(res, 403, { error: 'Blocked.' }), true;
+      if (paused && p !== '/api/dev/logout' && p !== '/api/dev/withdraw') return send(res, 503, { error: 'The plugin store is paused for a little while. Please try again later.' }), true;
       if (p === '/api/dev/logout') return res.setHeader('Set-Cookie', setCookie(DEV_COOKIE, 'x', 0, '/')), send(res, 200, { ok: true }), true;
       const d = devOf(req);
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
@@ -337,7 +347,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, isPaused: () => paused, setPaused, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

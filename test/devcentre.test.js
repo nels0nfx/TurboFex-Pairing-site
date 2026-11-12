@@ -399,3 +399,25 @@ test('reports: signed-in people report a plugin, the owner sees and closes them'
     assert.strictEqual((await t.req('GET', '/admin/api/plugins/reports', A)).json.reports[0].status, 'open');
   } finally { t.close(); }
 });
+
+test('pause switch: the store hides, sending/rating/reporting stop, withdraw and the phone command still work, it survives a restart', async () => {
+  const view = { updated: 'x', total: 1, plugins: [{ id: 'hello-plugin', name: 'Hello', description: 'd', author: 'A', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const bob = await t.signIn('bob');
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins.length, 1);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/pause', { cookie: (await t.admin('mod')).cookie, body: { paused: true } })).status, 403);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/pause', { ...A, body: { paused: 'yes' } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/pause', { ...A, body: { paused: true } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/admin/api/plugins/submissions', A)).json.paused, true);
+    const pub = (await t.req('GET', '/api/plugins')).json; assert.strictEqual(pub.paused, true); assert.strictEqual(pub.plugins.length, 0);
+    for (const [u, b] of [['/api/dev/rate', { plugin: 'hello-plugin', stars: 5 }], ['/api/dev/report', { plugin: 'hello-plugin', reason: 'spam' }], ['/api/dev/submit', { repo: 'https://github.com/bob/x', tag: 'v1.0.0' }]])
+      assert.strictEqual((await t.req('POST', u, { ...t.dev(bob), body: b })).status, 503, u);
+    assert.strictEqual((await t.req('POST', '/api/dev/logout', { ...t.dev(bob), body: {} })).status, 200, 'sign-out still works');
+    assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.store.pause'));
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/pause', { ...A, body: { paused: false } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins.length, 1);
+    assert.strictEqual((await t.req('POST', '/api/dev/rate', { ...t.dev(await t.signIn('bob')), body: { plugin: 'hello-plugin', stars: 5 } })).status, 200);
+  } finally { t.close(); }
+});

@@ -250,3 +250,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Storage: one record per plugin, file `data/devcentre/rep_<pluginId>.json`, Supabase key `dc:rep:<pluginId>`.
 - Routes: `POST /api/dev/report {plugin, reason, text}` (header `x-requested-with: tfx`); admin `GET plugins/reports`, `POST plugins/report-set {plugin, githubId, status: open|closed}`; audited as `plugin.report.close/reopen`. Admin: Plugins > Reports (open ones first). Reports are never public. Reports do not remove a plugin by themselves: the owner uses Withdraw.
 - privacy.html mentions reports. Version history add: **v2.33.0**.
+
+## 31. v2.34.0 - plugin store pause switch (second gap from the final audit)
+- Admin > Plugins: "Pause the store" / "Open the store again". State in `data/devcentre/switch.json` (Supabase key `dc:switch`, restored at boot). While paused: `/api/plugins` returns `{paused:true, plugins:[]}` (the Plugins page says it is paused), `/api/dev/submit|rate|report` answer 503. Still working: GitHub sign-in, sign-out, withdraw by a developer, the admin dashboard, the phone command routes `/api/registry/*`, and the signed registry itself, so bots and installed plugins are never affected. Audited as `plugin.store.pause/open`.
+- Version history add: **v2.34.0**.
