@@ -248,7 +248,7 @@ function createApp(opts = {}) {
     }
 
     // the Developer Centre: GitHub sign-in, plugin submissions, and the phone command's download (see devcentre.js)
-    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, statsOf: botstats.of, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
+    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews' || p === '/api/test-plugin') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, statsOf: botstats.of, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
 
     if (p.startsWith('/bot/') && await botstats.handle(req, res, p, { ip, send, readBody, limited })) return;   // bots report anonymous counts here
 

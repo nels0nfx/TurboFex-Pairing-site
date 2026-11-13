@@ -39,6 +39,11 @@
       if (s.status === 'rejected' && s.note) card.appendChild(el('p', 'dreason', 'Reason: ' + s.note));
       if (s.status === 'changes' && s.note) card.appendChild(el('p', 'dreason', 'Please change: ' + s.note + ' (fix it, make a new tag or move the tag, and send it again)'));
       (s.replies || []).forEach(function (r) { card.appendChild(el('p', 'dmuted', 'You wrote (' + new Date(r.at).toLocaleDateString() + '): ' + r.text)); });
+      if (s.status === 'pending' || s.status === 'changes' || s.status === 'approved') {
+        var tb = el('button', 'dbtn ghost', 'Get a private test code'); tb.type = 'button'; var tout = el('p', 'dmuted', '');
+        tb.addEventListener('click', function () { tb.disabled = true; post('/api/dev/testcode', { id: s.id }).then(function (x) { tb.disabled = false; if (x.ok) tout.textContent = 'Code: ' + x.j.code + ' (works once, for one hour). On YOUR bot, as owner, send: .plugin test ' + x.j.code; else tout.textContent = (x.j && x.j.error) || 'Could not make a code'; }); });
+        card.appendChild(tb); card.appendChild(tout);
+      }
       if (s.status === 'pending' || s.status === 'changes' || s.status === 'rejected') {
         var rt = el('textarea', 'dreplybox'); rt.maxLength = 500; rt.rows = 2; rt.placeholder = 'Write to the reviewer (up to 500 characters)';
         var rb = el('button', 'dbtn ghost', 'Send message'); rb.type = 'button';

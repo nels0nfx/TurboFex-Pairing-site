@@ -290,6 +290,27 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- reports: a signed-in person tells you a plugin is a problem; you see them in the admin dashboard ----------
   const REASONS = { harmful: 'Harmful or dangerous', spam: 'Spam or unwanted messages', stealing: 'Takes data or does things it did not say', copy: 'Copies someone else\'s work', broken: 'Does not work', other: 'Something else' };
+  // private test codes: a one-time code (valid one hour) that lets the OWNER of a bot install an unreviewed version with `.plugin test <code>`
+  let tcodes = {};   // mac(code) -> { subId, githubId, exp }
+  try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'testcodes.json'), 'utf8')); for (const [k, v] of Object.entries(f.codes || {})) if (v && v.exp > now() && /^[a-f0-9]{32}$/.test(k)) tcodes[k] = v; } catch (err) { /* none */ }
+  function saveCodes() { for (const [k, v] of Object.entries(tcodes)) if (v.exp <= now()) delete tcodes[k]; const rec = { codes: tcodes, at: now() }; const f = path.join(dir, 'testcodes.json'), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f); if (cloud && cloud.pushKv) cloud.pushKv('dc:testcodes', rec); }
+  function testCode(d, b) {
+    const s = subs.get(String(b.id));
+    if (!s || s.githubId !== d.githubId) return { status: 404, error: 'Not found.' };
+    if (!['pending', 'changes', 'approved'].includes(s.status)) return { status: 400, error: 'A test code is only for a version that is waiting, sent back or approved.' };
+    const mineActive = Object.values(tcodes).filter((v) => v.githubId === d.githubId && v.exp > now()).length;
+    if (mineActive >= 5) return { status: 429, error: 'You already have 5 unused test codes. Use one or wait an hour.' };
+    const code = 'TFX-' + Array.from(crypto.randomBytes(8), (x) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x % 32]).join('');
+    tcodes[mac(code)] = { subId: s.id, githubId: d.githubId, exp: now() + 3600 * 1000 }; saveCodes();
+    return { status: 200, ok: true, code, minutes: 60 };
+  }
+  function takeTestCode(code) {   // one time only: the code is gone the moment the bot has asked for it
+    const k = mac(String(code || '').trim().toUpperCase()), t = tcodes[k];
+    if (!t || t.exp <= now()) return null;
+    delete tcodes[k]; saveCodes();
+    const s = subs.get(t.subId); if (!s || !['pending', 'changes', 'approved'].includes(s.status)) return null;
+    return { id: s.manifest.id, version: s.manifest.version, developer: s.login, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha };
+  }
   // the developer answers the reviewer (about a waiting, sent-back or rejected version): short messages the reviewer sees next to the code
   function reply(d, b) {
     const s = subs.get(String(b.id));
@@ -393,7 +414,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
       return send(res, 200, rePlug.test(id) ? { rating: ratingOf(id), reviews: reviewsOf(id) } : { rating: null, reviews: [] }), true;
     }
-    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report' || p === '/api/dev/reply') {
+    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report' || p === '/api/dev/reply' || p === '/api/dev/testcode') {
       if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
       // a form on another website cannot send this header, and the cookie is SameSite=Lax: together they stop cross-site requests
       let sameSite = req.headers['x-requested-with'] === 'tfx';
@@ -405,10 +426,15 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
       if (limited('devpost', ip, 30, 10 * 60 * 1000)) return send(res, 429, { error: 'Please slow down a little.' }), true;
       let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : p === '/api/dev/reply' ? reply(d, b) : withdraw(d, b.id);
+      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : p === '/api/dev/reply' ? reply(d, b) : p === '/api/dev/testcode' ? testCode(d, b) : withdraw(d, b.id);
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 
+    if (p === '/api/test-plugin' && req.method === 'GET') {
+      if (limited('testplugin', ip, 20, 10 * 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
+      const out = takeTestCode(new URL(req.url, 'http://x').searchParams.get('code'));
+      return out ? send(res, 200, out) : send(res, 404, { error: 'That code is not valid, was already used, or has run out.' }), true;
+    }
     if (p === '/api/registry/approved' || p === '/api/registry/published' || p === '/api/registry/backup') {
       if (!pullOn) return send(res, 404, { error: 'Not found.' }), true;
       if (limited('regpull', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;

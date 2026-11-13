@@ -651,3 +651,25 @@ test('invite-only beta: only listed GitHub names can send plugins; owner control
   const t2 = await boot({}, dir);
   try { assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'devcentre', 'invites.json'), 'utf8')).on, false); } finally { t2.close(); }
 });
+
+test('private test codes: owner of the version only, one use, one hour, max 5, nothing for rejected versions', async () => {
+  const t = await boot(); let dir;
+  try {
+    dir = t.dataDir;
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const sub = (await send(t, c, GOOD)).json.submission;
+    const mk = (cookie, id) => t.req('POST', '/api/dev/testcode', { ...t.dev(cookie), body: { id } });
+    assert.strictEqual((await mk(await t.signIn('bob'), sub.id)).status, 404, 'not your version');
+    const r = await mk(c, sub.id); assert.strictEqual(r.status, 200); assert.match(r.json.code, /^TFX-[A-Z2-9]{8}$/);
+    assert.strictEqual((await t.req('GET', '/api/test-plugin?code=TFX-AAAAAAAA')).status, 404);
+    const got = await t.req('GET', '/api/test-plugin?code=' + r.json.code.toLowerCase());
+    assert.strictEqual(got.status, 200); assert.strictEqual(got.json.id, 'hello-plugin'); assert.strictEqual(got.json.developer, 'alice'); assert.strictEqual(got.json.entrySource, CODE); assert.match(got.json.entrySha, /^[a-f0-9]{64}$/);
+    assert.strictEqual((await t.req('GET', '/api/test-plugin?code=' + r.json.code)).status, 404, 'the code works once');
+    for (let i = 0; i < 5; i++) assert.strictEqual((await mk(c, sub.id)).status, 200);
+    assert.strictEqual((await mk(c, sub.id)).status, 429);
+    assert.ok(!fs.readFileSync(path.join(dir, 'devcentre', 'testcodes.json'), 'utf8').includes('TFX-'), 'codes are stored hashed');
+    const o = await t.admin('own');
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'reject', note: 'not good' } });
+    assert.strictEqual((await mk(c, sub.id)).status, 400, 'rejected: no test code');
+  } finally { t.close(); }
+});

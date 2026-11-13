@@ -325,3 +325,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 46. v2.49.0 - plugin guide section 5d (the test tool of bot v1.5.8)
 - Guide section 5d explains `node tools/plugin-test.js <folder>` (ships inside the bot release, no npm package). Text only; no code change. The bot tool uses the real `PluginHost` sandbox and the manifest validator, with a pretend chat and a pretend network.
 - Version history add: **v2.49.0**.
+
+## 47. v2.50.0 - private test codes (site side of bot v1.5.9)
+- Developer: `POST /api/dev/testcode {id}` (own version, status pending/changes/approved, max 5 unused codes) -> `TFX-` + 8 chars, one hour, one use. Stored only as HMAC in `data/devcentre/testcodes.json` (+ Supabase `dc:testcodes`, NOT in the backup export). Bot: `GET /api/test-plugin?code=` (20 per 10 min per IP) returns `{id, version, developer, manifestRaw, entrySource, manifestSha, entrySha}` and deletes the code. The bot (`core/plugins/testcode.js`) checks the shas, writes the folder with a `.from-test` marker, then the normal confirm screen. It is NOT signed by the registry, so the owner's confirmation and the sandbox are the protection.
+- Version history add: **v2.50.0**.
