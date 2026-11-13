@@ -293,3 +293,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `/api/plugins` items get `installs`; `/api/dev/me` returns `stats` for the developer's published plugins; /developers shows them (textContent only).
 - Opt-in only; privacy.html explains it. Not built: bot-side ratings (`PUT /bot/reviews`).
 - Version history add: **v2.41.0**.
+
+## 39. v2.42.0 - built-in command names refused at submit
+- `builtin-commands.json` = every command name and alias of the bot (generated from the bot's `commands/` folder, 773 names at bot v1.5.3). `plugin-check.js` refuses a plugin command with one of those names. Regenerate the file whenever the bot gets new commands (the bot itself still checks at install, so a stale list only means a later, not a missed, refusal).
+- Version history add: **v2.42.0**.

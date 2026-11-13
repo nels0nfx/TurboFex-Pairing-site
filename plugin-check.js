@@ -1,3 +1,4 @@
+const BUILTIN = new Set((() => { try { return require('./builtin-commands.json'); } catch (e) { return []; } })());
 // Checks a submitted plugin (the manifest text and the plugin file) before a human reviews it. These are the SAME rules the bot applies
 // when it installs a plugin (core/plugins/manifest.js in the bot): keep the two in step. Passing this check never means "safe": it
 // only means the plugin is well formed. A person still reads the code before anything is published.
@@ -40,7 +41,7 @@ function checkPlugin(manifestRaw, entrySource) {
   if (cmds.length > 20) bad('too many commands (up to 20)');
   for (const c of cmds.slice(0, 20)) {
     if (!c || typeof c !== 'object') { bad('a command entry is not valid'); continue; }
-    for (const n of [c.name, ...(Array.isArray(c.aliases) ? c.aliases : [])]) { if (typeof n !== 'string' || !reCmd.test(n)) { bad('bad command name: ' + String(n).slice(0, 20)); continue; } if (names.has(n)) bad('command name used twice: ' + n); names.add(n); }
+    for (const n of [c.name, ...(Array.isArray(c.aliases) ? c.aliases : [])]) { if (typeof n !== 'string' || !reCmd.test(n)) { bad('bad command name: ' + String(n).slice(0, 20)); continue; } if (BUILTIN.has(n)) bad('command name "' + n + '" is already a TurboFex command; choose another'); if (names.has(n)) bad('command name used twice: ' + n); names.add(n); }
     if (!WHO.includes(c.who)) bad('command ' + c.name + ': who must be everyone, admin or owner');
     if (typeof c.description !== 'string' || !c.description.trim() || c.description.length > 120) bad('command ' + c.name + ': description is required (up to 120 characters)');
   }

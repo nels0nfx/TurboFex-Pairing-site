@@ -522,3 +522,10 @@ test('bot statistics: register, heartbeat, totals, forget', async () => {
   assert.strictEqual((await post('/bot/heartbeat', { v: '1.6.0', plugins: [] }, tok)).status, 401);
   } finally { t.close(); }
 });
+
+test('a plugin command that is already a TurboFex command is refused by the check', () => {
+  const r = checkPlugin(manifest({ commands: [{ name: 'ping', who: 'everyone', description: 'x' }] }), CODE);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.errors.some((e) => /already a TurboFex command/.test(e)), JSON.stringify(r.errors));
+  assert.strictEqual(checkPlugin(manifest(), CODE).ok, true);
+});
