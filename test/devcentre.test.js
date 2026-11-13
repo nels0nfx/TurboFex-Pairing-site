@@ -506,3 +506,19 @@ test('README and CHANGELOG next to the plugin: fetched at the tag, limits enforc
     assert.strictEqual(list.find((x) => x.version === '1.1.0').readme, undefined);
   } finally { t.close(); }
 });
+
+test('bot statistics: register, heartbeat, totals, forget', async () => {
+  const t = await boot();
+  try {
+  const post = (path, body, tok) => t.req('POST', path, { body, headers: tok ? { authorization: 'Bearer ' + tok } : {} });
+  const r = await post('/bot/register', {});
+  assert.strictEqual(r.status, 200); assert.match(r.json.botId, /^[0-9a-f]{16}$/);
+  const tok = r.json.botId + '.' + r.json.secret;
+  assert.strictEqual((await post('/bot/heartbeat', { v: '1.6.0', plugins: [] }, 'x.y')).status, 401);
+  const h = await post('/bot/heartbeat', { v: '1.6.0', plugins: [{ id: 'hello-plugin', version: '1.0.0', enabled: true, errors: 1 }] }, tok);
+  assert.strictEqual(h.status, 200);
+  assert.strictEqual((await post('/bot/heartbeat', { v: '1.6.0', plugins: [] }, tok)).status, 429);
+  const f = await post('/bot/forget', {}, tok); assert.strictEqual(f.status, 200);
+  assert.strictEqual((await post('/bot/heartbeat', { v: '1.6.0', plugins: [] }, tok)).status, 401);
+  } finally { t.close(); }
+});

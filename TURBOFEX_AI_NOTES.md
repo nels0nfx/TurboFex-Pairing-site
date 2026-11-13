@@ -287,3 +287,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `registry.js`: `docShasOf(index)` and `registry.doc(id, version, which)` read the file from the registry repo and return it ONLY when its SHA-256 equals the signed index. `GET /api/plugin-doc?id=&v=&f=readme|changelog` (rate limited, 404 otherwise, `{paused:true}` while the store is paused). `/api/plugins` items now have `docs: {readme, changelog}` (booleans). The Plugins page shows two buttons "About this plugin" / "What changed" (plain text via textContent, `.pdoc`). Guide section 5c.
 - NOT built from the audit item: icon and screenshots (need an image proxy with the same fingerprint rule because the site CSP allows only same-origin images).
 - Version history add: **v2.40.0**.
+
+## 38. v2.41.0 - anonymous bot statistics receiver (site side of bot v1.6.0)
+- `botstats.js`: `POST /bot/register` -> `{botId, secret}`, `POST /bot/heartbeat` (Bearer `botId.secret`, min gap 20 h, <=50 plugins), `POST /bot/forget`. Files `data/devcentre/bot_<id>.json` mirrored to Supabase key `dc:bot:<id>`. Secret stored hashed. Purge after 90 days (7 if never reported). Totals count bots active within 8 days.
+- `/api/plugins` items get `installs`; `/api/dev/me` returns `stats` for the developer's published plugins; /developers shows them (textContent only).
+- Opt-in only; privacy.html explains it. Not built: bot-side ratings (`PUT /bot/reviews`).
+- Version history add: **v2.41.0**.

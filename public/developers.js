@@ -19,6 +19,7 @@
   var e = (new URLSearchParams(location.search).get('e') || '');
   if (NOTES[e]) { notice.textContent = NOTES[e]; notice.hidden = false; try { history.replaceState(null, '', '/developers'); } catch (x) { /* fine */ } }
 
+  var stats = {};
   function drawSubs(list) {
     subs.textContent = '';
     if (!list.length) { subs.appendChild(el('p', 'dmuted', 'You have not sent a plugin yet.')); return; }
@@ -27,6 +28,8 @@
       var top = el('div', 'dsub-t'); top.appendChild(el('b', null, s.name)); top.appendChild(el('span', 'dver', 'v' + s.version)); top.appendChild(el('span', 'dtag ' + st[1], st[0]));
       card.appendChild(top);
       card.appendChild(el('p', 'dmuted', s.pluginId + ' · ' + s.tag + ' · sent ' + new Date(s.createdAt).toLocaleDateString()));
+      var ps = s.status === 'published' && stats[s.pluginId];
+      if (ps) { var vs = Object.keys(ps.versions).sort().map(function (v) { return v + ' × ' + ps.versions[v]; }).join(', '); card.appendChild(el('p', 'dmuted', 'Used by ' + ps.installs + (ps.installs === 1 ? ' bot' : ' bots') + ' (' + ps.enabled + ' switched on) · versions: ' + vs + ' · failures in their last reports: ' + ps.errors + '. Only bots whose owner shares anonymous statistics are counted.')); }
       if (s.status === 'rejected' && s.note) card.appendChild(el('p', 'dreason', 'Reason: ' + s.note));
       if (s.status === 'changes' && s.note) card.appendChild(el('p', 'dreason', 'Please change: ' + s.note + ' (fix it, make a new tag or move the tag, and send it again)'));
       if (s.status === 'pending' || s.status === 'approved') {
@@ -50,7 +53,7 @@
       var row = el('div', 'drow'); row.appendChild(el('p', null, 'Signed in as ' + j.user.login + (j.user.verified ? ' (verified developer)' : '')));
       var out = el('button', 'dbtn ghost', 'Sign out'); out.type = 'button';
       out.addEventListener('click', function () { post('/api/dev/logout').then(function () { load(); }); }); row.appendChild(out); stateBox.appendChild(row);
-      formBox.hidden = false; listBox.hidden = false; drawSubs(j.submissions || []);
+      formBox.hidden = false; listBox.hidden = false; stats = j.stats || {}; drawSubs(j.submissions || []);
     }).catch(function () { stateBox.textContent = ''; stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre cannot be loaded right now. Please try again in a moment.')); });
   }
   form.addEventListener('submit', function (ev) {

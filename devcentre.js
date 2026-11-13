@@ -347,7 +347,8 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
     if (p === '/api/dev/me' && req.method === 'GET') {
       const d = devOf(req);
-      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d) } : { configured, user: null }), true;
+      let stats; if (d && ctx.statsOf) { stats = {}; for (const s of mine(d)) if (s.status === 'published' && !stats[s.pluginId]) { const t = ctx.statsOf(s.pluginId); if (t) stats[s.pluginId] = t; } }
+      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d), ...(stats && Object.keys(stats).length ? { stats } : {}) } : { configured, user: null }), true;
     }
     if (p === '/api/plugin-reviews' && req.method === 'GET') {
       if (limited('reviews', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' }), true;

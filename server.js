@@ -11,6 +11,7 @@ const { createAdmin } = require('./admin');
 const { fromEnv: cloudFromEnv } = require('./cloud');
 const { createRegistry } = require('./registry');
 const { createDevCentre } = require('./devcentre');
+const { createBotStats } = require('./botstats');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -66,6 +67,7 @@ function createApp(opts = {}) {
   const hits = new Map(); // "kind:ip" -> [timestamps]
 
   // allows `max` hits per `windowMs` for one visitor
+  const botstats = opts.botstats || createBotStats({ dataDir, cloud });   // anonymous statistics from bots whose owner turned them on
   const limited = (kind, ip, max, windowMs) => {
     const key = `${kind}:${ip}`;
     const now = Date.now();
@@ -105,13 +107,13 @@ function createApp(opts = {}) {
     res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
   };
 
-  const readBody = (req) =>
+  const readBody = (req, max = 2048) =>
     new Promise((resolve, reject) => {
       let size = 0;
       const chunks = [];
       req.on('data', (c) => {
         size += c.length;
-        if (size > 2048) {
+        if (size > max) {
           reject(new Error('too big'));
           req.destroy();
         } else chunks.push(c);
@@ -239,14 +241,16 @@ function createApp(opts = {}) {
         // add who sent each plugin and whether the owner verified them (kept on this site, not in the signed registry)
         const hid = devcentre.hidden();   // withdrawn by you: hidden at once, even before the withdrawal is signed
         const shown = view.plugins.filter((pl) => !hid.has(pl.id + '@' + pl.version));
-        return send(res, 200, { ...view, total: shown.length, plugins: shown.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version), rt = devcentre.ratingOf(pl.id); return { ...pl, ...(info ? { dev: info } : {}), ...(rt ? { rating: rt } : {}) }; }) });
+        return send(res, 200, { ...view, total: shown.length, plugins: shown.map((pl) => { const info = devcentre.publicInfo(pl.id, pl.version), rt = devcentre.ratingOf(pl.id); const bs = botstats.of(pl.id); return { ...pl, ...(info ? { dev: info } : {}), ...(rt ? { rating: rt } : {}), ...(bs ? { installs: bs.installs } : {}) }; }) });
       } catch (err) {
         return send(res, 503, { error: 'The plugin list cannot be loaded right now. Please try again in a moment.' });
       }
     }
 
     // the Developer Centre: GitHub sign-in, plugin submissions, and the phone command's download (see devcentre.js)
-    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
+    if ((p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, statsOf: botstats.of, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
+
+    if (p.startsWith('/bot/') && await botstats.handle(req, res, p, { ip, send, readBody, limited })) return;   // bots report anonymous counts here
 
     // 1) start a pairing
     if (req.method === 'POST' && p === '/api/pair') {
