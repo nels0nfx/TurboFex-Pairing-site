@@ -476,6 +476,7 @@
         m.domains.length ? h('p', { text: 'Websites: ' + m.domains.join(', ') }) : null,
         h('p', { class: 'muted', text: 'Commands: ' + (m.commands.join(', ') || 'none') + (m.events.length ? ' · Events: ' + m.events.join(', ') : '') })));
       n.appendChild(panel('Automatic checks', s.flagList.length ? String(s.flagList.length) + ' to look at' : 'none', s.flagList.length ? h('ul', { class: 'alist' }, s.flagList.map(function (x) { return h('li', { text: x }); })) : h('p', { class: 'muted', text: 'Nothing unusual found. This never means safe: read the code.' })));
+      if (s.replies && s.replies.length) n.appendChild(panel.apply(null, ['Messages from the developer', String(s.replies.length)].concat(s.replies.map(function (r) { return h('p', { class: 'muted', text: when(r.at) + ': ' + r.text }); }))));
       if (s.changes) {
         var c = s.changes, cl = [];
         if (c.permsAdded.length) cl.push(h('p', { class: 'note warn', text: 'New permissions since ' + c.version + ': ' + c.permsAdded.join(', ') }));

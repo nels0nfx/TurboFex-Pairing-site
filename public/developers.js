@@ -32,6 +32,13 @@
       if (ps) { var vs = Object.keys(ps.versions).sort().map(function (v) { return v + ' × ' + ps.versions[v]; }).join(', '); card.appendChild(el('p', 'dmuted', 'Used by ' + ps.installs + (ps.installs === 1 ? ' bot' : ' bots') + ' (' + ps.enabled + ' switched on) · versions: ' + vs + ' · failures in their last reports: ' + ps.errors + '. Only bots whose owner shares anonymous statistics are counted.')); }
       if (s.status === 'rejected' && s.note) card.appendChild(el('p', 'dreason', 'Reason: ' + s.note));
       if (s.status === 'changes' && s.note) card.appendChild(el('p', 'dreason', 'Please change: ' + s.note + ' (fix it, make a new tag or move the tag, and send it again)'));
+      (s.replies || []).forEach(function (r) { card.appendChild(el('p', 'dmuted', 'You wrote (' + new Date(r.at).toLocaleDateString() + '): ' + r.text)); });
+      if (s.status === 'pending' || s.status === 'changes' || s.status === 'rejected') {
+        var rt = el('textarea', 'dreplybox'); rt.maxLength = 500; rt.rows = 2; rt.placeholder = 'Write to the reviewer (up to 500 characters)';
+        var rb = el('button', 'dbtn ghost', 'Send message'); rb.type = 'button';
+        rb.addEventListener('click', function () { rb.disabled = true; post('/api/dev/reply', { id: s.id, text: rt.value }).then(function (x) { if (x.ok) load(); else { rb.disabled = false; rb.textContent = (x.j && x.j.error) || 'Could not send'; } }); });
+        card.appendChild(rt); card.appendChild(rb);
+      }
       if (s.status === 'pending' || s.status === 'approved') {
         var b = el('button', 'dbtn ghost', 'Withdraw'); b.type = 'button';
         b.addEventListener('click', function () { b.disabled = true; post('/api/dev/withdraw', { id: s.id }).then(function (x) { if (x.ok) load(); else { b.disabled = false; b.textContent = (x.j && x.j.error) || 'Could not withdraw'; } }); });

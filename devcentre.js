@@ -111,7 +111,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // ---------- submissions ----------
-  const pubSub = (s) => ({ id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, note: (s.status === 'rejected' || s.status === 'changes') ? s.note || '' : '', createdAt: s.createdAt, repo: s.repo, tag: s.tag });
+  const pubSub = (s) => ({ id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, note: (s.status === 'rejected' || s.status === 'changes') ? s.note || '' : '', createdAt: s.createdAt, repo: s.repo, tag: s.tag, replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })) });
   const mine = (d) => [...subs.values()].filter((s) => s.githubId === d.githubId).sort((a, b) => b.createdAt - a.createdAt).map(pubSub);
 
   function parseRepo(text, d) {
@@ -197,7 +197,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -276,6 +276,17 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- reports: a signed-in person tells you a plugin is a problem; you see them in the admin dashboard ----------
   const REASONS = { harmful: 'Harmful or dangerous', spam: 'Spam or unwanted messages', stealing: 'Takes data or does things it did not say', copy: 'Copies someone else\'s work', broken: 'Does not work', other: 'Something else' };
+  // the developer answers the reviewer (about a waiting, sent-back or rejected version): short messages the reviewer sees next to the code
+  function reply(d, b) {
+    const s = subs.get(String(b.id));
+    if (!s || s.githubId !== d.githubId) return { status: 404, error: 'Not found.' };
+    if (!['pending', 'changes', 'rejected'].includes(s.status)) return { status: 400, error: 'You can only write to the reviewer about a waiting, sent-back or rejected version.' };
+    const text = String(b.text || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').trim().slice(0, 500);
+    if (text.length < 2) return { status: 400, error: 'Write a short message.' };
+    s.replies = s.replies || []; if (s.replies.length >= 10) return { status: 429, error: 'You have reached the limit of 10 messages for this version.' };
+    s.replies.push({ text, at: now() }); s.updatedAt = now(); save('sub', s);
+    return { status: 200, ok: true };
+  }
   async function report(d, b, listed) {
     const id = String(b.plugin || '');
     if (!rePlug.test(id)) return { status: 400, error: 'Unknown plugin.' };
@@ -366,7 +377,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
       return send(res, 200, rePlug.test(id) ? { rating: ratingOf(id), reviews: reviewsOf(id) } : { rating: null, reviews: [] }), true;
     }
-    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report') {
+    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report' || p === '/api/dev/reply') {
       if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
       // a form on another website cannot send this header, and the cookie is SameSite=Lax: together they stop cross-site requests
       let sameSite = req.headers['x-requested-with'] === 'tfx';
@@ -378,7 +389,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
       if (limited('devpost', ip, 30, 10 * 60 * 1000)) return send(res, 429, { error: 'Please slow down a little.' }), true;
       let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : withdraw(d, b.id);
+      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : p === '/api/dev/reply' ? reply(d, b) : withdraw(d, b.id);
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 

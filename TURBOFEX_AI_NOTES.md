@@ -305,3 +305,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 41. v2.44.0 - ratings from bot owners (site side of bot v1.5.6)
 - `POST /bot/rate {plugin, stars 1-5}` (Bearer bot token): only for a plugin the bot's last report listed; one rating per bot per plugin (replace); max 50. `/api/plugins` items get `botRating {avg,count}` (separate from GitHub ratings; shown as "Rated by bot owners"). Forgetting a bot deletes its ratings. Cache of totals is 5 minutes, so the average can lag.
 - Version history add: **v2.44.0**.
+
+## 42. v2.45.0 - developer replies to the reviewer
+- `POST /api/dev/reply {id, text}` (same-site header, signed-in owner of the submission; status pending/changes/rejected; 2-500 chars, control chars stripped, max 10 per version). Stored as `s.replies` in the submission file; exposed to the developer (`/api/dev/me`) and to the admin (`plugins/submission`, panel "Messages from the developer"). Reviewer answers still go through the review note. Not built: a real two-way thread.
+- Version history add: **v2.45.0**.

@@ -574,3 +574,25 @@ test('bot ratings: a bot can rate only a plugin it reported; the list shows the 
     assert.deepStrictEqual((await item()).botRating, { avg: 3, count: 2 });
   } finally { t.close(); }
 });
+
+test('developer replies: only the owner of a waiting/sent-back/rejected version, short, max 10, shown to the reviewer', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const sub = (await send(t, c, GOOD)).json.submission;
+    const rep = (cookie, id, text) => t.req('POST', '/api/dev/reply', { ...t.dev(cookie), body: { id, text } });
+    assert.strictEqual((await t.req('POST', '/api/dev/reply', { body: { id: sub.id, text: 'hi there' } })).status, 403, 'no same-site header');
+    assert.strictEqual((await rep(await t.signIn('bob'), sub.id, 'hello')).status, 404, 'not the owner');
+    assert.strictEqual((await rep(c, sub.id, 'x')).status, 400);
+    assert.strictEqual((await rep(c, sub.id, 'I added the missing network domain.')).status, 200);
+    const me = (await t.req('GET', '/api/dev/me', t.dev(c))).json.submissions[0];
+    assert.strictEqual(me.replies.length, 1);
+    const o = await t.admin('own');
+    const g = await t.req('GET', '/admin/api/plugins/submission?id=' + sub.id, { cookie: o.cookie });
+    assert.strictEqual(g.json.replies[0].text, 'I added the missing network domain.');
+    for (let i = 0; i < 9; i++) assert.strictEqual((await rep(c, sub.id, 'message ' + i)).status, 200);
+    assert.strictEqual((await rep(c, sub.id, 'one more')).status, 429);
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve' } });
+    assert.strictEqual((await rep(c, sub.id, 'too late')).status, 400, 'approved: nothing to discuss');
+  } finally { t.close(); }
+});

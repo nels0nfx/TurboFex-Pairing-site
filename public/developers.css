@@ -48,3 +48,4 @@
 .guide .gcode, .guide .gcode code { white-space: pre; overflow-wrap: normal; word-break: normal; }
 .guide .gtable td:first-child { white-space: nowrap; }
 .guide .gtable td:first-child code { overflow-wrap: normal; }
+.dreplybox { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--track); color: inherit; font: inherit; font-size: 14px; resize: vertical; }
