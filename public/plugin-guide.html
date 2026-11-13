@@ -172,6 +172,13 @@
     <h2>5c. Optional README and CHANGELOG</h2>
     <p>Put a <code>README.md</code> and a <code>CHANGELOG.md</code> next to <code>turbofex-plugin.json</code> (same folder, same tag). If they are there, people can open them on the Plugins page with the buttons "About this plugin" and "What changed". They are plain text up to 16 KB each (no pictures, no links that run, nothing is run). The site checks them when you send the plugin in, you and the reviewer can see them, and once your version is published they never change (the next version can have new ones).</p>
 
+    <h2>5d. Test it before you send it</h2>
+    <p>The TurboFex bot comes with a test tool that runs your plugin in the same sandbox the bot uses, with a pretend chat. Nothing is sent to anyone. Download the latest TurboFex release (zip) from GitHub, unpack it, run <code>npm install</code> once, then:</p>
+    <pre><code>node tools/plugin-test.js path/to/your-plugin-folder
+node tools/plugin-test.js path/to/your-plugin-folder --command "hello Sam"
+node tools/plugin-test.js path/to/your-plugin-folder --event message --text "hi"</code></pre>
+    <p>It first checks your two files with the same rules as the bot, then runs every command, event and schedule once and shows what the bot would say, react with, send or do in the group. Websites you call get a pretend answer unless you add <code>--live-network</code>. Use <code>--as owner</code> or <code>--as admin</code> to try a command that needs more than an everyday member. It does not replace the owner review.</p>
+
     <h2>6. The limits</h2>
     <ul class="drules">
       <li>Each call may use about 1.5 seconds of computing time and 5 seconds in total, and 32 MB of memory.</li>

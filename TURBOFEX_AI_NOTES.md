@@ -321,3 +321,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 45. v2.48.0 - invite-only beta for developers
 - `data/devcentre/invites.json` `{on, logins[]}` (+ Supabase `dc:invites`, in the backup export). While `on`, `submit` refuses a GitHub login not on the list (403, clear message). Sign-in, rating, reporting stay open. Admin route `POST /admin/api/plugins/invites {on?, add?, remove?}` (owner only; audited `plugin.invites`); UI on the Plugins list page of the admin dashboard. Default: off (open to everyone).
 - Version history add: **v2.48.0**.
+
+## 46. v2.49.0 - plugin guide section 5d (the test tool of bot v1.5.8)
+- Guide section 5d explains `node tools/plugin-test.js <folder>` (ships inside the bot release, no npm package). Text only; no code change. The bot tool uses the real `PluginHost` sandbox and the manifest validator, with a pretend chat and a pretend network.
+- Version history add: **v2.49.0**.
