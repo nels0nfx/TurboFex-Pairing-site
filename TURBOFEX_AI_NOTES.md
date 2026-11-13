@@ -297,3 +297,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 39. v2.42.0 - built-in command names refused at submit
 - `builtin-commands.json` = every command name and alias of the bot (generated from the bot's `commands/` folder, 773 names at bot v1.5.3). `plugin-check.js` refuses a plugin command with one of those names. Regenerate the file whenever the bot gets new commands (the bot itself still checks at install, so a stale list only means a later, not a missed, refusal).
 - Version history add: **v2.42.0**.
+
+## 40. v2.43.0 - featured plugins
+- Owner-only admin route `POST /admin/api/plugins/feature {id, on}` (plugin id, max 6, audited `plugin.feature/unfeature`); stored in `data/devcentre/featured.json` (+ Supabase `dc:featured`, in the backup export). `/api/plugins` marks `featured:true`; the Plugins page sorts them first with a gold badge (`.pfeat`). Button "Feature this plugin" on a published plugin's admin page.
+- Version history add: **v2.43.0**.

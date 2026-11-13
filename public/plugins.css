@@ -55,3 +55,4 @@
 
 .pdocbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 8px; }
 .pdoc { margin: 0 0 10px; padding: 12px 14px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.55; font-family: inherit; color: var(--text, inherit); background: rgba(255,255,255,.03); }
+.pfeat { margin-left: 8px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold); font-size: 12px; font-weight: 700; white-space: nowrap; }

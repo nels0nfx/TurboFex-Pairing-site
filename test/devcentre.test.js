@@ -529,3 +529,28 @@ test('a plugin command that is already a TurboFex command is refused by the chec
   assert.ok(r.errors.some((e) => /already a TurboFex command/.test(e)), JSON.stringify(r.errors));
   assert.strictEqual(checkPlugin(manifest(), CODE).ok, true);
 });
+
+test('featured plugins: owner picks, the list marks them, max 6, survives restart, moderators and visitors cannot', async () => {
+  const mkp = (id) => ({ id, name: id, description: 'd', author: 'A', version: '1.0.0', permissions: [], domains: [], history: [] });
+  const view = { updated: 'x', total: 2, plugins: [mkp('aaa-plugin'), mkp('bbb-plugin')] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  let dir;
+  try {
+    dir = t.dataDir;
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { body: { id: 'bbb-plugin', on: true } })).status, 401);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { cookie: (await t.admin('mod')).cookie, body: { id: 'bbb-plugin', on: true } })).status, 403);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'bbb-plugin', on: 'yes' } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'B!', on: true } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'bbb-plugin', on: true } })).status, 200);
+    const l = (await t.req('GET', '/api/plugins')).json.plugins;
+    assert.strictEqual(l.find((x) => x.id === 'bbb-plugin').featured, true);
+    assert.strictEqual(l.find((x) => x.id === 'aaa-plugin').featured, undefined);
+    for (let i = 0; i < 5; i++) assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'p-' + 'x'.repeat(i + 2), on: true } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'one-too-many', on: true } })).status, 400);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/feature', { ...A, body: { id: 'bbb-plugin', on: false } })).status, 200);
+    assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins.find((x) => x.id === 'bbb-plugin').featured, undefined);
+  } finally { t.close(); }
+  const t2 = await boot({}, dir, { registry: { list: async () => view } });
+  try { assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'devcentre', 'featured.json'), 'utf8')).ids.length, 5); } finally { t2.close(); }
+});

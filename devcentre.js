@@ -42,6 +42,17 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   // the owner's pause switch: while paused the store shows nothing and nobody can send, rate or report (bots and the signed registry are not affected)
   let paused = false;
   try { paused = JSON.parse(fs.readFileSync(path.join(dir, 'switch.json'), 'utf8')).paused === true; } catch (err) { /* not set: open */ }
+  // featured plugins: ids the owner picked to show first with a badge (a plugin id, not a version)
+  let featured = new Set();
+  try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'featured.json'), 'utf8')); if (Array.isArray(f.ids)) featured = new Set(f.ids.filter((x) => /^[a-z0-9-]{3,32}$/.test(x)).slice(0, 50)); } catch (err) { /* none yet */ }
+  function setFeatured(id, on) {
+    id = String(id || ''); if (!/^[a-z0-9-]{3,32}$/.test(id)) return { status: 400, error: 'Bad plugin id.' };
+    if (on) { if (!featured.has(id) && featured.size >= 6) return { status: 400, error: 'Up to 6 plugins can be featured. Remove one first.' }; featured.add(id); } else featured.delete(id);
+    const rec = { ids: [...featured], at: now() }; const f = path.join(dir, 'featured.json'), tmp = f + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:featured', rec);
+    return { ok: true, featured: on === true };
+  }
   function setPaused(v) {
     paused = v === true; const rec = { paused, at: now() };
     const f = path.join(dir, 'switch.json'), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
@@ -186,7 +197,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -289,7 +300,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
-  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, featured: [...featured], developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
 
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
@@ -385,7 +396,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

@@ -86,7 +86,7 @@
   function card(p) {
     var a = el('article', 'pcard'); a.id = p.id;
     var head = el('button', 'phead'); head.type = 'button'; head.setAttribute('aria-expanded', 'false');
-    var title = el('span', 'ptitle'); title.appendChild(el('span', 'pname', p.name)); title.appendChild(el('span', 'pver', 'v' + p.version)); if (p.rating) title.appendChild(el('span', 'prate', '★ ' + p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')'));
+    var title = el('span', 'ptitle'); title.appendChild(el('span', 'pname', p.name)); if (p.featured) title.appendChild(el('span', 'pfeat', '★ Featured')); title.appendChild(el('span', 'pver', 'v' + p.version)); if (p.rating) title.appendChild(el('span', 'prate', '★ ' + p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')'));
     head.appendChild(title); head.appendChild(el('span', 'pdesc', p.description)); var by = el('span', 'pby', 'By ' + (p.author || 'unknown')); if (p.dev && p.dev.verified) by.appendChild(el('span', 'pver2', '✓ Verified developer')); head.appendChild(by);
     var more = el('div', 'pmore'); more.hidden = true;
     more.appendChild(el('h3', null, 'What it asks for')); more.appendChild(chips(p));
@@ -128,6 +128,7 @@
     var q = search.value.trim().toLowerCase();
     var shown = all.filter(function (p) { return !q || (p.id + ' ' + p.name + ' ' + p.description + ' ' + p.author).toLowerCase().indexOf(q) >= 0; });
     list.textContent = '';
+    shown = shown.slice().sort(function (a, b) { return (b.featured ? 1 : 0) - (a.featured ? 1 : 0); });
     shown.forEach(function (p) { list.appendChild(card(p)); });
     count.textContent = shown.length + (shown.length === 1 ? ' plugin' : ' plugins');
     say(shown.length ? '' : (all.length ? 'No plugin matches your search.' : 'No plugins have been published yet. Check back soon.'));
