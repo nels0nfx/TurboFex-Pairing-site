@@ -370,7 +370,9 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (p === '/api/dev/me' && req.method === 'GET') {
       const d = devOf(req);
       let stats; if (d && ctx.statsOf) { stats = {}; for (const s of mine(d)) if (s.status === 'published' && !stats[s.pluginId]) { const t = ctx.statsOf(s.pluginId); if (t) stats[s.pluginId] = t; } }
-      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d), ...(stats && Object.keys(stats).length ? { stats } : {}) } : { configured, user: null }), true;
+      // what people think of the developer's published plugins: star average, latest written reviews, and only the NUMBER of reports (never who made them)
+      const insights = {}; if (d) for (const s of mine(d)) if (s.status === 'published' && !insights[s.pluginId]) { const rt = ratingOf(s.pluginId), rv = reviewsOf(s.pluginId, 5), rp = reports.get(s.pluginId); const nrep = rp ? Object.keys(rp.items).length : 0; if (rt || rv.length || nrep) insights[s.pluginId] = { rating: rt || null, reviews: rv, reports: nrep }; }
+      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d), ...(stats && Object.keys(stats).length ? { stats } : {}), ...(Object.keys(insights).length ? { insights } : {}) } : { configured, user: null }), true;
     }
     if (p === '/api/plugin-reviews' && req.method === 'GET') {
       if (limited('reviews', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' }), true;

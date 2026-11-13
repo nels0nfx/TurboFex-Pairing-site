@@ -313,3 +313,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 43. v2.46.0 - backup for the phone command (site side of bot v1.5.7)
 - `GET /api/registry/backup` (same bearer token as `/api/registry/approved`, same rate limit) returns the same JSON as the admin "Download backup". The phone tool `node tools/registry.js sitebackup <file>` saves it. `GET /health` already exists for a keep-alive pinger (UptimeRobot etc.).
 - Version history add: **v2.46.0**.
+
+## 44. v2.47.0 - developer page shows ratings, reviews and report count
+- `/api/dev/me` gets `insights[pluginId] = {rating, reviews (latest 5 visible), reports (number only)}` for the developer's published plugins (only when something exists). /developers shows them with textContent. Reporters and report reasons are never sent to the developer.
+- Version history add: **v2.47.0**.

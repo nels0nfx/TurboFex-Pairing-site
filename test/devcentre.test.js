@@ -608,3 +608,24 @@ test('site backup for the phone command: only with the token', async () => {
     assert.ok(!/ghu_|access_token|secret/i.test(r.text.replace(/"[^"]*secret[^"]*":/gi, '')), 'no tokens in it');
   } finally { t.close(); }
 });
+
+test('developer page insights: rating, latest reviews and only the NUMBER of reports for own published plugins', async () => {
+  const view = { updated: 'x', total: 1, plugins: [{ id: 'hello-plugin', name: 'Hello', description: 'd', author: 'Alice', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const alice = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const sub = (await send(t, alice, GOOD)).json.submission;
+    const o = await t.admin('own');
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/api/registry/published', { headers: { authorization: 'Bearer ' + TOKEN }, body: { ids: [sub.id] } });
+    assert.strictEqual((await t.req('GET', '/api/dev/me', t.dev(alice))).json.insights, undefined, 'nothing yet');
+    const bob = await t.signIn('bob');
+    assert.strictEqual((await t.req('POST', '/api/dev/rate', { ...t.dev(bob), body: { plugin: 'hello-plugin', stars: 4, text: 'Works well' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/api/dev/report', { ...t.dev(bob), body: { plugin: 'hello-plugin', reason: 'spam' } })).status, 200);
+    const me = (await t.req('GET', '/api/dev/me', t.dev(alice))).json;
+    const i = me.insights['hello-plugin'];
+    assert.strictEqual(i.rating.count, 1); assert.strictEqual(i.reviews[0].text, 'Works well'); assert.strictEqual(i.reports, 1);
+    assert.ok(!JSON.stringify(me.insights).includes('"spam"') && !JSON.stringify(me.insights).includes('githubId'), 'no reason or reporter identity');
+    assert.strictEqual((await t.req('GET', '/api/dev/me', t.dev(bob))).json.insights, undefined, 'bob has no published plugin');
+  } finally { t.close(); }
+});
