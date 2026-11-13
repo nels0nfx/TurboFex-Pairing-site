@@ -34,6 +34,7 @@
       var r = data && data.rating;
       var pc = box.closest('.pcard'), tag = pc && pc.querySelector('.prate'), tt = pc && pc.querySelector('.ptitle');   // keep the number on the card header in step
       if (tt) { if (r) { if (!tag) { tag = el('span', 'prate'); tt.appendChild(tag); } tag.textContent = '★ ' + r.avg.toFixed(1) + ' (' + r.count + ')'; } else if (tag) tag.remove(); }
+      if (p.botRating) box.appendChild(el('p', 'pdom', 'Rated by bot owners: ★ ' + p.botRating.avg.toFixed(1) + ' out of 5 (' + p.botRating.count + (p.botRating.count === 1 ? ' bot' : ' bots') + ')'));
       box.appendChild(el('p', 'pdom', r ? '★ ' + r.avg.toFixed(1) + ' out of 5 · ' + r.count + (r.count === 1 ? ' rating' : ' ratings') : 'No ratings yet.'));
       if (me && me.configured) {
         if (!me.user) {

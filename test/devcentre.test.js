@@ -554,3 +554,23 @@ test('featured plugins: owner picks, the list marks them, max 6, survives restar
   const t2 = await boot({}, dir, { registry: { list: async () => view } });
   try { assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'devcentre', 'featured.json'), 'utf8')).ids.length, 5); } finally { t2.close(); }
 });
+
+test('bot ratings: a bot can rate only a plugin it reported; the list shows the average; forget removes it', async () => {
+  const view = { updated: 'x', total: 1, plugins: [{ id: 'hello-plugin', name: 'Hello', description: 'd', author: 'A', version: '1.0.0', permissions: [], domains: [], history: [] }] };
+  const t = await boot({}, undefined, { registry: { list: async () => view } });
+  try {
+    const mk = async () => { const r = await t.req('POST', '/bot/register', { body: {} }); return { authorization: 'Bearer ' + r.json.botId + '.' + r.json.secret }; };
+    const a = await mk(), b = await mk();
+    const rate = (h, plugin, stars) => t.req('POST', '/bot/rate', { headers: h, body: { plugin, stars } });
+    assert.strictEqual((await rate({}, 'hello-plugin', 5)).status, 401);
+    assert.strictEqual((await rate(a, 'hello-plugin', 5)).status, 400, 'not reported yet');
+    for (const h of [a, b]) await t.req('POST', '/bot/heartbeat', { headers: h, body: { v: '1.5.5', plugins: [{ id: 'hello-plugin', version: '1.0.0', enabled: true, errors: 0 }] } });
+    assert.strictEqual((await rate(a, 'hello-plugin', 6)).status, 400);
+    assert.strictEqual((await rate(a, 'hello-plugin', 5)).status, 200);
+    assert.strictEqual((await rate(a, 'hello-plugin', 4)).status, 200, 'changing your rating replaces it');
+    assert.strictEqual((await rate(b, 'hello-plugin', 2)).status, 200);
+    assert.strictEqual((await rate(a, 'other-plugin', 5)).status, 400);
+    const item = () => t.req('GET', '/api/plugins').then((r) => r.json.plugins[0]);
+    assert.deepStrictEqual((await item()).botRating, { avg: 3, count: 2 });
+  } finally { t.close(); }
+});

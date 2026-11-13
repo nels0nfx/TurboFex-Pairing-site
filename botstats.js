@@ -48,6 +48,14 @@ function createBotStats({ dataDir, cloud, now = Date.now }) {
     rec.p = p; rec.at = now(); rec.v = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(String(body.v)) ? String(body.v) : ''; save(rec); cache = null;
     return { status: 200, json: { ok: true } };
   }
+  // a bot owner's own rating of a plugin the bot has installed (only counted for bots that share statistics)
+  function rate(header, body) {
+    const rec = auth(header); if (!rec) return { status: 401, error: 'Unknown bot.' };
+    if (!body || typeof body !== 'object' || !reId.test(String(body.plugin)) || !Number.isInteger(body.stars) || body.stars < 1 || body.stars > 5) return { status: 400, error: 'Bad request.' };
+    if (!rec.p || !rec.p[body.plugin]) return { status: 400, error: 'This bot has not reported that plugin yet.' };
+    rec.r = rec.r || {}; if (!rec.r[body.plugin] && Object.keys(rec.r).length >= 50) return { status: 400, error: 'Too many ratings.' };
+    rec.r[body.plugin] = body.stars; save(rec); cache = null; return { status: 200, json: { ok: true } };
+  }
   function forget(header) { const rec = auth(header); if (!rec) return { status: 401, error: 'Unknown bot.' }; drop(rec.id); cache = null; return { status: 200, json: { ok: true } }; }
 
   // per plugin: how many bots (that share statistics and reported in the last 8 days) have it installed / on, which versions, failures in their last report
@@ -58,6 +66,7 @@ function createBotStats({ dataDir, cloud, now = Date.now }) {
     for (const r of bots.values()) {
       if (!r.at || t - r.at > ACTIVE_MS) continue;
       for (const [id, [v, en, err]] of Object.entries(r.p)) { const o = out.get(id) || { installs: 0, enabled: 0, versions: {}, errors: 0 }; o.installs++; o.enabled += en; o.versions[v] = (o.versions[v] || 0) + 1; o.errors += err; out.set(id, o); }
+      for (const [id, st] of Object.entries(r.r || {})) { const o = out.get(id); if (o && Number.isInteger(st)) { o.rs = (o.rs || 0) + st; o.rc = (o.rc || 0) + 1; } }
     }
     cache = out; cacheAt = t; return out;
   }
@@ -65,10 +74,10 @@ function createBotStats({ dataDir, cloud, now = Date.now }) {
 
   async function handle(req, res, p, { ip, send, readBody, limited }) {
     if (!p.startsWith('/bot/')) return false;
-    if (req.method !== 'POST' || !['/bot/register', '/bot/heartbeat', '/bot/forget'].includes(p)) { send(res, 404, { error: 'Not found.' }); return true; }
+    if (req.method !== 'POST' || !['/bot/register', '/bot/heartbeat', '/bot/forget', '/bot/rate'].includes(p)) { send(res, 404, { error: 'Not found.' }); return true; }
     if (limited('bot' + p, ip, p === '/bot/register' ? 10 : 120, 3600 * 1000)) { send(res, 429, { error: 'Please wait.' }); return true; }
     let body = {}; try { body = JSON.parse((await readBody(req, 8192)) || '{}'); } catch (e) { send(res, 400, { error: 'Bad request.' }); return true; }
-    const r = p === '/bot/register' ? register() : p === '/bot/heartbeat' ? heartbeat(req.headers.authorization, body) : forget(req.headers.authorization);
+    const r = p === '/bot/register' ? register() : p === '/bot/heartbeat' ? heartbeat(req.headers.authorization, body) : p === '/bot/rate' ? rate(req.headers.authorization, body) : forget(req.headers.authorization);
     send(res, r.status, r.error ? { error: r.error } : r.json); return true;
   }
   return { handle, of, totals, purge, count: () => bots.size };

@@ -301,3 +301,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 40. v2.43.0 - featured plugins
 - Owner-only admin route `POST /admin/api/plugins/feature {id, on}` (plugin id, max 6, audited `plugin.feature/unfeature`); stored in `data/devcentre/featured.json` (+ Supabase `dc:featured`, in the backup export). `/api/plugins` marks `featured:true`; the Plugins page sorts them first with a gold badge (`.pfeat`). Button "Feature this plugin" on a published plugin's admin page.
 - Version history add: **v2.43.0**.
+
+## 41. v2.44.0 - ratings from bot owners (site side of bot v1.5.6)
+- `POST /bot/rate {plugin, stars 1-5}` (Bearer bot token): only for a plugin the bot's last report listed; one rating per bot per plugin (replace); max 50. `/api/plugins` items get `botRating {avg,count}` (separate from GitHub ratings; shown as "Rated by bot owners"). Forgetting a bot deletes its ratings. Cache of totals is 5 minutes, so the average can lag.
+- Version history add: **v2.44.0**.
