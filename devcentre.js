@@ -393,10 +393,11 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 
-    if (p === '/api/registry/approved' || p === '/api/registry/published') {
+    if (p === '/api/registry/approved' || p === '/api/registry/published' || p === '/api/registry/backup') {
       if (!pullOn) return send(res, 404, { error: 'Not found.' }), true;
       if (limited('regpull', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
       if (!pullAuthorized(req)) return send(res, 401, { error: 'Not allowed.' }), true;
+      if (p.endsWith('backup') && req.method === 'GET') return send(res, 200, exportAll()), true;   // same file as the admin "Download backup", for the phone command
       if (p.endsWith('approved') && req.method === 'GET') return send(res, 200, { plugins: approvedForPull(), revocations: revocationsForPull() }), true;
       if (p.endsWith('published') && req.method === 'POST') {
         let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }

@@ -309,3 +309,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 42. v2.45.0 - developer replies to the reviewer
 - `POST /api/dev/reply {id, text}` (same-site header, signed-in owner of the submission; status pending/changes/rejected; 2-500 chars, control chars stripped, max 10 per version). Stored as `s.replies` in the submission file; exposed to the developer (`/api/dev/me`) and to the admin (`plugins/submission`, panel "Messages from the developer"). Reviewer answers still go through the review note. Not built: a real two-way thread.
 - Version history add: **v2.45.0**.
+
+## 43. v2.46.0 - backup for the phone command (site side of bot v1.5.7)
+- `GET /api/registry/backup` (same bearer token as `/api/registry/approved`, same rate limit) returns the same JSON as the admin "Download backup". The phone tool `node tools/registry.js sitebackup <file>` saves it. `GET /health` already exists for a keep-alive pinger (UptimeRobot etc.).
+- Version history add: **v2.46.0**.

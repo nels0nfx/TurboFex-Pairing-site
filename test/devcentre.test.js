@@ -596,3 +596,15 @@ test('developer replies: only the owner of a waiting/sent-back/rejected version,
     assert.strictEqual((await rep(c, sub.id, 'too late')).status, 400, 'approved: nothing to discuss');
   } finally { t.close(); }
 });
+
+test('site backup for the phone command: only with the token', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE); await send(t, c, GOOD);
+    assert.strictEqual((await t.req('GET', '/api/registry/backup')).status, 401);
+    assert.strictEqual((await t.req('GET', '/api/registry/backup', { headers: { authorization: 'Bearer wrong' } })).status, 401);
+    const r = await t.req('GET', '/api/registry/backup', { headers: { authorization: 'Bearer ' + TOKEN } });
+    assert.strictEqual(r.status, 200); assert.strictEqual(r.json.format, 'turbofex-devcentre-backup-1'); assert.strictEqual(r.json.submissions.length, 1);
+    assert.ok(!/ghu_|access_token|secret/i.test(r.text.replace(/"[^"]*secret[^"]*":/gi, '')), 'no tokens in it');
+  } finally { t.close(); }
+});
