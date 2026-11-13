@@ -174,12 +174,19 @@
     <h2>5c. Optional README and CHANGELOG</h2>
     <p>Put a <code>README.md</code> and a <code>CHANGELOG.md</code> next to <code>turbofex-plugin.json</code> (same folder, same tag). If they are there, people can open them on the Plugins page with the buttons "About this plugin" and "What changed". They are plain text up to 16 KB each (no pictures, no links that run, nothing is run). The site checks them when you send the plugin in, you and the reviewer can see them, and once your version is published they never change (the next version can have new ones).</p>
 
+    <h2>5c-2. A logo for your plugin</h2>
+    <p>Put a file called <code>icon.png</code> next to <code>turbofex-plugin.json</code>. It must be a <b>square PNG picture</b>, between 64 and 512 pixels wide, up to 32 KB. It is shown next to your plugin's name on the Plugins page. The reviewer sees it too, and it is covered by the store's signature, so nobody can swap it later. Like the README, it belongs to one version: change it in a new version.</p>
+
+    <h2>5c-3. Screenshots</h2>
+    <p>Up to three pictures that show your plugin working: <code>screenshot1.png</code>, <code>screenshot2.png</code>, <code>screenshot3.png</code> next to <code>turbofex-plugin.json</code> (in that order, no gaps). Each must be a <b>PNG</b>, between 200 and 2000 pixels on each side, up to 200 KB. They show on your plugin's card on the Plugins page, and like the logo they are covered by the store's signature and belong to one version.</p>
+
     <h2>5d. Test it before you send it</h2>
     <p>The TurboFex bot comes with a test tool that runs your plugin in the same sandbox the bot uses, with a pretend chat. Nothing is sent to anyone. Download the latest TurboFex release (zip) from GitHub, unpack it, run <code>npm install</code> once, then:</p>
     <pre><code>node tools/plugin-test.js path/to/your-plugin-folder
 node tools/plugin-test.js path/to/your-plugin-folder --command "hello Sam"
 node tools/plugin-test.js path/to/your-plugin-folder --event message --text "hi"</code></pre>
     <p>It first checks your two files with the same rules as the bot, then runs every command, event and schedule once and shows what the bot would say, react with, send or do in the group. Websites you call get a pretend answer unless you add <code>--live-network</code>. Use <code>--as owner</code> or <code>--as admin</code> to try a command that needs more than an everyday member. It does not replace the owner review.</p>
+    <p>No computer? Use the <a href="/playground">Playground</a>: type or paste your two files and run them in your browser, with the same safety rules and a pretend chat.</p>
 
     <h2>6. The limits</h2>
     <ul class="drules">

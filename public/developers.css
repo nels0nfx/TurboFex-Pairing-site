@@ -49,3 +49,9 @@
 .guide .gtable td:first-child { white-space: nowrap; }
 .guide .gtable td:first-child code { overflow-wrap: normal; }
 .dreplybox { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--track); color: inherit; font: inherit; font-size: 14px; resize: vertical; }
+.pgcode { width: 100%; box-sizing: border-box; margin: 6px 0 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--track); color: inherit; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; tab-size: 2; }
+.pgrow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 8px 0 12px; }
+.pgrow label { font-size: 13px; opacity: .8; }
+.pgin { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--track); color: inherit; font: inherit; font-size: 14px; max-width: 100%; }
+.pgout { min-height: 60px; margin: 10px 0; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--track); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+.pgrow .pgin { width: auto; flex: 0 1 240px; } .pgrow .dbtn { width: auto; }

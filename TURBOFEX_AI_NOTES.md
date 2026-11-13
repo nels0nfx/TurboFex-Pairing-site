@@ -334,3 +334,17 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `registry.js` PERMS gets `media.convert` (medium). `plugin-check.js` accepts it automatically (it reads PERMS). Guide: permission table, `tfx.media.toSticker/toAudio`, and `media.send` kind `audio`.
 - Bot v1.5.10: broker `convert()` (input <=1 MB, magic-byte check, 2 per call, 6 per minute, 4 s limit), `sniffAudio`, `media.send` kind `audio`, env.toSticker/toAudio use whatsapp/media (sharp, ffmpeg; MP3 64k, 60 s).
 - Version history add: **v2.51.0**.
+
+## 49. v2.52.0 - plugin logos (site side of bot v1.5.11)
+- Optional `icon.png` next to the manifest: square PNG 64-512 px, <=32 KB (checked from the PNG header). Fetched at submit (`rawBytes`), stored base64 (`icon`, `iconSha`), shown in admin as a data URL, handed over by `/api/registry/approved`; the phone tool (`tools/registry.js`, `iconOk`) re-checks, copies it to `plugins/<id>/<version>/icon.png` and puts `iconSha` in the SIGNED index (immutable like the README). `registry.icon(id,v)` serves it only if it matches the signed sha; route `GET /api/plugin-icon?id=&v=` (image/png, nosniff, CSP none). `/api/plugins` items get `docs.icon`; the Plugins page shows `<img class="picon">`. Screenshots are NOT built.
+- Version history add: **v2.52.0**.
+
+## 50. v2.53.0 - plugin screenshots (site side of bot v1.5.12)
+- Optional `screenshot1.png`..`screenshot3.png` (in order, no gaps; fetching stops at the first missing one): PNG 200-2000 px each side, <=200 KB. Stored as `shots[]`/`shotShas[]` in the submission, shown in admin as data URLs, handed over by `/api/registry/approved`; the phone tool checks them again, copies them into `plugins/<id>/<version>/` and records `shotShas` in the SIGNED index (immutable). `registry.shot(id,v,n)` + `GET /api/plugin-shot?id=&v=&n=` serve only matching pictures; `/api/plugins` `docs.shots` = count; Plugins page shows a gallery (`.pshots`).
+- Version history add: **v2.53.0**.
+
+## 51. v2.54.0 - Plugin Playground (browser) - site side of bot v1.5.13
+- Page `/playground` (`public/playground.html`, `playground.js`) runs a plugin IN THE VISITOR'S BROWSER: `playground-sandbox.js` (Web Worker: QuickJS WebAssembly + the bot's own `worker.js` logic) and `playground-broker.js` (the bot's REAL `broker.js` + tiny Buffer/timer stand-ins). Both are BUILT from the bot repo with `node tools/build-playground.js <folder>` (needs esbuild) and copied into `public/`. REBUILD AND RECOPY whenever the bot's `core/plugins/worker.js` or `broker.js` change (new API calls, limits), or the Playground drifts from the bot.
+- Network, media conversion and the group are pretend; storage lives in the page until reload. Only the two files `playground.html` and `playground-sandbox.js` get a CSP with `'wasm-unsafe-eval'` + `worker-src 'self'`; everything else keeps the strict policy (tested). `POST /api/playground/check` (60/min/IP, nothing stored) runs `checkPlugin`.
+- Verified in real Chromium (Playwright) during the build: run, storage between runs, group info, refused permission, CPU-limit loop, bad manifest, no console/CSP errors. That browser test is not part of the site's test suite (no browser on Render).
+- Version history add: **v2.54.0**.

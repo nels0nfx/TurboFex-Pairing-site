@@ -110,7 +110,7 @@ test('README and CHANGELOG: shown only when they match the fingerprint in the si
   const fetcher = async (url, max) => { const k = url.split('/').slice(-4).join('/'); if (store[k] !== undefined) return Buffer.from(store[k]); const f = url.split('/').pop(); if (idxFiles[f]) return idxFiles[f]; throw new Error('404'); };
   const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher });
   const view = await reg.list(); const hello = view.plugins.find((p) => p.id === 'hello-plugin');
-  assert.deepStrictEqual(hello.docs, { readme: true, changelog: true }); assert.deepStrictEqual(view.plugins.find((p) => p.id === 'net-plugin').docs, { readme: false, changelog: false });
+  assert.deepStrictEqual(hello.docs, { readme: true, changelog: true, icon: false, shots: 0 }); assert.deepStrictEqual(view.plugins.find((p) => p.id === 'net-plugin').docs, { readme: false, changelog: false, icon: false, shots: 0 });
   assert.strictEqual(await reg.doc('hello-plugin', '1.0.0', 'readme'), README);
   assert.strictEqual(await reg.doc('hello-plugin', '1.0.0', 'changelog'), null, 'text that does not match the signed fingerprint is never shown');
   assert.strictEqual(await reg.doc('net-plugin', '1.0.0', 'readme'), null, 'no document announced');
@@ -121,6 +121,50 @@ test('README and CHANGELOG: shown only when they match the fingerprint in the si
     const ok = await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0&f=readme').then((r) => r.json()); assert.strictEqual(ok.text, README);
     assert.strictEqual((await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0&f=changelog')).status, 404);
     assert.strictEqual((await fetch(t.base + '/api/plugin-doc?id=hello-plugin&v=1.0.0')).status, 404);
-    assert.deepStrictEqual((await fetch(t.base + '/api/plugins').then((r) => r.json())).plugins.find((p) => p.id === 'hello-plugin').docs, { readme: true, changelog: true });
+    assert.deepStrictEqual((await fetch(t.base + '/api/plugins').then((r) => r.json())).plugins.find((p) => p.id === 'hello-plugin').docs, { readme: true, changelog: true, icon: false, shots: 0 });
+  } finally { t.close(); }
+});
+
+test('logo: served only when it matches the signed fingerprint and really is a small square PNG', async () => {
+  const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const mkpng = (w, h) => { const b = Buffer.alloc(60); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.write('IHDR', 12, 'latin1'); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
+  const good = mkpng(64, 64), wrong = mkpng(64, 65);
+  const index = JSON.parse(JSON.stringify(INDEX)); index.plugins['hello-plugin'].versions['1.0.0'].iconSha = sha(good);
+  index.plugins['net-plugin'].versions['1.0.0'].iconSha = sha(wrong);
+  const store = { 'plugins/hello-plugin/1.0.0/icon.png': good, 'plugins/net-plugin/1.0.0/icon.png': wrong };
+  const bytes = Buffer.from(JSON.stringify(index, null, 1)); const idxFiles = { 'index.json': bytes, 'index.json.sig': Buffer.from(sign(bytes)) };
+  const fetcher = async (url) => { const k = url.split('/').slice(-4).join('/'); if (store[k]) return store[k]; const f = url.split('/').pop(); if (idxFiles[f]) return idxFiles[f]; throw new Error('404'); };
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher });
+  assert.ok((await reg.icon('hello-plugin', '1.0.0')).equals(good));
+  assert.strictEqual(await reg.icon('net-plugin', '1.0.0'), null, 'not square');
+  assert.strictEqual(await reg.icon('hello-plugin', '1.0'), null);
+  const t = await boot(reg);
+  try {
+    const r = await fetch(t.base + '/api/plugin-icon?id=hello-plugin&v=1.0.0'); assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.headers.get('content-type'), 'image/png'); assert.strictEqual(r.headers.get('x-content-type-options'), 'nosniff');
+    assert.strictEqual((await fetch(t.base + '/api/plugin-icon?id=net-plugin&v=1.0.0')).status, 404);
+    assert.strictEqual((await fetch(t.base + '/api/plugin-icon?id=../x&v=1.0.0')).status, 404);
+    assert.strictEqual((await fetch(t.base + '/api/plugins').then((x) => x.json())).plugins.find((p) => p.id === 'hello-plugin').docs.icon, true);
+  } finally { t.close(); }
+});
+
+test('screenshots: served only when they match the signed fingerprints, at most 3', async () => {
+  const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const mkpng = (w, h) => { const b = Buffer.alloc(80); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.write('IHDR', 12, 'latin1'); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
+  const s1 = mkpng(400, 300), s2 = mkpng(400, 301);
+  const index = JSON.parse(JSON.stringify(INDEX)); index.plugins['hello-plugin'].versions['1.0.0'].shotShas = [sha(s1), sha(s2), sha(s1), sha(s2)];
+  const store = { 'plugins/hello-plugin/1.0.0/screenshot1.png': s1, 'plugins/hello-plugin/1.0.0/screenshot2.png': Buffer.from('EVIL'), 'plugins/hello-plugin/1.0.0/screenshot3.png': s1 };
+  const bytes = Buffer.from(JSON.stringify(index, null, 1)); const idxFiles = { 'index.json': bytes, 'index.json.sig': Buffer.from(sign(bytes)) };
+  const fetcher = async (url) => { const k = url.split('/').slice(-4).join('/'); if (store[k]) return store[k]; const f = url.split('/').pop(); if (idxFiles[f]) return idxFiles[f]; throw new Error('404'); };
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher });
+  assert.strictEqual((await reg.list()).plugins.find((p) => p.id === 'hello-plugin').docs.shots, 3, 'a fourth is ignored');
+  assert.ok((await reg.shot('hello-plugin', '1.0.0', 1)).equals(s1));
+  assert.strictEqual(await reg.shot('hello-plugin', '1.0.0', 2), null, 'does not match the signed fingerprint');
+  assert.strictEqual(await reg.shot('hello-plugin', '1.0.0', 4), null);
+  assert.strictEqual(await reg.shot('hello-plugin', '1.0.0', '1; x'), null);
+  const t = await boot(reg);
+  try {
+    const r = await fetch(t.base + '/api/plugin-shot?id=hello-plugin&v=1.0.0&n=1'); assert.strictEqual(r.status, 200); assert.strictEqual(r.headers.get('content-type'), 'image/png');
+    assert.strictEqual((await fetch(t.base + '/api/plugin-shot?id=hello-plugin&v=1.0.0&n=2')).status, 404);
   } finally { t.close(); }
 });

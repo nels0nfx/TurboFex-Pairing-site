@@ -20,7 +20,7 @@ function fakeGithub() {
     const ok = (body, status = 200) => ({ ok: status < 300, status, json: async () => body, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)) });
     if (url === 'https://github.com/login/oauth/access_token') { const b = JSON.parse(o.body); return String(b.code).startsWith('badcode') ? ok({ error: 'bad_verification_code' }) : ok({ access_token: 'gho_SECRETTOKEN_' + nextUser }); }
     if (url === 'https://api.github.com/user') return ok(users[/_([a-z]+)$/.exec(o.headers.authorization)[1]]);
-    if (url.startsWith('https://raw.githubusercontent.com/')) { const f = files.get(url.slice('https://raw.githubusercontent.com/'.length)); return f === undefined ? ok('404', 404) : ok(f); }
+    if (url.startsWith('https://raw.githubusercontent.com/')) { const f = files.get(url.slice('https://raw.githubusercontent.com/'.length)); if (Buffer.isBuffer(f)) return { ok: true, status: 200, arrayBuffer: async () => f.buffer.slice(f.byteOffset, f.byteOffset + f.length), text: async () => f.toString('latin1') }; return f === undefined ? ok('404', 404) : ok(f); }
     throw new Error('unexpected ' + url);
   }
   return { fetchImpl, files, log, as: (u) => { nextUser = u; } };
@@ -671,5 +671,64 @@ test('private test codes: owner of the version only, one use, one hour, max 5, n
     const o = await t.admin('own');
     await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'reject', note: 'not good' } });
     assert.strictEqual((await mk(c, sub.id)).status, 400, 'rejected: no test code');
+  } finally { t.close(); }
+});
+
+
+const pngOf = (n) => { const zlib = require('zlib'); const crc = (b) => { let c, x = 0xffffffff; for (let i = 0; i < b.length; i++) { c = (x ^ b[i]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; x = (x >>> 8) ^ c; } return (x ^ 0xffffffff) >>> 0; };
+  const ch = (t, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const body = Buffer.concat([Buffer.from(t), d]); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc(body)); return Buffer.concat([l, body, cr]); };
+  const ih = Buffer.alloc(13); ih.writeUInt32BE(n, 0); ih.writeUInt32BE(n, 4); ih[8] = 8; ih[9] = 6;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ch('IHDR', ih), ch('IDAT', zlib.deflateSync(Buffer.alloc(n * (n * 4 + 1)))), ch('IEND', Buffer.alloc(0))]); };
+test('plugin logo: icon.png must be a small square PNG; it reaches the admin and the phone pull', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn(); const b = 'alice/hello/v1.0.0/';
+    t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    t.gh.files.set(b + 'icon.png', pngOf(30));
+    const bad = await send(t, c, GOOD); assert.strictEqual(bad.status, 400); assert.match(bad.json.error, /square PNG/);
+    t.gh.files.set(b + 'icon.png', Buffer.from('<svg onload=alert(1)>'));
+    assert.strictEqual((await send(t, c, GOOD)).status, 400, 'not a picture');
+    t.gh.files.set(b + 'icon.png', pngOf(64));
+    const ok = await send(t, c, GOOD); assert.strictEqual(ok.status, 200, JSON.stringify(ok.json));
+    const o = await t.admin('own');
+    const g = await t.req('GET', '/admin/api/plugins/submission?id=' + ok.json.submission.id, { cookie: o.cookie });
+    assert.match(g.json.icon, /^data:image\/png;base64,/);
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve' } });
+    const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json;
+    const item = (pull.plugins || pull.items || pull)[0]; assert.match(item.iconSha, /^[a-f0-9]{64}$/); assert.ok(item.icon.length > 40);
+  } finally { t.close(); }
+});
+
+test('screenshots: up to 3 PNGs, in order, 200-2000 px, 200 KB; shown to the admin and handed to the phone pull', async () => {
+  const t = await boot();
+  try {
+    const c = await t.signIn(); const b = 'alice/hello/v1.0.0/';
+    t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    t.gh.files.set(b + 'screenshot1.png', pngOf(100));
+    const small = await send(t, c, GOOD); assert.strictEqual(small.status, 400); assert.match(small.json.error, /screenshot1\.png/);
+    t.gh.files.set(b + 'screenshot1.png', pngOf(220)); t.gh.files.set(b + 'screenshot2.png', pngOf(240));
+    t.gh.files.set(b + 'screenshot4.png', pngOf(220));   // never looked at: only 1 to 3
+    const ok = await send(t, c, GOOD); assert.strictEqual(ok.status, 200, JSON.stringify(ok.json));
+    const o = await t.admin('own');
+    const g = await t.req('GET', '/admin/api/plugins/submission?id=' + ok.json.submission.id, { cookie: o.cookie });
+    assert.strictEqual(g.json.shots.length, 2); assert.match(g.json.shots[0], /^data:image\/png;base64,/);
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve' } });
+    const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json;
+    const item = (pull.plugins || pull.items || pull)[0]; assert.strictEqual(item.shots.length, 2); assert.strictEqual(item.shotShas.length, 2);
+  } finally { t.close(); }
+});
+
+test('playground: the check route, and only its own two files may start WebAssembly', async () => {
+  const t = await boot();
+  try {
+    const post = (b) => t.req('POST', '/api/playground/check', { body: b });
+    const ok = await post({ manifest: manifest(), code: CODE }); assert.strictEqual(ok.status, 200); assert.strictEqual(ok.json.ok, true); assert.strictEqual(ok.json.manifest.id, 'hello-plugin');
+    const bad = await post({ manifest: JSON.stringify({ id: 'X' }), code: 'x' }); assert.strictEqual(bad.json.ok, false); assert.ok(bad.json.errors.length > 0);
+    assert.strictEqual((await post({ manifest: 5, code: 'x' })).status, 400);
+    assert.strictEqual((await post({ manifest: 'x'.repeat(70000), code: 'x' })).status, 400);
+    const page = await fetch(t.base + '/playground'); assert.strictEqual(page.status, 200); assert.match(page.headers.get('content-security-policy'), /wasm-unsafe-eval/);
+    const sb = await fetch(t.base + '/playground-sandbox.js'); assert.strictEqual(sb.status, 200); assert.match(sb.headers.get('content-security-policy'), /wasm-unsafe-eval/);
+    for (const other of ['/developers', '/plugins', '/plugin-guide', '/playground.js', '/playground-broker.js', '/']) assert.ok(!/wasm-unsafe-eval/.test((await fetch(t.base + other)).headers.get('content-security-policy')), other + ' keeps the strict rule');
+    assert.ok(!/unsafe-eval'/.test(page.headers.get('content-security-policy').replace("'wasm-unsafe-eval'", '')), 'no general eval');
   } finally { t.close(); }
 });

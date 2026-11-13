@@ -30,7 +30,7 @@ const reSha = { test: (x) => typeof x === 'string' && /^[0-9a-f]{64}$/.test(x) }
 // the fingerprints of the optional README.md / CHANGELOG.md of every version, taken from the SIGNED index
 function docShasOf(index) {
   const m = new Map();
-  for (const [id, p] of Object.entries(index.plugins || {})) { if (!/^[a-z0-9-]{3,32}$/.test(id) || !p || typeof p.versions !== 'object') continue; for (const [v, e] of Object.entries(p.versions)) if (/^\d+\.\d+\.\d+$/.test(v) && e) m.set(id + '@' + v, { readme: reSha.test(e.readmeSha) ? e.readmeSha : '', changelog: reSha.test(e.changelogSha) ? e.changelogSha : '' }); }
+  for (const [id, p] of Object.entries(index.plugins || {})) { if (!/^[a-z0-9-]{3,32}$/.test(id) || !p || typeof p.versions !== 'object') continue; for (const [v, e] of Object.entries(p.versions)) if (/^\d+\.\d+\.\d+$/.test(v) && e) m.set(id + '@' + v, { readme: reSha.test(e.readmeSha) ? e.readmeSha : '', changelog: reSha.test(e.changelogSha) ? e.changelogSha : '', icon: reSha.test(e.iconSha) ? e.iconSha : '', shots: (Array.isArray(e.shotShas) ? e.shotShas : []).slice(0, 3).filter((x) => reSha.test(x)) }); }
   return m;
 }
 function makeView(index) {
@@ -46,7 +46,7 @@ function makeView(index) {
       permissions: (Array.isArray(e.permissions) ? e.permissions : []).slice(0, 12).map((k) => ({ key: str(k, 30), risk: (PERMS[k] || ['medium'])[0], text: (PERMS[k] || [0, 'Another permission'])[1] })),
       history: versions.slice().reverse().slice(0, 10).map((v) => ({ version: v, publishedAt: str((p.versions[v] || {}).publishedAt, 40) })),
       domains: (Array.isArray(e.domains) ? e.domains : []).slice(0, 10).map((d) => str(d, 80)).filter(Boolean),
-      docs: { readme: reSha.test(e.readmeSha), changelog: reSha.test(e.changelogSha) },
+      docs: { readme: reSha.test(e.readmeSha), changelog: reSha.test(e.changelogSha), icon: reSha.test(e.iconSha), shots: (Array.isArray(e.shotShas) ? e.shotShas : []).slice(0, 3).filter((x) => reSha.test(x)).length },
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
@@ -96,6 +96,29 @@ function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {
     if (crypto.createHash('sha256').update(buf).digest('hex') !== want) return null;
     const text = buf.toString('utf8'); if (docCache.size > 200) docCache.clear(); docCache.set(want, text); return text;
   }
-  return { list, doc };
+  // the logo of one version, as PNG bytes, accepted only when it matches the fingerprint in the signed index and really is a small square PNG
+  async function icon(id, version) {
+    if (!/^[a-z0-9-]{3,32}$/.test(String(id)) || !/^\d+\.\d+\.\d+$/.test(String(version))) return null;
+    await list();
+    const want = (docShas.get(id + '@' + version) || {}).icon; if (!want) return null;
+    if (docCache.has('i' + want)) return docCache.get('i' + want);
+    const buf = await get(base + `plugins/${id}/${version}/icon.png`, 32 * 1024 + 1);
+    if (crypto.createHash('sha256').update(buf).digest('hex') !== want) return null;
+    if (buf.length < 33 || buf.toString('latin1', 1, 4) !== 'PNG' || buf.readUInt32BE(16) !== buf.readUInt32BE(20)) return null;
+    if (docCache.size > 200) docCache.clear(); docCache.set('i' + want, buf); return buf;
+  }
+  // screenshot n (1 to 3) of one version, only when it matches the signed fingerprint and is a PNG of a sensible size
+  async function shot(id, version, n) {
+    n = Number(n); if (!Number.isInteger(n) || n < 1 || n > 3) return null;
+    if (!/^[a-z0-9-]{3,32}$/.test(String(id)) || !/^\d+\.\d+\.\d+$/.test(String(version))) return null;
+    await list();
+    const want = ((docShas.get(id + '@' + version) || {}).shots || [])[n - 1]; if (!want) return null;
+    if (docCache.has('s' + want)) return docCache.get('s' + want);
+    const buf = await get(base + `plugins/${id}/${version}/screenshot${n}.png`, 200 * 1024 + 1);
+    if (crypto.createHash('sha256').update(buf).digest('hex') !== want) return null;
+    if (buf.length < 33 || buf.toString('latin1', 1, 4) !== 'PNG' || buf.readUInt32BE(16) > 2000 || buf.readUInt32BE(20) > 2000) return null;
+    if (docCache.size > 200) docCache.clear(); docCache.set('s' + want, buf); return buf;
+  }
+  return { list, doc, icon, shot };
 }
 module.exports = { createRegistry, makeView, docShasOf, PERMS, PUBLIC_KEY };

@@ -105,6 +105,16 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (t.length > max) throw new Error('A file in your repository is too big (the plugin file can be up to 1 MB).');
     return t;
   }
+  async function rawBytes(url, max) {
+    const r = await gh(url, { headers: { 'user-agent': 'TurboFex-Pair' } });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error('GitHub answered ' + r.status);
+    const b = r.arrayBuffer ? Buffer.from(await r.arrayBuffer()) : Buffer.from(await r.text(), 'latin1');
+    if (b.length > max) throw new Error('too big'); return b;
+  }
+  const PNG_SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const iconOk = (b) => b.length >= 33 && b.length <= 32 * 1024 && b.subarray(0, 8).equals(PNG_SIG) && b.toString('latin1', 12, 16) === 'IHDR' && b.readUInt32BE(16) === b.readUInt32BE(20) && b.readUInt32BE(16) >= 64 && b.readUInt32BE(16) <= 512;
+  const shotOk = (b) => b.length >= 33 && b.length <= 200 * 1024 && b.subarray(0, 8).equals(PNG_SIG) && b.toString('latin1', 12, 16) === 'IHDR' && b.readUInt32BE(16) >= 200 && b.readUInt32BE(16) <= 2000 && b.readUInt32BE(20) >= 200 && b.readUInt32BE(20) <= 2000;
   async function githubUser(code) {
     const t = await gh('https://github.com/login/oauth/access_token', { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/json', 'user-agent': 'TurboFex-Pair' }, body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: site + '/auth/github/callback' }) });
     const tj = await t.json().catch(() => ({}));
@@ -164,6 +174,21 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (Buffer.byteLength(t) > 16 * 1024 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ufffd]/.test(t)) return { status: 400, error: f + ' must be plain text (UTF-8) up to 16 KB.' };
       docs[k] = t; docs[k + 'Sha'] = crypto.createHash('sha256').update(Buffer.from(t)).digest('hex');
     }
+    // optional logo: icon.png, a square PNG, 64 to 512 pixels, up to 32 KB
+    try {
+      const ib = await rawBytes(base + 'icon.png', 32 * 1024);
+      if (ib) { if (!iconOk(ib)) return { status: 400, error: 'icon.png must be a square PNG picture, between 64 and 512 pixels wide, up to 32 KB.' }; docs.icon = ib.toString('base64'); docs.iconSha = crypto.createHash('sha256').update(ib).digest('hex'); }
+    } catch (err) { return { status: /too big/.test(err.message) ? 400 : 502, error: /too big/.test(err.message) ? 'icon.png is bigger than 32 KB. Make the picture smaller.' : 'GitHub could not be reached just now. Please try again in a minute.' }; }
+    // optional screenshots: screenshot1.png to screenshot3.png in that order (no gaps), PNG, 200 to 2000 pixels each side, up to 200 KB
+    try {
+      const shots = [];
+      for (let i = 1; i <= 3; i++) {
+        const sb = await rawBytes(base + `screenshot${i}.png`, 200 * 1024); if (!sb) break;
+        if (!shotOk(sb)) return { status: 400, error: `screenshot${i}.png must be a PNG picture, 200 to 2000 pixels each side, up to 200 KB.` };
+        shots.push(sb);
+      }
+      if (shots.length) { docs.shots = shots.map((b) => b.toString('base64')); docs.shotShas = shots.map((b) => crypto.createHash('sha256').update(b).digest('hex')); }
+    } catch (err) { return { status: /too big/.test(err.message) ? 400 : 502, error: /too big/.test(err.message) ? 'A screenshot is bigger than 200 KB. Make the picture smaller.' : 'GitHub could not be reached just now. Please try again in a minute.' }; }
     const c = checkPlugin(manifestRaw, entrySource);
     if (!c.ok) return { status: 400, error: 'The plugin cannot be accepted yet:', problems: c.errors };
     const { id, version } = c.manifest;
@@ -211,7 +236,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -359,7 +384,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- the phone command ----------
   const pullAuthorized = (req) => { const m = /^Bearer (.{24,200})$/.exec(String(req.headers.authorization || '')); return pullOn && !!m && eq(m[1], pullToken); };
-  const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, ...(s.readme ? { readme: s.readme, readmeSha: s.readmeSha } : {}), ...(s.changelog ? { changelog: s.changelog, changelogSha: s.changelogSha } : {}), developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
+  const approvedForPull = () => [...subs.values()].filter((s) => s.status === 'approved').sort((a, b) => a.createdAt - b.createdAt).map((s) => { const d = devs.get(String(s.githubId)); return { submission: s.id, id: s.manifest.id, version: s.manifest.version, manifestRaw: s.manifestRaw, entrySource: s.entrySource, manifestSha: s.manifestSha, entrySha: s.entrySha, ...(s.readme ? { readme: s.readme, readmeSha: s.readmeSha } : {}), ...(s.changelog ? { changelog: s.changelog, changelogSha: s.changelogSha } : {}), ...(s.icon ? { icon: s.icon, iconSha: s.iconSha } : {}), ...(s.shots ? { shots: s.shots, shotShas: s.shotShas } : {}), developer: s.login, githubId: s.githubId, verified: !!(d && d.verified) }; });
   const revocationsForPull = () => [...subs.values()].filter((s) => s.revoke && !s.revoke.done).map((s) => ({ submission: s.id, id: s.manifest.id, version: s.manifest.version, reason: s.revoke.reason }));
   function markRevoked(ids) {
     let n = 0;

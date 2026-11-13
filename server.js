@@ -9,6 +9,7 @@ const qrImage = require('./qr');
 const { createEvents } = require('./events');
 const { createAdmin } = require('./admin');
 const { fromEnv: cloudFromEnv } = require('./cloud');
+const { checkPlugin } = require('./plugin-check');
 const { createRegistry } = require('./registry');
 const { createDevCentre } = require('./devcentre');
 const { createBotStats } = require('./botstats');
@@ -95,14 +96,14 @@ function createApp(opts = {}) {
   }
   const ipOf = (req) => (trustProxy && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress || 'unknown';
 
-  const send = (res, status, body, type = 'application/json; charset=utf-8') => {
+  const send = (res, status, body, type = 'application/json; charset=utf-8', csp = "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'") => {
     res.writeHead(status, {
       'Content-Type': type,
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
+      'Content-Security-Policy': csp,
     });
     res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
   };
@@ -232,6 +233,35 @@ function createApp(opts = {}) {
       } catch (err) { return send(res, 503, { error: 'This could not be loaded right now.' }); }
     }
 
+    // the logo of a plugin version (only a picture that matches the signed index)
+    if (req.method === 'GET' && p === '/api/plugin-icon') {
+      if (limited('pluginicon', ip, 300, 60 * 1000)) { res.writeHead(429); return res.end(); }
+      try {
+        const u = new URL(req.url, 'http://x'); const png = await registry.icon(u.searchParams.get('id'), u.searchParams.get('v'));
+        if (!png) { res.writeHead(404); return res.end(); }
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': png.length, 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" }); return res.end(png);
+      } catch (err) { res.writeHead(503); return res.end(); }
+    }
+
+    // the Playground asks the same file check the Developer Centre uses (the sandbox itself runs in the visitor's browser)
+    if (req.method === 'POST' && p === '/api/playground/check') {
+      if (limited('pgcheck', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
+      let b; try { b = JSON.parse(await readBody(req, 1.2 * 1024 * 1024)); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
+      if (!b || typeof b.manifest !== 'string' || typeof b.code !== 'string' || b.manifest.length > 64 * 1024 || b.code.length > 1024 * 1024) return send(res, 400, { error: 'Bad request.' });
+      const c = checkPlugin(b.manifest, b.code);
+      return send(res, 200, c.ok ? { ok: true, manifest: c.manifest, risk: c.risk } : { ok: false, errors: c.errors.slice(0, 20) });
+    }
+
+    // a screenshot of a plugin version (only a picture that matches the signed index)
+    if (req.method === 'GET' && p === '/api/plugin-shot') {
+      if (limited('pluginshot', ip, 120, 60 * 1000)) { res.writeHead(429); return res.end(); }
+      try {
+        const u = new URL(req.url, 'http://x'); const png = await registry.shot(u.searchParams.get('id'), u.searchParams.get('v'), u.searchParams.get('n'));
+        if (!png) { res.writeHead(404); return res.end(); }
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': png.length, 'Cache-Control': 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" }); return res.end(png);
+      } catch (err) { res.writeHead(503); return res.end(); }
+    }
+
     // the plugin list (read from the signed registry; see registry.js)
     if (req.method === 'GET' && p === '/api/plugins') {
       if (limited('plugins', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' });
@@ -325,13 +355,15 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html' }; // clean addresses for the text pages
+      const PAGES = { '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/playground': 'playground.html' }; // clean addresses for the text pages
       const name = p === '/' ? 'index.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
           const body = fs.readFileSync(path.join(PUBLIC, name));
           if (path.extname(name) === '.html') noteVisit(req, p);
-          return send(res, 200, body, TYPES[path.extname(name)]);
+          // the Playground page and its sandbox are the ONLY files allowed to start WebAssembly (the engine that runs plugin code); every other page keeps the strict rule
+          const wasm = name === 'playground.html' || name === 'playground-sandbox.js';
+          return send(res, 200, body, TYPES[path.extname(name)], wasm ? "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; img-src 'self' data:; frame-ancestors 'none'" : undefined);
         } catch (err) {
           // fall through
         }

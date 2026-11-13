@@ -495,6 +495,8 @@
       }
       n.appendChild(panel('turbofex-plugin.json', null, h('pre', { class: 'apre', tabindex: '0', text: s.manifestRaw })));
       n.appendChild(panel('Plugin code', String(s.entrySource.split('\n').length) + ' lines', h('pre', { class: 'apre tall', tabindex: '0', text: s.entrySource })));
+      if (typeof s.icon === 'string' && /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(s.icon)) n.appendChild(panel('Logo (icon.png)', '', h('img', { src: s.icon, width: 64, height: 64, alt: 'logo' })));
+      if (Array.isArray(s.shots) && s.shots.length) n.appendChild(panel('Screenshots', String(s.shots.length), h('div', { class: 'avr' }, s.shots.filter(function (x) { return /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(x); }).map(function (x) { return h('img', { src: x, width: 160, alt: 'screenshot' }); }))));
       [['README.md', s.readme], ['CHANGELOG.md', s.changelog]].forEach(function (d) { if (d[1]) n.appendChild(panel(d[0], String(d[1].split('\n').length) + ' lines (shown on the Plugins page as plain text)', h('pre', { class: 'apre tall', tabindex: '0', text: d[1] }))); });
       var bar = h('div', { class: 'abar' });
       if (s.status === 'pending') {

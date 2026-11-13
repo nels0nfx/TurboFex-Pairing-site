@@ -87,7 +87,7 @@
   function card(p) {
     var a = el('article', 'pcard'); a.id = p.id;
     var head = el('button', 'phead'); head.type = 'button'; head.setAttribute('aria-expanded', 'false');
-    var title = el('span', 'ptitle'); title.appendChild(el('span', 'pname', p.name)); if (p.featured) title.appendChild(el('span', 'pfeat', '★ Featured')); title.appendChild(el('span', 'pver', 'v' + p.version)); if (p.rating) title.appendChild(el('span', 'prate', '★ ' + p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')'));
+    var title = el('span', 'ptitle'); if (p.docs && p.docs.icon) { var im = el('img', 'picon'); im.alt = ''; im.width = 36; im.height = 36; im.loading = 'lazy'; im.src = '/api/plugin-icon?id=' + encodeURIComponent(p.id) + '&v=' + encodeURIComponent(p.version); title.appendChild(im); } title.appendChild(el('span', 'pname', p.name)); if (p.featured) title.appendChild(el('span', 'pfeat', '★ Featured')); title.appendChild(el('span', 'pver', 'v' + p.version)); if (p.rating) title.appendChild(el('span', 'prate', '★ ' + p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')'));
     head.appendChild(title); head.appendChild(el('span', 'pdesc', p.description)); var by = el('span', 'pby', 'By ' + (p.author || 'unknown')); if (p.dev && p.dev.verified) by.appendChild(el('span', 'pver2', '✓ Verified developer')); head.appendChild(by);
     var more = el('div', 'pmore'); more.hidden = true;
     more.appendChild(el('h3', null, 'What it asks for')); more.appendChild(chips(p));
@@ -103,6 +103,11 @@
     if (p.history && p.history.length > 1) {
       more.appendChild(el('h3', null, 'Versions'));
       var vl = el('ul', 'pvers'); p.history.forEach(function (h) { vl.appendChild(el('li', null, 'v' + h.version + (h.publishedAt ? ' · ' + h.publishedAt.slice(0, 10) : ''))); }); more.appendChild(vl);
+    }
+    if (p.docs && p.docs.shots) {   // the developer's own screenshots (pictures that match the signed list)
+      var gal = el('div', 'pshots');
+      for (var si = 1; si <= p.docs.shots; si++) { var sa = el('a', 'pshot'); sa.target = '_blank'; sa.rel = 'noopener'; var sURL = '/api/plugin-shot?id=' + encodeURIComponent(p.id) + '&v=' + encodeURIComponent(p.version) + '&n=' + si; sa.href = sURL; var sim = el('img'); sim.alt = 'Screenshot ' + si + ' of ' + p.name; sim.loading = 'lazy'; sim.src = sURL; sa.appendChild(sim); gal.appendChild(sa); }
+      more.appendChild(gal);
     }
     if (p.docs && (p.docs.readme || p.docs.changelog)) {   // the developer's own README / CHANGELOG, shown only as plain text
       var dbar = el('div', 'pdocbar'); var dout = el('pre', 'pdoc'); dout.hidden = true; dout.tabIndex = 0; var shownDoc = '';

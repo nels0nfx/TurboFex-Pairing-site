@@ -56,3 +56,6 @@
 .pdocbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 8px; }
 .pdoc { margin: 0 0 10px; padding: 12px 14px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.55; font-family: inherit; color: var(--text, inherit); background: rgba(255,255,255,.03); }
 .pfeat { margin-left: 8px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.picon { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; margin-right: 10px; vertical-align: middle; background: var(--track); }
+.pshots { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.pshot img { display: block; max-width: 100%; width: 220px; height: auto; border-radius: 10px; border: 1px solid var(--line); }
