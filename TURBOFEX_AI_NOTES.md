@@ -317,3 +317,7 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 44. v2.47.0 - developer page shows ratings, reviews and report count
 - `/api/dev/me` gets `insights[pluginId] = {rating, reviews (latest 5 visible), reports (number only)}` for the developer's published plugins (only when something exists). /developers shows them with textContent. Reporters and report reasons are never sent to the developer.
 - Version history add: **v2.47.0**.
+
+## 45. v2.48.0 - invite-only beta for developers
+- `data/devcentre/invites.json` `{on, logins[]}` (+ Supabase `dc:invites`, in the backup export). While `on`, `submit` refuses a GitHub login not on the list (403, clear message). Sign-in, rating, reporting stay open. Admin route `POST /admin/api/plugins/invites {on?, add?, remove?}` (owner only; audited `plugin.invites`); UI on the Plugins list page of the admin dashboard. Default: off (open to everyone).
+- Version history add: **v2.48.0**.

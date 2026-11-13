@@ -629,3 +629,25 @@ test('developer page insights: rating, latest reviews and only the NUMBER of rep
     assert.strictEqual((await t.req('GET', '/api/dev/me', t.dev(bob))).json.insights, undefined, 'bob has no published plugin');
   } finally { t.close(); }
 });
+
+test('invite-only beta: only listed GitHub names can send plugins; owner controls it; survives restart', async () => {
+  const t = await boot(); let dir;
+  try {
+    dir = t.dataDir;
+    const c = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
+    const inv = (body, who = A) => t.req('POST', '/admin/api/plugins/invites', { ...who, body });
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/invites', { body: { on: true } })).status, 401);
+    assert.strictEqual((await inv({ on: true }, { cookie: (await t.admin('mod')).cookie })).status, 403);
+    assert.strictEqual((await inv({ add: 'bad name!' })).status, 400);
+    assert.strictEqual((await inv({ on: true })).status, 200);
+    const no = await send(t, c, GOOD); assert.strictEqual(no.status, 403); assert.match(no.json.error, /invite-only/);
+    assert.strictEqual((await inv({ add: '@Alice' })).status, 200);
+    assert.strictEqual((await send(t, c, GOOD)).status, 200, 'invited (name match ignores case and @)');
+    assert.deepStrictEqual((await t.req('GET', '/admin/api/plugins/submissions', { cookie: o.cookie })).json.invites, { on: true, logins: ['alice'] });
+    assert.strictEqual((await inv({ remove: 'alice', on: false })).status, 200);
+    assert.strictEqual((await send(t, c, { ...GOOD, tag: 'v1.0.0' })).status === 403, false, 'open again');
+  } finally { t.close(); }
+  const t2 = await boot({}, dir);
+  try { assert.deepStrictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'devcentre', 'invites.json'), 'utf8')).on, false); } finally { t2.close(); }
+});

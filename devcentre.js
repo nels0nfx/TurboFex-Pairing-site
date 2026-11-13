@@ -53,6 +53,19 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (cloud && cloud.pushKv) cloud.pushKv('dc:featured', rec);
     return { ok: true, featured: on === true };
   }
+  // invite-only beta: while on, only the GitHub usernames on the list can send plugins (everyone can still sign in, rate and report)
+  let invites = { on: false, logins: [] };
+  try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'invites.json'), 'utf8')); invites = { on: f.on === true, logins: (Array.isArray(f.logins) ? f.logins : []).filter((x) => /^[a-z0-9-]{1,39}$/.test(x)).slice(0, 200) }; } catch (err) { /* open to everyone */ }
+  function setInvites(b) {
+    const next = { on: invites.on, logins: [...invites.logins] };
+    if (typeof b.on === 'boolean') next.on = b.on;
+    if (b.add !== undefined) { const l = String(b.add).trim().replace(/^@/, '').toLowerCase(); if (!/^[a-z0-9-]{1,39}$/.test(l)) return { status: 400, error: 'That is not a GitHub username.' }; if (!next.logins.includes(l)) { if (next.logins.length >= 200) return { status: 400, error: 'The list is full (200).' }; next.logins.push(l); } }
+    if (b.remove !== undefined) next.logins = next.logins.filter((x) => x !== String(b.remove).toLowerCase());
+    invites = next; const rec = { ...invites, at: now() }; const f = path.join(dir, 'invites.json'), tmp = f + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:invites', rec);
+    return { status: 200, ok: true, invites };
+  }
   function setPaused(v) {
     paused = v === true; const rec = { paused, at: now() };
     const f = path.join(dir, 'switch.json'), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
@@ -123,6 +136,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   async function submit(d, input) {
     if (d.blocked) return { status: 403, error: 'This account cannot send plugins.' };
+    if (invites.on && !invites.logins.includes(String(d.login).toLowerCase())) return { status: 403, error: 'The store is in invite-only beta for now. Ask the TurboFex owner to add your GitHub username.' };
     const r = parseRepo(input.repo, d); if (r.error) return { status: 400, error: r.error };
     const tag = String(input.tag || '').trim(), folder = String(input.folder || '').trim().replace(/^\/+|\/+$/g, '');
     if (!reTag.test(tag) || tag.includes('..') || tag.startsWith('/') || tag.endsWith('/')) return { status: 400, error: 'Write the release tag exactly as it is on GitHub, for example v1.0.0.' };
@@ -172,7 +186,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
-  const adminList = () => ({ paused, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, invites, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
   function lineDiff(a, b) {
     const x = a.split('\n'), y = b.split('\n');
@@ -311,7 +325,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
-  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, featured: [...featured], developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
 
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
@@ -410,7 +424,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setInvites, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };
