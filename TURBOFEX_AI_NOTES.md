@@ -329,3 +329,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 ## 47. v2.50.0 - private test codes (site side of bot v1.5.9)
 - Developer: `POST /api/dev/testcode {id}` (own version, status pending/changes/approved, max 5 unused codes) -> `TFX-` + 8 chars, one hour, one use. Stored only as HMAC in `data/devcentre/testcodes.json` (+ Supabase `dc:testcodes`, NOT in the backup export). Bot: `GET /api/test-plugin?code=` (20 per 10 min per IP) returns `{id, version, developer, manifestRaw, entrySource, manifestSha, entrySha}` and deletes the code. The bot (`core/plugins/testcode.js`) checks the shas, writes the folder with a `.from-test` marker, then the normal confirm screen. It is NOT signed by the registry, so the owner's confirmation and the sandbox are the protection.
 - Version history add: **v2.50.0**.
+
+## 48. v2.51.0 - permission media.convert (site side of bot v1.5.10)
+- `registry.js` PERMS gets `media.convert` (medium). `plugin-check.js` accepts it automatically (it reads PERMS). Guide: permission table, `tfx.media.toSticker/toAudio`, and `media.send` kind `audio`.
+- Bot v1.5.10: broker `convert()` (input <=1 MB, magic-byte check, 2 per call, 6 per minute, 4 s limit), `sniffAudio`, `media.send` kind `audio`, env.toSticker/toAudio use whatsapp/media (sharp, ffmpeg; MP3 64k, 60 s).
+- Version history add: **v2.51.0**.

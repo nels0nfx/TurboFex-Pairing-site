@@ -14,6 +14,7 @@ const PERMS = {
   'group.read': ['low', 'See the group name and how many members and admins it has'],
   'chat.react': ['low', 'React to the message that used it with an emoji'],
   'media.send': ['low', 'Send pictures, stickers and files in the chat where it is used'],
+  'media.convert': ['medium', 'Turn pictures into stickers and audio into small MP3 files (uses a little of the bot\'s power, a few times a minute)'],
   schedule: ['medium', 'Run by itself on a timer'],
   'owner.notify': ['medium', 'Send the bot owner a short message now and then'],
   network: ['medium', 'Connect to the internet (only the sites it lists)'],
