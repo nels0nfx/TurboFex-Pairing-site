@@ -166,8 +166,9 @@
   function pollAlerts() { api('GET', 'security').then(function (j) { setAlerts(j.alerts, tab === 'security'); }, function () {}); }
 
   // ---------- pieces ----------
-  function head(title, sub, right) { return h('div', { class: 'vh' }, h('div', { class: 'vt' }, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), h('div', { class: 'avr' }, right || null, liveBadge())); }
+  function head(title, sub, right) { return h('div', { class: 'vh' }, h('span', { class: 'vico', 'aria-hidden': 'true' }, ICON[tab] ? icon(tab, 24) : null), h('div', { class: 'vt' }, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), h('div', { class: 'avr' }, right || null, liveBadge())); }
   function stat(label, value, note, cls) { return h('div', { class: 'kpi ' + (cls || '') }, h('small', { text: label }), h('b', { text: value }), note ? h('em', { text: note }) : null); }
+  function ctl(title, text, body) { return h('div', { class: 'ctl' }, h('b', { text: title }), h('p', { class: 'muted', text: text }), body); }
   function panel(title, small) { var p = h('section', { class: 'pnl' }); if (title) p.appendChild(h('h3', null, title, small ? h('small', { text: small }) : null)); for (var i = 2; i < arguments.length; i++) add(p, arguments[i]); return p; }
   function table(cols, rows, empty, widths) {
     if (!rows.length) return h('p', { class: 'empty', text: empty });
@@ -452,22 +453,24 @@
     return api('GET', 'plugins/submissions').then(function (j) {
       var n = h('div');
       n.appendChild(head('Plugins', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', null));
-      n.appendChild(h('div', { class: 'avr' }, h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' }), ' ', h('button', { class: 'btn' + (j.paused ? '' : ' danger'), type: 'button', onclick: function (e) { var b = e.currentTarget, go = function () { act(b, function () { return api('POST', 'plugins/pause', { paused: !j.paused }); }, j.paused ? 'Store opened' : 'Store paused', function () { load(false); }); }; if (j.paused) go(); else confirmThen('Pause the plugin store? The Plugins page shows nothing and nobody can send, rate or report plugins. Bots and already installed plugins are not affected.', go, 'Pause'); } }, j.paused ? 'Open the store again' : 'Pause the store')));
+      var pbox = (h('div', { class: 'avr' }, h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' }), ' ', h('button', { class: 'btn' + (j.paused ? '' : ' danger'), type: 'button', onclick: function (e) { var b = e.currentTarget, go = function () { act(b, function () { return api('POST', 'plugins/pause', { paused: !j.paused }); }, j.paused ? 'Store opened' : 'Store paused', function () { load(false); }); }; if (j.paused) go(); else confirmThen('Pause the plugin store? The Plugins page shows nothing and nobody can send, rate or report plugins. Bots and already installed plugins are not affected.', go, 'Pause'); } }, j.paused ? 'Open the store again' : 'Pause the store')));
       var iv = j.invites || { on: false, logins: [] };
       var ibox = h('div', { class: 'avr' }, h('span', { class: 'tag ' + (iv.on ? 'warn' : 'ok'), text: iv.on ? 'Invite-only beta: ON' : 'Open to every developer' }), ' ',
         h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/invites', { on: !iv.on }); }, iv.on ? 'Open to everyone' : 'Invite-only is on', function () { load(false); }); } }, iv.on ? 'Open to everyone' : 'Turn on invite-only'), ' ',
         h('button', { class: 'btn', type: 'button', onclick: function () { dlg({ title: 'Invite a developer', text: 'Their GitHub username. While invite-only is on, only listed people can send plugins.', fields: [{ name: 'login', label: 'GitHub username' }], ok: 'Add' }, function (v) { api('POST', 'plugins/invites', { add: v.login }).then(function () { load(false); }, function () { load(false); }); }); } }, 'Invite someone'));
-      n.appendChild(ibox);
       var cols = j.collections || [];
       var cbox = h('div', { class: 'avr' }, h('span', { class: 'tag ok', text: 'Collections: ' + cols.length }), ' ',
         h('button', { class: 'btn', type: 'button', onclick: function () { colDlg(null); } }, 'New collection'));
       n.appendChild(cbox);
-      cols.forEach(function (c) {
-        n.appendChild(h('p', { class: 'muted' }, h('b', { text: c.name }), ' (' + c.id + '): ' + c.plugins.join(', ') + ' ',
-          h('button', { class: 'btn sm', type: 'button', onclick: function () { colDlg(c); } }, 'Edit'), ' ',
-          h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
-      });
-      if (cols.length) n.appendChild(h('p', { class: 'note', text: 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' }));
+      n.appendChild(h('div', { class: 'ctls' },
+        ctl('Store status', j.paused ? 'The store is closed: nothing is shown and nobody can send, rate or report.' : 'The store is open to visitors and developers.', pbox),
+        ctl('Developer access', iv.on ? 'Only invited people can send plugins right now.' : 'Any developer who signs in can send plugins.', ibox),
+        ctl('Collections', 'Ready-made sets of 2 to 8 plugins that bot owners install with one command.', cbox)));
+      if (cols.length) n.appendChild(panel('Collections', String(cols.length), h('div', { class: 'clist' }, cols.map(function (c) {
+        return h('div', { class: 'citem' }, h('div', { class: 'cinfo' }, h('b', { text: c.name }), h('span', { class: 'muted', text: ' ' + c.id }), h('div', { class: 'cchips' }, c.plugins.map(function (p) { return h('span', { class: 'cchip', text: p }); }))),
+          h('div', { class: 'cact' }, h('button', { class: 'btn sm', type: 'button', onclick: function () { colDlg(c); } }, 'Edit'),
+            h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
+      })), h('p', { class: 'note', text: 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' })));
       if (iv.logins.length) n.appendChild(h('p', { class: 'muted' }, 'Invited: ', iv.logins.map(function (l) { return h('button', { class: 'btn sm', type: 'button', title: 'Remove ' + l, onclick: function (e) { act(e.currentTarget, function () { return api('POST', 'plugins/invites', { remove: l }); }, 'Removed', function () { load(false); }); } }, l + ' ✕'); })));
       if (!j.configured) n.appendChild(h('p', { class: 'note warn', text: 'GitHub sign-in is not set up yet (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are missing on the server), so developers cannot send plugins.' }));
       if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'The phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));
@@ -477,7 +480,8 @@
           [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
       });
       n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
-      n.appendChild(h('div', { class: 'avr' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports'), ' ', h('a', { class: 'btn', href: '/admin/api/plugins/export', download: 'turbofex-plugin-store-backup.json' }, 'Download backup')));
+      var sbox = (h('div', { class: 'avr subseg' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports'), ' ', h('a', { class: 'btn', href: '/admin/api/plugins/export', download: 'turbofex-plugin-store-backup.json' }, 'Download backup')));
+      n.insertBefore(sbox, n.children[1]);
       return n;
     });
   }

@@ -377,3 +377,6 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Fixed: an empty sign-in error line no longer shows a stray "!".
 - Working-folder check (not shipped): `pgtest/adminflow.js` signs in through the real form with a one-time code, opens every section, the phone menu, the collections dialog, theme switch and sign-out, on a phone and a desktop. Test added in `test/devcentre.test.js` (site total 113).
 
+
+## 56. v2.59.0 - full admin page redesign (front end only)
+admin.js: head() has icon tile (.vico); ctl() helper; vPluginList uses .ctls/.ctl cards, .clist collections, .subseg sub-view row. admin-ui.css 'PAGE-LEVEL REDESIGN' block styles every section (panels, kpi, tables .tr/.th, .empty, .note, .tag, forms, .seg, .sw). No inline styles (CSP). Tests: 113 pass; adminflow/flow pass.

@@ -52,9 +52,7 @@
   .adm .asite-h { margin: 0 14px 6px; }
 }
 
-/* ---- page titles, panels, tiles ---- */
-.adm .vh h2 { position: relative; padding-bottom: 10px; letter-spacing: -.01em; }
-.adm .vh h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 44px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--gold), transparent); }
+/* ---- panels, tiles ---- */
 .adm .pnl, .adm .kpi, .adm .attn, .adm .gauge { border-radius: 20px; transition: border-color .25s, box-shadow .3s var(--ui-ease), transform .3s var(--ui-ease); }
 @media (hover: hover) { .adm .pnl:hover, .adm .kpi:hover { border-color: var(--gold); box-shadow: var(--a-shadow); } .adm .kpi:hover { transform: translateY(-2px); } }
 .adm .kpi b { color: var(--gold-text); }
@@ -90,3 +88,113 @@
   .adm .btn, .adm .nav button, .adm .pnl, .adm .kpi { transition: none; }
 }
 .adm .err:empty::before { content: none; }
+
+/* =====================================================================
+   PAGE-LEVEL REDESIGN: every section of the dashboard
+   ===================================================================== */
+
+/* ---- page header card with an icon tile ---- */
+.adm .vh { position: relative; display: flex; align-items: center; gap: 14px 16px; margin: 0 0 18px; padding: 16px 18px; border: 1px solid var(--card-border); border-radius: 24px; background: linear-gradient(135deg, var(--surface) 55%, color-mix(in srgb, var(--gold) 9%, var(--surface))); overflow: hidden; }
+.adm .vh::before { content: ""; position: absolute; right: -40px; top: -60px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, var(--gold-faint), transparent 70%); pointer-events: none; }
+.adm .vico { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; color: #0B0B0B; background: linear-gradient(160deg, #E4C98B, #C9A45C 60%, #A98438); box-shadow: 0 12px 22px -12px rgba(201, 164, 92, .8); }
+.adm .vico:empty { display: none; }
+.adm .vh h2 { margin: 0; font-size: 25px; letter-spacing: -.01em; }
+.adm .vh .sub { margin: 4px 0 0; max-width: 62ch; font-size: 14.5px; line-height: 1.5; }
+.adm .vh .vt { flex: 1 1 220px; }
+.adm .vh .avr { position: relative; flex: 0 0 auto; margin-left: auto; }
+.adm .vh > .fld, .adm .vh > .seg { position: relative; }
+@media (max-width: 560px) { .adm .vh { padding: 14px; border-radius: 20px; } .adm .vico { width: 44px; height: 44px; border-radius: 14px; } .adm .vh h2 { font-size: 22px; } .adm .vh .avr { margin-left: 0; } }
+
+/* ---- panels: a gold marker in the heading, softer surface ---- */
+.adm .pnl { padding: 18px 18px 16px; background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 94%, var(--bg))); }
+.adm .pnl > h3 { position: relative; margin: 0 0 14px; padding-left: 14px; font-size: 18px; }
+.adm .pnl > h3::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px; border-radius: 3px; background: linear-gradient(180deg, var(--gold), transparent); }
+.adm .pnl > h3 small { padding: 2px 10px; border-radius: 999px; background: var(--track); border: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+
+/* ---- tiles ---- */
+.adm .kpi { position: relative; overflow: hidden; padding: 16px 16px 14px; }
+.adm .kpi::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--gold), transparent 80%); opacity: .55; }
+.adm .kpi.good::before { background: linear-gradient(90deg, var(--ok), transparent 80%); } .adm .kpi.bad::before { background: linear-gradient(90deg, var(--bad), transparent 80%); }
+.adm .kpi small { font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+.adm .kpi b { font-size: 32px; }
+.adm .grid { align-items: stretch; }
+
+/* ---- "needs attention" strip ---- */
+.adm .attn { position: relative; padding-left: 22px; background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface) 60%); overflow: hidden; }
+.adm .attn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--gold); }
+
+/* ---- notes and banners ---- */
+.adm .note { position: relative; padding: 14px 16px 14px 44px; border-radius: 16px; line-height: 1.6; }
+.adm .note::before { content: "i"; position: absolute; left: 14px; top: 13px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #0B0B0B; font: 700 13px/1 var(--serif); }
+.adm .note.warn { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+.adm .note.warn::before { content: "!"; }
+.adm .note.bad::before { content: "!"; background: var(--bad); color: #fff; }
+.adm .banner { border-radius: 16px; background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
+
+/* ---- lists and tables ---- */
+.adm .tbl { gap: 10px; }
+.adm .tr { position: relative; padding: 14px 16px 14px 20px; border-radius: 16px; background: var(--field); transition: border-color .2s, background .2s, transform .25s var(--ui-ease); }
+.adm .tr::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--gold-soft); transition: background .2s; }
+@media (hover: hover) { .adm .tr:hover { border-color: var(--gold-soft); background: var(--a-hover); } .adm .tr:hover::before { background: var(--gold); } }
+.adm .th { padding: 0 16px 0 20px; font-weight: 700; letter-spacing: .1em; font-size: 11.5px; }
+.adm .td { font-size: 14.5px; }
+.adm .td.act { gap: 8px; display: flex; justify-content: flex-end; }
+@media (min-width: 760px) { .adm .td.act { display: flex; } }
+.adm .empty { position: relative; margin: 4px 0; padding: 30px 16px 26px; border: 1px dashed var(--card-border); border-radius: 18px; background: radial-gradient(60% 90% at 50% 0%, var(--gold-faint), transparent 80%); font-size: 15px; }
+.adm .empty::before { content: ""; display: block; width: 40px; height: 40px; margin: 0 auto 12px; border-radius: 50%; border: 2px solid var(--gold-soft); background: radial-gradient(circle, var(--gold-faint), transparent 70%); }
+.adm .alert { position: relative; border-radius: 16px; padding: 16px 16px 14px 18px; transition: border-color .2s, background .2s; }
+@media (hover: hover) { .adm .alert:hover { background: var(--a-hover); } }
+
+/* ---- tags become status chips with a dot ---- */
+.adm .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 12px; letter-spacing: .02em; background: color-mix(in srgb, currentColor 8%, transparent); }
+.adm .tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* ---- controls row, collections ---- */
+.adm .ctls { display: grid; gap: 12px; grid-template-columns: 1fr; margin: 0 0 18px; }
+@media (min-width: 760px) { .adm .ctls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.adm .ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px; border: 1px solid var(--card-border); border-radius: 20px; background: var(--surface); transition: border-color .25s, box-shadow .3s var(--ui-ease); }
+@media (hover: hover) { .adm .ctl:hover { border-color: var(--gold); box-shadow: var(--a-shadow); } }
+.adm .ctl b { font-family: var(--serif); font-size: 17px; }
+.adm .ctl p { margin: 0 0 8px; font-size: 14px; line-height: 1.5; flex: 1; }
+.adm .ctl .avr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.adm .ctl .avr .btn { min-height: 38px; }
+.adm .subseg { display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 0 0 18px; padding: 5px; border: 1px solid var(--card-border); border-radius: 999px; background: var(--surface); max-width: 100%; }
+.adm .subseg .btn { min-height: 38px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-weight: 600; text-decoration: none; }
+@media (hover: hover) { .adm .subseg .btn:hover { color: var(--text); background: var(--a-hover) !important; border: 0 !important; } }
+.adm .clist { display: grid; gap: 10px; }
+.adm .citem { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--field); }
+.adm .cinfo { min-width: 0; flex: 1 1 240px; }
+.adm .cinfo b { font-family: var(--serif); font-size: 17px; color: var(--gold-text); }
+.adm .cchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.adm .cchip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--track); font-size: 12.5px; font-weight: 600; }
+.adm .cact { display: flex; gap: 8px; }
+.adm .pnl .note:last-child { margin-bottom: 0; margin-top: 14px; }
+
+/* ---- forms ---- */
+.adm .fld { margin: 0 0 14px; }
+.adm .fld label { font-weight: 600; font-size: 13.5px; }
+.adm .fld input, .adm .fld select, .adm .fld textarea { min-height: 48px; border-radius: 14px; background: var(--field); }
+.adm .fld small { line-height: 1.45; }
+.adm .frow { align-items: end; }
+.adm .fld select, .adm .dlg select { -webkit-appearance: none; appearance: none; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, var(--gold) 50%), linear-gradient(135deg, var(--gold) 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%; background-size: 6px 6px, 6px 6px; background-repeat: no-repeat; cursor: pointer; }
+.adm .sw { padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--field); }
+.adm .sw input { transition: background .25s var(--ui-ease), border-color .25s; }
+.adm .sw input::after { transition: transform .3s var(--ui-ease), background .25s; }
+.adm .seg { padding: 4px; gap: 2px; border-radius: 999px; background: var(--surface); }
+.adm .seg button { border-radius: 999px; min-height: 36px; transition: background .2s, color .2s; }
+.adm .seg button[aria-pressed="true"] { color: #0B0B0B; background: linear-gradient(180deg, #DDBF80, #C9A45C 60%, #B38E46); }
+.adm .kv > div { padding: 2px 0 10px; }
+.adm .kv span:last-child { font-weight: 650; text-align: right; }
+
+/* ---- charts and gauges ---- */
+.adm .chart .bar { fill: var(--gold); opacity: .9; }
+.adm .chart .area { fill: color-mix(in srgb, var(--gold) 22%, transparent); }
+.adm .gauge { background: linear-gradient(180deg, var(--surface), var(--bg)); }
+.adm .gh { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px; }
+.adm .gh::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* ---- the live badge ---- */
+.adm .live { background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+.adm .view > .enter { animation: none; }
+
+@media (prefers-reduced-motion: reduce) { .adm .tr, .adm .ctl, .adm .sw input, .adm .sw input::after, .adm .seg button { transition: none; } }
