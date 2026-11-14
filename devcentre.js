@@ -53,6 +53,40 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (cloud && cloud.pushKv) cloud.pushKv('dc:featured', rec);
     return { ok: true, featured: on === true };
   }
+  // collections: curated sets of 2 to 8 plugins the owner builds in the admin dashboard; they travel with the phone command and are signed into the registry
+  const reCid = /^[a-z0-9-]{3,32}$/;
+  function cleanCols(arr) {
+    const out = [];
+    for (const c of Array.isArray(arr) ? arr : []) {
+      if (!c || typeof c !== 'object' || !reCid.test(String(c.id)) || !Array.isArray(c.plugins) || out.some((x) => x.id === c.id)) continue;
+      const ids = [...new Set(c.plugins.filter((x) => reCid.test(String(x))).map(String))], name = String(c.name || '').trim().slice(0, 40);
+      if (ids.length < 2 || ids.length > 8 || !name) continue;
+      out.push({ id: String(c.id), name, description: String(c.description || '').trim().slice(0, 200), plugins: ids });
+    }
+    return out.slice(0, 20);
+  }
+  let collections = [];
+  try { collections = cleanCols(JSON.parse(fs.readFileSync(path.join(dir, 'collections.json'), 'utf8')).list); } catch (err) { /* none yet */ }
+  function setCollections(b) {
+    let next = collections.slice();
+    if (b.remove !== undefined) next = next.filter((c) => c.id !== String(b.remove));
+    else if (b.save && typeof b.save === 'object') {
+      const c = b.save, id = String(c.id || '').trim().toLowerCase(), name = String(c.name || '').trim();
+      const ids = (Array.isArray(c.plugins) ? c.plugins : String(c.plugins || '').split(/[\s,]+/)).map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+      if (!reCid.test(id)) return { status: 400, error: 'The collection id needs 3 to 32 letters, numbers or dashes (for example starter-set).' };
+      if (!name || name.length > 40) return { status: 400, error: 'Give it a name of up to 40 characters.' };
+      if (String(c.description || '').length > 200) return { status: 400, error: 'The description can be up to 200 characters.' };
+      if (ids.some((x) => !reCid.test(x))) return { status: 400, error: 'Plugin ids are written like weather-pro, separated by commas.' };
+      if (new Set(ids).size !== ids.length) return { status: 400, error: 'A plugin is listed twice.' };
+      if (ids.length < 2 || ids.length > 8) return { status: 400, error: 'A collection holds 2 to 8 plugins.' };
+      const rec = { id, name, description: String(c.description || '').trim(), plugins: ids }, at = next.findIndex((x) => x.id === id);
+      if (at >= 0) next[at] = rec; else { if (next.length >= 20) return { status: 400, error: 'Up to 20 collections. Delete one first.' }; next.push(rec); }
+    } else return { status: 400, error: 'Bad request.' };
+    collections = cleanCols(next); const rec = { list: collections, at: now() }, f = path.join(dir, 'collections.json'), tmp = f + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:collections', rec);
+    return { status: 200, ok: true, collections };
+  }
   // invite-only beta: while on, only the GitHub usernames on the list can send plugins (everyone can still sign in, rate and report)
   let invites = { on: false, logins: [] };
   try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'invites.json'), 'utf8')); invites = { on: f.on === true, logins: (Array.isArray(f.logins) ? f.logins : []).filter((x) => /^[a-z0-9-]{1,39}$/.test(x)).slice(0, 200) }; } catch (err) { /* open to everyone */ }
@@ -273,7 +307,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
-  const adminList = () => ({ paused, invites, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, invites, collections, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
   function lineDiff(a, b) {
     const x = a.split('\n'), y = b.split('\n');
@@ -433,7 +467,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
-  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], collections, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
 
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
@@ -532,7 +566,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (limited('regpull', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
       if (!pullAuthorized(req)) return send(res, 401, { error: 'Not allowed.' }), true;
       if (p.endsWith('backup') && req.method === 'GET') return send(res, 200, exportAll()), true;   // same file as the admin "Download backup", for the phone command
-      if (p.endsWith('approved') && req.method === 'GET') return send(res, 200, { plugins: approvedForPull(), revocations: revocationsForPull() }), true;
+      if (p.endsWith('approved') && req.method === 'GET') return send(res, 200, { plugins: approvedForPull(), revocations: revocationsForPull(), collections }), true;
       if (p.endsWith('published') && req.method === 'POST') {
         let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
         return send(res, 200, { ok: true, marked: markPublished(b.ids), revoked: markRevoked(b.revoked) }), true;
@@ -542,7 +576,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setInvites, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

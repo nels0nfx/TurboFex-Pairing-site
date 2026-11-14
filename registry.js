@@ -50,7 +50,14 @@ function makeView(index) {
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
-  return { updated: str(index.updated, 40), total: out.length, plugins: out };
+  // collections (signed in the index): only plugins that are published now are kept; a set left with fewer than 2 is hidden
+  const have = new Set(out.map((x) => x.id)), cols = [];
+  for (const c of Array.isArray(index.collections) ? index.collections : []) {
+    if (!c || !/^[a-z0-9-]{3,32}$/.test(String(c.id)) || !Array.isArray(c.plugins) || cols.some((x) => x.id === c.id)) continue;
+    const ids = [...new Set(c.plugins.filter((x) => have.has(x)))].slice(0, 8);
+    if (ids.length >= 2) cols.push({ id: String(c.id), name: str(c.name, 40) || String(c.id), description: str(c.description, 200), plugins: ids });
+  }
+  return { updated: str(index.updated, 40), total: out.length, plugins: out, ...(cols.length ? { collections: cols.slice(0, 20) } : {}) };
 }
 
 function createRegistry({ env = {}, fetcher, now = Date.now } = {}) {

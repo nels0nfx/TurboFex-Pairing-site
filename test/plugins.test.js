@@ -168,3 +168,22 @@ test('screenshots: served only when they match the signed fingerprints, at most 
     assert.strictEqual((await fetch(t.base + '/api/plugin-shot?id=hello-plugin&v=1.0.0&n=2')).status, 404);
   } finally { t.close(); }
 });
+
+test('collections in the signed index: only published plugins are kept, a set under 2 is hidden, the page route shows them', async () => {
+  const idx = { ...INDEX, collections: [
+    { id: 'starter-set', name: 'Starter set', description: 'Good first plugins', plugins: ['hello-plugin', 'lock-plugin', 'gone-plugin', 'missing-one'] },
+    { id: 'half-set', name: 'Half', description: '', plugins: ['hello-plugin', 'gone-plugin'] },
+    { id: 'starter-set', name: 'Dupe', plugins: ['hello-plugin', 'net-plugin'] },
+    { id: 'BAD', name: 'Bad id', plugins: ['hello-plugin', 'net-plugin'] }, 7, null,
+  ] };
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files(idx) });
+  const v = await reg.list();
+  assert.deepStrictEqual(v.collections, [{ id: 'starter-set', name: 'Starter set', description: 'Good first plugins', plugins: ['hello-plugin', 'lock-plugin'] }]);
+  assert.strictEqual((await createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() }).list()).collections, undefined, 'no field when there are none');
+  const t = await boot(reg);
+  try {
+    const j = await (await fetch(t.base + '/api/plugins')).json();
+    assert.strictEqual(j.collections.length, 1); assert.deepStrictEqual(j.collections[0].plugins, ['hello-plugin', 'lock-plugin']);
+    assert.ok((await (await fetch(t.base + '/plugins')).text()).includes('id="pcols"'));
+  } finally { t.close(); }
+});

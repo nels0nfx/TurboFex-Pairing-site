@@ -130,6 +130,19 @@
     head.addEventListener('click', function () { if (!loaded) { loaded = true; ratings(p, rbox); } var open = head.getAttribute('aria-expanded') !== 'true'; head.setAttribute('aria-expanded', open ? 'true' : 'false'); more.hidden = !open; a.classList.toggle('open', open); });
     a.appendChild(head); a.appendChild(more); return a;
   }
+  function drawCols(cols) {
+    var box = document.getElementById('pcols'); if (!box) return; box.textContent = '';
+    if (!cols.length) { box.hidden = true; return; }
+    box.hidden = false; box.appendChild(el('h2', null, 'Collections'));
+    cols.forEach(function (c) {
+      var d = el('div', 'pcol'); d.appendChild(el('b', null, c.name)); if (c.description) d.appendChild(el('p', 'pdesc', c.description));
+      var ul = el('p', 'pcolnames');
+      c.plugins.forEach(function (id, i) { var p = all.filter(function (x) { return x.id === id; })[0]; var a = el('a', null, p ? p.name : id); a.href = '#' + id; if (i) ul.appendChild(document.createTextNode(', ')); ul.appendChild(a); });
+      d.appendChild(ul);
+      d.appendChild(el('p', 'pdesc', 'Install the whole set: on your bot, as the owner, send .plugin bundle ' + c.id + ' (you still approve each plugin).'));
+      box.appendChild(d);
+    });
+  }
   function render() {
     var q = search.value.trim().toLowerCase();
     var shown = all.filter(function (p) { return !q || (p.id + ' ' + p.name + ' ' + p.description + ' ' + p.author).toLowerCase().indexOf(q) >= 0; });
@@ -145,7 +158,7 @@
   fetch('/api/plugins', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (x) {
     if (!x.ok) throw new Error(x.j && x.j.error);
     if (x.j.paused) { count.textContent = ''; return say('The plugin store is paused for a little while. Please check back soon.'); }
-    all = x.j.plugins || []; search.disabled = false;
+    all = x.j.plugins || []; search.disabled = false; drawCols(x.j.collections || []);
     return fetch('/api/dev/me', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (m) { me = m; }, function () { me = null; }).then(render);
   }).catch(function (e) { count.textContent = ''; say((e && e.message) || 'The plugin list cannot be loaded right now. Please try again in a moment.'); });
 })();

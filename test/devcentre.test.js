@@ -811,3 +811,30 @@ test('webhook is closed when the Developer Centre is not set up; the developer p
     assert.ok((await t.req('GET', '/plugin-guide')).text.includes('5e. Send new releases automatically'));
   } finally { t.close(); }
 });
+
+test('collections: owner builds them in the admin dashboard; they are checked, saved, restored after restart, and handed to the phone command', async () => {
+  const t = await boot();
+  try {
+    const A = await t.admin('own');
+    const post = (body, who = A) => t.req('POST', '/admin/api/plugins/collections', { ...who, body });
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/collections', { body: { remove: 'x' } })).status, 401);
+    assert.strictEqual((await post({ remove: 'abc' }, { cookie: (await t.admin('mod')).cookie })).status, 403, 'a moderator cannot');
+    const good = { id: 'starter-set', name: 'Starter set', description: 'Good first plugins', plugins: 'aaa-one, bbb-two ,ccc-three' };
+    for (const bad of [{}, { save: { ...good, id: 'X' } }, { save: { ...good, name: ' ' } }, { save: { ...good, plugins: 'aaa-one' } }, { save: { ...good, plugins: 'aaa-one, aaa-one' } }, { save: { ...good, plugins: 'aaa-one, ../x' } }, { save: { ...good, plugins: Array.from({ length: 9 }, (_, i) => 'plug-' + i).join(',') } }, { save: { ...good, description: 'x'.repeat(201) } }]) assert.strictEqual((await post(bad)).status, 400, JSON.stringify(bad).slice(0, 80));
+    const ok = await post({ save: good }); assert.strictEqual(ok.status, 200); assert.deepStrictEqual(ok.json.collections[0].plugins, ['aaa-one', 'bbb-two', 'ccc-three']);
+    await post({ save: { ...good, name: 'Starter pack' } });   // saving again with the same id edits it
+    let list = (await t.req('GET', '/admin/api/plugins/submissions', A)).json; assert.strictEqual(list.collections.length, 1); assert.strictEqual(list.collections[0].name, 'Starter pack');
+    // the phone command gets them
+    const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json;
+    assert.strictEqual(pull.collections[0].id, 'starter-set');
+    // survives a restart; is in the backup
+    const dir = t.dataDir; t.close();
+    const t2 = await boot({}, dir);
+    try {
+      const B = await t2.admin('own'); assert.strictEqual((await t2.req('GET', '/admin/api/plugins/submissions', B)).json.collections[0].id, 'starter-set');
+      assert.strictEqual((await t2.req('GET', '/api/registry/backup', { headers: { authorization: 'Bearer ' + TOKEN } })).json.collections.length, 1);
+      assert.strictEqual((await t2.req('POST', '/admin/api/plugins/collections', { ...B, body: { remove: 'starter-set' } })).json.collections.length, 0);
+      assert.deepStrictEqual((await t2.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json.collections, [], 'an empty list is sent too, so the phone clears it');
+    } finally { t2.close(); }
+  } catch (e) { try { t.close(); } catch (x) { /* already closed */ } throw e; }
+});

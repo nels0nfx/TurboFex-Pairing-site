@@ -439,6 +439,13 @@
   var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], changes: ['Changes asked', 'warn'], withdrawn: ['Withdrawn', ''] };
   function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
   function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
+  function colDlg(c) {
+    dlg({ title: c ? 'Edit collection' : 'New collection', text: 'A ready-made set of 2 to 8 published plugins. Bot owners install the whole set with one command.', fields: [
+      { name: 'id', label: 'Short id (like starter-set)', value: c ? c.id : '' }, { name: 'name', label: 'Name', value: c ? c.name : '' },
+      { name: 'description', label: 'One line about it', value: c ? c.description : '' }, { name: 'plugins', label: 'Plugin ids, separated by commas', value: c ? c.plugins.join(', ') : '' }], ok: 'Save' }, function (v) {
+      api('POST', 'plugins/collections', { save: { id: v.id, name: v.name, description: v.description, plugins: v.plugins } }).then(function () { toast('Collection saved'); load(false); }, fail);
+    });
+  }
   function vPluginList() {
     return api('GET', 'plugins/submissions').then(function (j) {
       var n = h('div');
@@ -449,6 +456,16 @@
         h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/invites', { on: !iv.on }); }, iv.on ? 'Open to everyone' : 'Invite-only is on', function () { load(false); }); } }, iv.on ? 'Open to everyone' : 'Turn on invite-only'), ' ',
         h('button', { class: 'btn', type: 'button', onclick: function () { dlg({ title: 'Invite a developer', text: 'Their GitHub username. While invite-only is on, only listed people can send plugins.', fields: [{ name: 'login', label: 'GitHub username' }], ok: 'Add' }, function (v) { api('POST', 'plugins/invites', { add: v.login }).then(function () { load(false); }, function () { load(false); }); }); } }, 'Invite someone'));
       n.appendChild(ibox);
+      var cols = j.collections || [];
+      var cbox = h('div', { class: 'avr' }, h('span', { class: 'tag ok', text: 'Collections: ' + cols.length }), ' ',
+        h('button', { class: 'btn', type: 'button', onclick: function () { colDlg(null); } }, 'New collection'));
+      n.appendChild(cbox);
+      cols.forEach(function (c) {
+        n.appendChild(h('p', { class: 'muted' }, h('b', { text: c.name }), ' (' + c.id + '): ' + c.plugins.join(', ') + ' ',
+          h('button', { class: 'btn sm', type: 'button', onclick: function () { colDlg(c); } }, 'Edit'), ' ',
+          h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
+      });
+      if (cols.length) n.appendChild(h('p', { class: 'note', text: 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' }));
       if (iv.logins.length) n.appendChild(h('p', { class: 'muted' }, 'Invited: ', iv.logins.map(function (l) { return h('button', { class: 'btn sm', type: 'button', title: 'Remove ' + l, onclick: function (e) { act(e.currentTarget, function () { return api('POST', 'plugins/invites', { remove: l }); }, 'Removed', function () { load(false); }); } }, l + ' ✕'); })));
       if (!j.configured) n.appendChild(h('p', { class: 'note warn', text: 'GitHub sign-in is not set up yet (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are missing on the server), so developers cannot send plugins.' }));
       if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'The phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));

@@ -356,3 +356,9 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - Developer API: `POST /api/dev/hooks` `{action: add|remove|secret|rotate}` (same-site header required). `/api/dev/me` returns `hooks` only when there are some; the secret is never in it.
 - Page: new card `dhooks` on `/developers` (instructions in plain words); guide section 5e. Body limit 2 MB. Rate limit 200 per 10 minutes per IP.
 - Tests: 2 new in `test/devcentre.test.js` (site total 109). Version history add: **v2.55.0**.
+
+## 53. v2.56.0 - collections and bundles (site side of bot v1.6.0)
+- Owner builds collections in the admin dashboard (Plugins page: "New collection", edit, delete): id, name (<=40), description (<=200), 2 to 8 plugin ids, max 20. `devcentre.js` `setCollections` / `cleanCols`, file `data/devcentre/collections.json` (+ Supabase `dc:collections`, in the backup export). Route `POST /admin/api/plugins/collections` `{save:{...}}` or `{remove:id}` (owner only, audit-logged).
+- `GET /api/registry/approved` also returns `collections` (always the full list, `[]` when none) so `tools/registry.js pull` can sign them into the index (bot v1.6.0). Nothing is public until it is signed: the Plugins page reads collections only from the signed index (`registry.js` `makeView`: only plugins published now are kept, a set with fewer than 2 left is hidden; `server.js` also removes plugins the owner hid). Plugins page shows a "Collections" block with the bot command `.plugin bundle <id>`.
+- Tests: 2 new (site total 111). Version history add: **v2.56.0**.
+

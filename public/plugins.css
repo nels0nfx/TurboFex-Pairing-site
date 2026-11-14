@@ -59,3 +59,8 @@
 .picon { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; margin-right: 10px; vertical-align: middle; background: var(--track); }
 .pshots { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 .pshot img { display: block; max-width: 100%; width: 220px; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+
+.pcols { margin: 0 0 18px; }
+.pcols h2 { font-size: 1.1rem; margin: 0 0 10px; }
+.pcol { background: var(--surface); border: 1px solid var(--card-border); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; }
+.pcolnames a { color: var(--gold); }
