@@ -276,18 +276,16 @@ test('mobile: the page does not draw under the phone status bar or navigation ba
   } finally { t.close(); }
 });
 
-test('navigation: one floating pill with logo, wordmark, theme and menu buttons; motion respects reduced-motion', async () => {
+test('navigation (v3): one header with logo, wordmark, theme and menu buttons; the pairing page has its own stylesheet; motion respects reduced-motion', async () => {
   const t = await boot();
   try {
     const html = await (await fetch(t.base + '/pair')).text();
-    assert.strictEqual((html.match(/class="island"/g) || []).length, 1, 'only one floating bar');
-    for (const id of ['theme', 'menu', 'menupanel', 'isl-text', 'secure-text']) assert.ok(html.includes(`id="${id}"`), id);
-    assert.ok(html.includes('TURBOFEX') && html.includes('/logo-gold.png'));
-    const css = await (await fetch(t.base + '/style.css')).text();
-    assert.ok(/\.island \{[^}]*position: fixed/.test(css));
-    assert.ok(!/@keyframes (run18|bloom|spark)/.test(css) && !/class="(bloom|flow|sparks)/.test(html), 'the bar has no moving light, glow or sparks');
-    const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
-    assert.ok(/animation: none !important/.test(rm), 'ambient animation off for reduced motion');
+    assert.strictEqual((html.match(/<header /g) || []).length, 1, 'only one header');
+    for (const id of ['head', 'theme', 'menu', 'menupanel', 'isl-text', 'secure-text', 'island']) assert.ok(html.includes(`id="${id}"`), id);
+    assert.ok(html.includes('/logo-gold.png') && html.includes('href="/pair.css"') && html.includes('href="/tfx.css"') && !html.includes('/style.css'));
+    const css = await (await fetch(t.base + '/pair.css')).text();
+    assert.ok(/@media \(prefers-reduced-motion: reduce\)/.test(css), 'reduced motion is handled');
+    assert.strictEqual((await fetch(t.base + '/pair.js')).status, 200);
   } finally { t.close(); }
 });
 
@@ -303,7 +301,7 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     const links = [...html.matchAll(/href="(https?:[^"]+)"/g)].map(m => m[1]);
     assert.deepEqual(links.filter(u => !own.includes(u)), [], 'only the two community links go off-site');
     assert.ok(!/12,482|v0\.9\.0|100% Secure|discord|twitter|x\.com/i.test(html), 'no made-up figures or other social links');
-    assert.ok(/<a href="https:\/\/t\.me\/\+7PwU2Vo9czE1NTRk"[^>]*>Help<\/a>/.test(html), 'Help opens the Telegram community');
+    assert.ok(/Ask in the Telegram group/.test(html), 'help opens the Telegram community');
     assert.ok(!html.includes('st-ver') && !/TurboFex Pair v\d/.test(html), 'no bot version in the footer area');
     assert.ok(!html.includes('protected and deleted after collection'), 'that footer sentence is removed');
     // every in-page link points at something that exists

@@ -192,7 +192,7 @@ test('redesign: every public page loads the shared interface layer; the files ar
   const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
   const t = await boot(reg);
   try {
-    for (const p of ['/pair', '/about', '/terms', '/privacy', '/plugins', '/developers', '/plugin-guide', '/playground']) {
+    for (const p of ['/about', '/terms', '/privacy', '/plugins', '/developers', '/plugin-guide', '/playground']) {
       const r = await fetch(t.base + p), h = await r.text();
       assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/ui.css"') && h.includes('src="/ui.js"'), p + ' loads ui.css and ui.js');
       assert.ok(h.indexOf('/style.css') < h.indexOf('/ui.css'), p + ': ui.css comes after the base styles');
@@ -219,5 +219,18 @@ test('v3 phase 1: the new landing page is at "/" and uses the new design system;
     for (const f of ['/tfx.css', '/home.css', '/home.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/style="/.test(home), 'no inline styles (strict security rule)');
     assert.ok(!/wasm-unsafe-eval/.test((await fetch(t.base + '/')).headers.get('content-security-policy')));
+  } finally { await t.close(); }
+});
+
+test('v3 phase 2: the pairing page uses the new design, keeps every id the pairing script needs, and has no inline scripts or styles', async () => {
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
+  const t = await boot(reg);
+  try {
+    const h = await (await fetch(t.base + '/pair')).text();
+    for (const id of ['form', 'number', 'cpick', 'csheet', 'csheet-bg', 'csheet-x', 'csearch', 'cul', 'go', 'code', 'copycode', 'qrimg', 'status', 'retry', 'cancel', 'sid', 'copy', 'env', 'copyenv', 'again', 'step-number', 'step-wait', 'step-done', 'faq-list']) assert.ok(h.includes(`id="${id}"`), id);
+    assert.ok(h.includes('href="/pair.css"') && h.includes('src="/pair.js"') && !h.includes('/style.css') && !h.includes('/ui.js'));
+    assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(h) && !/ style=/.test(h));
+    for (const f of ['/pair.css', '/pair.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    assert.ok(!/wasm-unsafe-eval/.test((await fetch(t.base + '/pair')).headers.get('content-security-policy')));
   } finally { await t.close(); }
 });

@@ -137,6 +137,12 @@ body.tfx img, body.tfx svg { max-width: 100%; }
 .socials a:hover { background: var(--gold-faint); border-color: var(--gold); transform: translateY(-2px); }
 .socials svg { width: 20px; height: 20px; }
 
+/* ---- site notice (announcement / maintenance set in the admin dashboard) ---- */
+.notice { position: relative; z-index: 60; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line-gold); background: var(--gold-faint); font-size: 14.5px; text-align: center; }
+.notice p { margin: 0; max-width: 70ch; overflow-wrap: anywhere; } .notice button { flex: none; border: 0; background: none; color: inherit; font-size: 22px; line-height: 1; padding: 4px 8px; cursor: pointer; }
+.notice.maint, .notice.warning, .notice.critical { border-bottom-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+
+
 /* ---- motion ---- */
 .js .rv { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .8s var(--ease); transition-delay: var(--d, 0s); }
 .js .rv.in { opacity: 1; transform: none; }
