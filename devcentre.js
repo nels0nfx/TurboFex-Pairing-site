@@ -201,6 +201,68 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     subs.set(s.id, s); save('sub', s);
     return { status: 200, submission: pubSub(s), flags: c.flags.length };
   }
+
+  // ---------- automatic sending: a GitHub webhook (a new release tag in a repository the developer registered sends the plugin for review) ----------
+  // The secret is not stored: it is worked out from the site's own secret + the developer's number + a counter, so "new secret" just raises the counter.
+  const MAX_HOOKS = 5, GH = 'https://github.com/';
+  const hookSecret = (d) => crypto.createHmac('sha256', secret).update('hook:' + d.githubId + ':' + (d.hookSalt || 0)).digest('hex').slice(0, 40);
+  const hookUrl = (d) => (site || '') + '/github/webhook?dev=' + d.githubId;
+  const hooksOf = (d) => (d.hooks || []).map((h) => ({ repo: h.repo, folder: h.folder, last: h.last || null }));
+  function hooksAct(d, b) {
+    if (d.blocked) return { status: 403, error: 'This account cannot send plugins.' };
+    const act = String(b.action || '');
+    if (act === 'secret') return { status: 200, url: hookUrl(d), secret: hookSecret(d) };
+    if (act === 'rotate') { d.hookSalt = (d.hookSalt || 0) + 1; save('dev', d); return { status: 200, url: hookUrl(d), secret: hookSecret(d) }; }
+    if (act === 'add') {
+      const r = parseRepo(b.repo, d); if (r.error) return { status: 400, error: r.error };
+      const folder = String(b.folder || '').trim().replace(/^\/+|\/+$/g, '');
+      if (!reFolder.test(folder) || folder.includes('..') || folder.includes('//')) return { status: 400, error: 'The folder can only contain letters, numbers, dots, dashes and slashes.' };
+      const repo = GH + r.owner + '/' + r.repo; d.hooks = d.hooks || [];
+      if (d.hooks.some((h) => h.repo.toLowerCase() === repo.toLowerCase())) return { status: 409, error: 'That repository is already on the list.' };
+      if (d.hooks.length >= MAX_HOOKS) return { status: 429, error: 'You can list up to ' + MAX_HOOKS + ' repositories.' };
+      d.hooks.push({ repo, folder, last: null }); save('dev', d); return { status: 200, hooks: hooksOf(d) };
+    }
+    if (act === 'remove') { d.hooks = (d.hooks || []).filter((h) => h.repo !== String(b.repo || '')); save('dev', d); return { status: 200, hooks: hooksOf(d) }; }
+    return { status: 400, error: 'Bad request.' };
+  }
+  const seenDeliveries = new Set(), inflight = new Set();
+  async function webhook(req, res, ctx) {
+    const { send, readBody, limited, ip } = ctx;
+    if (limited('ghhook', ip, 200, 10 * 60 * 1000)) return send(res, 429, { error: 'Too many requests.' });
+    let raw; try { raw = await readBody(req, 2 * 1024 * 1024); } catch (err) { return send(res, 413, { error: 'Too big.' }); }
+    const devId = new URL(req.url, 'http://x').searchParams.get('dev') || '';
+    const d = /^\d{1,12}$/.test(devId) ? devs.get(devId) : null;
+    const sig = String(req.headers['x-hub-signature-256'] || '');
+    // unknown developer and wrong signature look the same from outside
+    if (!d || !/^sha256=[a-f0-9]{64}$/.test(sig) || !eq(sig.slice(7), crypto.createHmac('sha256', hookSecret(d)).update(raw).digest('hex'))) return send(res, 401, { error: 'Bad signature.' });
+    if (d.blocked) return send(res, 403, { error: 'This account cannot send plugins.' });
+    const ev = String(req.headers['x-github-event'] || '');
+    if (ev === 'ping') return send(res, 200, { ok: true, message: 'Connected. New release tags in your listed repositories will be sent for review.' });
+    const did = String(req.headers['x-github-delivery'] || '').slice(0, 80);
+    if (did) { if (seenDeliveries.has(did)) return send(res, 200, { ok: true, ignored: 'This delivery was already handled.' }); seenDeliveries.add(did); if (seenDeliveries.size > 500) seenDeliveries.delete(seenDeliveries.values().next().value); }
+    let p; try { p = JSON.parse(raw); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
+    if (!p || typeof p !== 'object') return send(res, 400, { error: 'Bad request.' });
+    let tag = '';
+    if (ev === 'release') { if (p.action !== 'published' || !p.release || p.release.draft || p.release.prerelease) return send(res, 200, { ok: true, ignored: 'Only published, final releases are sent.' }); tag = String(p.release.tag_name || ''); }
+    else if (ev === 'create') { if (p.ref_type !== 'tag') return send(res, 200, { ok: true, ignored: 'Not a tag.' }); tag = String(p.ref || ''); }
+    else if (ev === 'push') { const m = /^refs\/tags\/(.+)$/.exec(String(p.ref || '')); if (!m || p.deleted) return send(res, 200, { ok: true, ignored: 'Not a new tag.' }); tag = m[1]; }
+    else return send(res, 200, { ok: true, ignored: 'That kind of event is not used.' });
+    const full = String(p.repository && p.repository.full_name || '').toLowerCase();
+    const h = (d.hooks || []).find((x) => x.repo.slice(GH.length).toLowerCase() === full);
+    if (!h) return send(res, 200, { ok: true, ignored: 'That repository is not on your list in the Developer Centre.' });
+    if (paused) return send(res, 503, { error: 'The plugin store is paused for a little while.' });
+    const key = d.githubId + '|' + h.repo + '|' + tag;
+    if (inflight.has(key)) return send(res, 200, { ok: true, ignored: 'Already being handled.' });
+    if ([...subs.values()].some((s) => s.githubId === d.githubId && s.repo === h.repo && s.tag === tag && LIVE.includes(s.status))) return send(res, 200, { ok: true, ignored: 'That tag was already sent.' });
+    inflight.add(key);
+    try {
+      const out = await submit(d, { repo: h.repo, tag, folder: h.folder });
+      const okay = out.status === 200;
+      const text = okay ? 'Sent for review.' : String(out.error || 'Not accepted.') + (out.problems && out.problems.length ? ' ' + out.problems.join('; ') : '');
+      h.last = { tag: tag.slice(0, 60), ok: okay, text: text.slice(0, 300), at: now() }; save('dev', d);
+      return send(res, okay ? 200 : out.status, okay ? { ok: true, message: text } : { ok: false, error: text.slice(0, 300) });
+    } finally { inflight.delete(key); }
+  }
   function withdraw(d, id) {
     const s = subs.get(String(id));
     if (!s || s.githubId !== d.githubId) return { status: 404, error: 'Not found.' };
@@ -403,6 +465,11 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     const { send, readBody, limited, ip } = ctx;
     const redirect = (to, cookies) => { res.writeHead(302, { Location: to, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', ...(cookies ? { 'Set-Cookie': cookies } : {}) }); res.end(); return true; };
 
+    if (p === '/github/webhook') {
+      if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
+      if (!configured) return send(res, 404, { error: 'Not found.' }), true;
+      await webhook(req, res, ctx); return true;
+    }
     if (req.method === 'GET' && p === '/auth/github') {
       if (!configured) return redirect('/developers?e=off');
       if (limited('devauth', ip, 20, 10 * 60 * 1000)) return redirect('/developers?e=wait');
@@ -432,14 +499,14 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       let stats; if (d && ctx.statsOf) { stats = {}; for (const s of mine(d)) if (s.status === 'published' && !stats[s.pluginId]) { const t = ctx.statsOf(s.pluginId); if (t) stats[s.pluginId] = t; } }
       // what people think of the developer's published plugins: star average, latest written reviews, and only the NUMBER of reports (never who made them)
       const insights = {}; if (d) for (const s of mine(d)) if (s.status === 'published' && !insights[s.pluginId]) { const rt = ratingOf(s.pluginId), rv = reviewsOf(s.pluginId, 5), rp = reports.get(s.pluginId); const nrep = rp ? Object.keys(rp.items).length : 0; if (rt || rv.length || nrep) insights[s.pluginId] = { rating: rt || null, reviews: rv, reports: nrep }; }
-      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d), ...(stats && Object.keys(stats).length ? { stats } : {}), ...(Object.keys(insights).length ? { insights } : {}) } : { configured, user: null }), true;
+      return send(res, 200, d ? { configured, user: publicDev(d), submissions: mine(d), ratings: myRatings(d), ...(d.hooks && d.hooks.length ? { hooks: hooksOf(d) } : {}), ...(stats && Object.keys(stats).length ? { stats } : {}), ...(Object.keys(insights).length ? { insights } : {}) } : { configured, user: null }), true;
     }
     if (p === '/api/plugin-reviews' && req.method === 'GET') {
       if (limited('reviews', ip, 60, 60 * 1000)) return send(res, 429, { error: 'Please wait a moment.' }), true;
       const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
       return send(res, 200, rePlug.test(id) ? { rating: ratingOf(id), reviews: reviewsOf(id) } : { rating: null, reviews: [] }), true;
     }
-    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report' || p === '/api/dev/reply' || p === '/api/dev/testcode') {
+    if (p === '/api/dev/logout' || p === '/api/dev/submit' || p === '/api/dev/withdraw' || p === '/api/dev/rate' || p === '/api/dev/report' || p === '/api/dev/reply' || p === '/api/dev/testcode' || p === '/api/dev/hooks') {
       if (req.method !== 'POST') return send(res, 405, { error: 'Not allowed.' }), true;
       // a form on another website cannot send this header, and the cookie is SameSite=Lax: together they stop cross-site requests
       let sameSite = req.headers['x-requested-with'] === 'tfx';
@@ -451,7 +518,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!d) return send(res, 401, { error: 'Please sign in with GitHub first.' }), true;
       if (limited('devpost', ip, 30, 10 * 60 * 1000)) return send(res, 429, { error: 'Please slow down a little.' }), true;
       let b; try { b = JSON.parse((await readBody(req)) || '{}') || {}; } catch (err) { return send(res, 400, { error: 'Bad request.' }), true; }
-      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : p === '/api/dev/reply' ? reply(d, b) : p === '/api/dev/testcode' ? testCode(d, b) : withdraw(d, b.id);
+      const out = p === '/api/dev/submit' ? await submit(d, b) : p === '/api/dev/rate' ? await rate(d, b, ctx.listed || (async () => false)) : p === '/api/dev/report' ? await report(d, b, ctx.listed || (async () => false)) : p === '/api/dev/reply' ? reply(d, b) : p === '/api/dev/testcode' ? testCode(d, b) : p === '/api/dev/hooks' ? hooksAct(d, b) : withdraw(d, b.id);
       const { status, ...rest } = out; return send(res, status, rest), true;
     }
 

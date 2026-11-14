@@ -188,6 +188,10 @@ node tools/plugin-test.js path/to/your-plugin-folder --event message --text "hi"
     <p>It first checks your two files with the same rules as the bot, then runs every command, event and schedule once and shows what the bot would say, react with, send or do in the group. Websites you call get a pretend answer unless you add <code>--live-network</code>. Use <code>--as owner</code> or <code>--as admin</code> to try a command that needs more than an everyday member. It does not replace the owner review.</p>
     <p>No computer? Use the <a href="/playground">Playground</a>: type or paste your two files and run them in your browser, with the same safety rules and a pretend chat.</p>
 
+    <h2>5e. Send new releases automatically</h2>
+    <p>Instead of pressing "Send for review" every time, you can let GitHub do it. On the <a href="/developers">Developers page</a>, add your repository under "Send new releases automatically", then press "Show my webhook details". In your GitHub repository go to Settings, Webhooks, Add webhook. Paste the Payload URL, choose the content type application/json, paste the secret, pick "Let me select individual events" and tick only "Releases".</p>
+    <p>From then on, each time you publish a release, the plugin is copied at that release's tag and sent for review exactly like a manual send, with the same checks. Draft and pre-releases are ignored. The result of the last release is shown on your Developers page. Raise the version in <code>turbofex-plugin.json</code> before you tag, because a version that was already sent is refused. If the secret ever leaks, press "Make a new secret" and paste the new one into GitHub.</p>
+
     <h2>6. The limits</h2>
     <ul class="drules">
       <li>Each call may use about 1.5 seconds of computing time and 5 seconds in total, and 32 MB of memory.</li>

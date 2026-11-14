@@ -732,3 +732,82 @@ test('playground: the check route, and only its own two files may start WebAssem
     assert.ok(!/unsafe-eval'/.test(page.headers.get('content-security-policy').replace("'wasm-unsafe-eval'", '')), 'no general eval');
   } finally { t.close(); }
 });
+
+test('github webhook: signed new release tags are sent for review; wrong signature, unlisted repo, drafts and repeats are not', async () => {
+  const crypto = require('crypto');
+  const t = await boot();
+  try {
+    const c = await t.signIn('good');
+    const hook = async (secret, ev, payload, extra = {}) => {
+      const raw = JSON.stringify(payload);
+      const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
+      const r = await fetch(t.base + '/github/webhook?dev=42', { method: 'POST', headers: { 'content-type': 'application/json', 'x-github-event': ev, 'x-hub-signature-256': extra.sig || sig, ...(extra.id ? { 'x-github-delivery': extra.id } : {}) }, body: raw });
+      return { status: r.status, json: await r.json() };
+    };
+    // the developer lists a repo and learns the secret
+    assert.strictEqual((await t.req('POST', '/api/dev/hooks', { body: { action: 'secret' } })).status, 403, 'needs the site header');
+    assert.strictEqual((await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'add', repo: 'https://github.com/bob/x' } })).status, 400, 'only your own account');
+    const add = await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'add', repo: 'https://github.com/alice/hello' } });
+    assert.strictEqual(add.status, 200); assert.strictEqual(add.json.hooks[0].repo, 'https://github.com/alice/hello');
+    assert.strictEqual((await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'add', repo: 'https://github.com/alice/hello' } })).status, 409);
+    const info = (await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'secret' } })).json;
+    assert.match(info.secret, /^[a-f0-9]{40}$/); assert.strictEqual(info.url, 'https://turbofex-pair.example/github/webhook?dev=42');
+    assert.strictEqual((await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'secret' } })).json.secret, info.secret, 'stable');
+    const repoP = { repository: { full_name: 'alice/hello' } };
+    // security
+    assert.strictEqual((await hook(info.secret, 'ping', {}, { sig: 'sha256=' + 'a'.repeat(64) })).status, 401);
+    assert.strictEqual((await hook('wrong', 'ping', {})).status, 401);
+    const nodev = await fetch(t.base + '/github/webhook?dev=999', { method: 'POST', body: '{}' }); assert.strictEqual(nodev.status, 401);
+    assert.strictEqual((await fetch(t.base + '/github/webhook?dev=42')).status, 405);
+    assert.strictEqual((await hook(info.secret, 'ping', {})).status, 200);
+    // ignored things
+    t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
+    assert.ok((await hook(info.secret, 'release', { action: 'published', release: { tag_name: 'v1.0.0', draft: true }, ...repoP })).json.ignored);
+    assert.ok((await hook(info.secret, 'release', { action: 'published', release: { tag_name: 'v1.0.0', prerelease: true }, ...repoP })).json.ignored);
+    assert.ok((await hook(info.secret, 'release', { action: 'published', release: { tag_name: 'v1.0.0' }, repository: { full_name: 'alice/other' } })).json.ignored, 'repo not listed');
+    assert.ok((await hook(info.secret, 'issues', { action: 'opened', ...repoP })).json.ignored);
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions.length, 0);
+    // a real release
+    const ok = await hook(info.secret, 'release', { action: 'published', release: { tag_name: 'v1.0.0' }, ...repoP }, { id: 'd1' });
+    assert.strictEqual(ok.status, 200); assert.strictEqual(ok.json.ok, true);
+    let me = (await t.req('GET', '/api/dev/me', { cookie: c })).json;
+    assert.strictEqual(me.submissions.length, 1); assert.strictEqual(me.submissions[0].status, 'pending'); assert.strictEqual(me.submissions[0].tag, 'v1.0.0');
+    assert.strictEqual(me.hooks[0].last.ok, true); assert.ok(!JSON.stringify(me).includes(info.secret), 'the secret is never in the page data');
+    // repeats: same delivery, then the same tag by another event
+    assert.ok((await hook(info.secret, 'release', { action: 'published', release: { tag_name: 'v1.0.0' }, ...repoP }, { id: 'd1' })).json.ignored);
+    assert.ok((await hook(info.secret, 'create', { ref_type: 'tag', ref: 'v1.0.0', ...repoP })).json.ignored);
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions.length, 1);
+    // a tag whose plugin is bad is reported on the page, not sent
+    t.put('alice', 'hello', 'v1.1.0', '', '{ nope', CODE);
+    const bad = await hook(info.secret, 'push', { ref: 'refs/tags/v1.1.0', ...repoP });
+    assert.strictEqual(bad.json.ok, false);
+    me = (await t.req('GET', '/api/dev/me', { cookie: c })).json;
+    assert.strictEqual(me.submissions.length, 1); assert.strictEqual(me.hooks[0].last.ok, false); assert.strictEqual(me.hooks[0].last.tag, 'v1.1.0');
+    // deleting a tag or a branch push does nothing
+    assert.ok((await hook(info.secret, 'push', { ref: 'refs/tags/v9', deleted: true, ...repoP })).json.ignored);
+    assert.ok((await hook(info.secret, 'push', { ref: 'refs/heads/main', ...repoP })).json.ignored);
+    // a new secret kills the old one
+    const nw = (await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'rotate' } })).json;
+    assert.notStrictEqual(nw.secret, info.secret);
+    assert.strictEqual((await hook(info.secret, 'ping', {})).status, 401); assert.strictEqual((await hook(nw.secret, 'ping', {})).status, 200);
+    // removing a repo stops it
+    await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'remove', repo: 'https://github.com/alice/hello' } });
+    t.put('alice', 'hello', 'v1.2.0', '', manifest({ version: '1.2.0' }), CODE);
+    assert.ok((await hook(nw.secret, 'release', { action: 'published', release: { tag_name: 'v1.2.0' }, ...repoP })).json.ignored);
+    // paused store: nothing is sent
+    await t.req('POST', '/api/dev/hooks', { ...t.dev(c), body: { action: 'add', repo: 'https://github.com/alice/hello' } });
+    const a = await t.admin('own'); await t.req('POST', '/admin/api/plugins/pause', { cookie: a.cookie, csrf: a.csrf, body: { paused: true } });
+    const ps = await hook(nw.secret, 'release', { action: 'published', release: { tag_name: 'v1.2.0' }, ...repoP });
+    assert.ok([503, 200].includes(ps.status));
+    assert.strictEqual((await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions.length, 1);
+  } finally { t.close(); }
+});
+
+test('webhook is closed when the Developer Centre is not set up; the developer page has the new card; the guide has 5e', async () => {
+  const t = await boot({ GITHUB_CLIENT_ID: '', REGISTRY_PULL_TOKEN: '' });
+  try {
+    assert.strictEqual((await t.req('POST', '/github/webhook?dev=42', { body: {} })).status, 404);
+    const page = (await t.req('GET', '/developers')).text; assert.ok(page.includes('id="dhooks"'));
+    assert.ok((await t.req('GET', '/plugin-guide')).text.includes('5e. Send new releases automatically'));
+  } finally { t.close(); }
+});

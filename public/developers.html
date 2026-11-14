@@ -77,6 +77,31 @@
     <h2>Your plugins</h2>
     <div id="dsubs"></div>
   </section>
+  <section class="dcard" id="dhooks" hidden>
+    <h2>Send new releases automatically</h2>
+    <p class="dmuted">Optional. List a repository here and tell GitHub to ping us, and every new release tag is sent for review by itself. You still choose the tag; the plugin is copied at that tag and checked just like a manual send.</p>
+    <div id="dhooklist"></div>
+    <form id="dhookadd" novalidate>
+      <div class="dfld"><label for="dhrepo">Repository address</label><input id="dhrepo" type="url" inputmode="url" placeholder="https://github.com/yourname/your-plugin" autocomplete="off" maxlength="200"></div>
+      <div class="dfld"><label for="dhfolder">Folder <span class="dopt">(optional)</span></label><input id="dhfolder" type="text" placeholder="Leave empty if the plugin is at the top" autocomplete="off" autocapitalize="off" maxlength="80"></div>
+      <button class="dbtn ghost" type="submit">Add repository</button>
+      <p class="dmsg" id="dhmsg" role="alert" hidden></p>
+    </form>
+    <h3>Connect it on GitHub</h3>
+    <ol class="how2">
+      <li>Press "Show my webhook details" below.</li>
+      <li>On GitHub open your repository, then Settings, Webhooks, Add webhook.</li>
+      <li>Paste the address into "Payload URL". Set "Content type" to application/json. Paste the secret into "Secret".</li>
+      <li>Choose "Let me select individual events" and tick only "Releases". Save.</li>
+      <li>GitHub sends a test ping. A green tick means it is connected.</li>
+    </ol>
+    <button class="dbtn ghost" id="dhshow" type="button">Show my webhook details</button>
+    <button class="dbtn ghost" id="dhnew" type="button">Make a new secret</button>
+    <div id="dhinfo" hidden>
+      <p class="dmuted">Payload URL:</p><p><code id="dhurl"></code></p>
+      <p class="dmuted">Secret (keep it private):</p><p><code id="dhsecret"></code></p>
+    </div>
+  </section>
   <section class="docsec">
     <h2>How it works</h2>
     <ol class="how2">

@@ -58,20 +58,45 @@
       subs.appendChild(card);
     });
   }
+
+  // ----- automatic sending (GitHub webhook) -----
+  var hookBox = document.getElementById('dhooks');
+  function drawHooks(list) {
+    var box = document.getElementById('dhooklist'); if (!box) return; box.textContent = '';
+    if (!list.length) { box.appendChild(el('p', 'dmuted', 'No repositories listed yet.')); return; }
+    list.forEach(function (h) {
+      var c = el('div', 'dsub'); c.appendChild(el('b', null, h.repo.replace('https://github.com/', '') + (h.folder ? ' / ' + h.folder : '')));
+      c.appendChild(el('p', 'dmuted', h.last ? 'Last: ' + h.last.tag + ' - ' + h.last.text + ' (' + new Date(h.last.at).toLocaleDateString() + ')' : 'Nothing received yet.'));
+      var rb = el('button', 'dbtn ghost', 'Remove'); rb.type = 'button';
+      rb.addEventListener('click', function () { rb.disabled = true; post('/api/dev/hooks', { action: 'remove', repo: h.repo }).then(function (x) { if (x.ok) drawHooks(x.j.hooks || []); else rb.disabled = false; }); });
+      c.appendChild(rb); box.appendChild(c);
+    });
+  }
+  if (hookBox) {
+    var hm = document.getElementById('dhmsg');
+    function hsay(t) { hm.hidden = !t; hm.textContent = t || ''; }
+    function showInfo(x) { if (!x.ok) { hsay((x.j && x.j.error) || 'Could not do that'); return; } hsay(''); document.getElementById('dhurl').textContent = x.j.url; document.getElementById('dhsecret').textContent = x.j.secret; document.getElementById('dhinfo').hidden = false; }
+    document.getElementById('dhshow').addEventListener('click', function () { post('/api/dev/hooks', { action: 'secret' }).then(showInfo); });
+    document.getElementById('dhnew').addEventListener('click', function () { if (!confirm('Make a new secret? The old one stops working, so you must paste the new one into GitHub.')) return; post('/api/dev/hooks', { action: 'rotate' }).then(showInfo); });
+    document.getElementById('dhookadd').addEventListener('submit', function (ev) {
+      ev.preventDefault(); hsay('');
+      post('/api/dev/hooks', { action: 'add', repo: document.getElementById('dhrepo').value, folder: document.getElementById('dhfolder').value }).then(function (x) { if (x.ok) { document.getElementById('dhrepo').value = ''; document.getElementById('dhfolder').value = ''; drawHooks(x.j.hooks || []); } else hsay((x.j && x.j.error) || 'Could not add'); });
+    });
+  }
   function load() {
     return fetch('/api/dev/me', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
       stateBox.textContent = '';
-      if (!j.configured) { stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre is not open yet. Please check back soon.')); formBox.hidden = true; listBox.hidden = true; return; }
+      if (!j.configured) { stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre is not open yet. Please check back soon.')); formBox.hidden = true; listBox.hidden = true; if (hookBox) hookBox.hidden = true; return; }
       if (!j.user) {
         stateBox.appendChild(el('h2', null, 'Sign in'));
         stateBox.appendChild(el('p', null, 'Use your GitHub account. We only read your public username. Nothing else is requested.'));
         var a = el('a', 'dbtn', 'Sign in with GitHub'); a.href = '/auth/github'; stateBox.appendChild(a);
-        formBox.hidden = true; listBox.hidden = true; return;
+        formBox.hidden = true; listBox.hidden = true; if (hookBox) hookBox.hidden = true; return;
       }
       var row = el('div', 'drow'); row.appendChild(el('p', null, 'Signed in as ' + j.user.login + (j.user.verified ? ' (verified developer)' : '')));
       var out = el('button', 'dbtn ghost', 'Sign out'); out.type = 'button';
       out.addEventListener('click', function () { post('/api/dev/logout').then(function () { load(); }); }); row.appendChild(out); stateBox.appendChild(row);
-      formBox.hidden = false; listBox.hidden = false; stats = j.stats || {}; insights = j.insights || {}; drawSubs(j.submissions || []);
+      formBox.hidden = false; listBox.hidden = false; if (hookBox) { hookBox.hidden = false; drawHooks(j.hooks || []); } stats = j.stats || {}; insights = j.insights || {}; drawSubs(j.submissions || []);
     }).catch(function () { stateBox.textContent = ''; stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre cannot be loaded right now. Please try again in a moment.')); });
   }
   form.addEventListener('submit', function (ev) {
