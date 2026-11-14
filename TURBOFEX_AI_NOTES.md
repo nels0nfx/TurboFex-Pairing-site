@@ -367,6 +367,13 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 - `ui.js` is the single source for: the complete menu (adds Plugin guide + Playground, marks the current page), the second row of tabs (Marketplace / Developer Centre / Docs / Playground, and About / Terms / Privacy), the one footer (replaces `footer.docfoot`; the home page keeps its own footer and only gets two links), the Developer dashboard (summary tiles + tabs Your plugins / Send a plugin / Automation / How it works; it only shows/hides the existing cards with the class `tab-off`, so `developers.js` still owns all forms and buttons), plugin avatars and loading placeholders on the Marketplace, and reveal-on-scroll (`.rv`/`.in`, skipped for reduced motion, forced on for print, and anything scrolled past is shown).
 - It never writes raw HTML (no innerHTML; a test checks this), so the strict CSP is unchanged: only `/playground` may run WebAssembly.
 - To change the menu, footer or tabs, edit `ui.js` only. Colours always come from `style.css` variables so dark and light stay in sync.
-- Admin dashboard keeps its own shell and `admin.css` (already matches the brand); not touched.
+- Admin dashboard: redesigned in v2.58.0 (section 55).
 - Check script kept in the working folder (not shipped): `pgtest/shoot.js` (screenshots every page, phone and desktop, dark and light) and `pgtest/flow.js` (clicks through menu, marketplace, developer tabs, webhook card, playground). Test added in `test/plugins.test.js` (site total 112).
+
+## 55. v2.58.0 - admin dashboard redesign (front end only)
+- New `public/admin-ui.css` (loaded after `admin.css`) and small edits to `admin.html` / `admin.js`. No back-end, route, permission or data change. All admin functions are untouched.
+- Look: sign-in is a card on a gold glow; the top bar is the same floating pill as the public site; sidebar sections are pills with a gold active state; panels/tiles/buttons/fields/dialogs/toasts share the Developer Centre style; panels slide in with a short stagger; reduced motion switches animation off.
+- New: a "TurboFex site" group of links (Pairing page, Marketplace, Developer Centre, Plugin guide, Playground) in the desktop side column (`.asite`, inside the new `.side` wrapper around `#nav`) and at the bottom of the phone menu (`openMenu` in `admin.js`), plus a slim footer (`.afoot`).
+- Fixed: an empty sign-in error line no longer shows a stray "!".
+- Working-folder check (not shipped): `pgtest/adminflow.js` signs in through the real form with a one-time code, opens every section, the phone menu, the collections dialog, theme switch and sign-out, on a phone and a desktop. Test added in `test/devcentre.test.js` (site total 113).
 

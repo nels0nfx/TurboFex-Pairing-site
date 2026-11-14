@@ -1,0 +1,92 @@
+/* TurboFex admin dashboard: the same look as the rest of the site (loaded after admin.css, colours from style.css) */
+.adm { --ui-ease: cubic-bezier(.22, 1, .36, 1); }
+[data-theme="dark"] .adm { --a-hover: rgba(201, 164, 92, .09); --a-shadow: 0 24px 48px -28px rgba(0, 0, 0, .9); }
+[data-theme="light"] .adm { --a-hover: rgba(201, 164, 92, .14); --a-shadow: 0 22px 40px -28px rgba(11, 11, 11, .4); }
+@keyframes a-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes a-pop { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* ---- sign in: a card on a soft gold glow, like the pairing page ---- */
+.adm .lg { background: radial-gradient(70% 45% at 50% 0%, rgba(201, 164, 92, .18), transparent 70%), var(--bg); }
+.adm .lg-box { position: relative; padding: 30px 24px 22px; background: var(--surface); border: 1px solid var(--card-border); border-radius: 28px; box-shadow: var(--card-shadow); animation: a-pop .6s var(--ui-ease) both; }
+.adm .lg-box::before { content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.adm .lg-box h1 { font-size: 30px; letter-spacing: -.01em; }
+.adm .lg-box input { transition: border-color .2s, box-shadow .2s; }
+.adm .lg-box input:focus-visible { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-faint); }
+.adm .lg-box .back { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; margin-top: 14px; border: 1px solid var(--card-border); border-radius: 999px; font-size: 14px; transition: background .2s, border-color .2s; }
+@media (hover: hover) { .adm .lg-box .back:hover { background: var(--a-hover); border-color: var(--gold); } }
+
+/* ---- top bar: the floating island ---- */
+.adm .ah { top: 10px; margin: 10px var(--gutter) 0; padding: 7px 8px 7px 12px; border: 1px solid var(--card-border); border-radius: 999px; background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); box-shadow: var(--a-shadow); transition: box-shadow .3s; }
+.adm .ab { letter-spacing: .16em; }
+.adm .ab b { font-size: 15px; }
+.adm .ab .logo { width: 36px; height: 36px; }
+.adm .chip { background: linear-gradient(180deg, #DDBF80, #C9A45C 60%, #B38E46); color: #0B0B0B; border-color: transparent; }
+.adm .ah .ibtn { border-radius: 50%; transition: background .2s, border-color .2s, transform .15s; }
+.adm .ah .ibtn:active { transform: scale(.94); }
+.adm .who { padding-right: 8px; margin-right: 2px; border-right: 1px solid var(--line); }
+
+/* ---- navigation: pills like the public tabs ---- */
+.adm .nav { border-bottom: 0; }
+.adm .nav button { border-radius: 999px; transition: color .2s, background .25s var(--ui-ease), transform .15s; }
+.adm .nav button:active { transform: scale(.97); }
+@media (hover: hover) { .adm .nav button:hover { background: var(--a-hover); } }
+.adm .nav button[aria-selected="true"] { color: #0B0B0B; background: linear-gradient(180deg, #DDBF80, #C9A45C 60%, #B38E46); box-shadow: 0 8px 18px -10px rgba(201, 164, 92, .7); }
+.adm .nav button[aria-selected="true"] .n { background: #0B0B0B; color: #fff; }
+.adm .amenu { border-radius: 24px; animation: a-pop .25s var(--ui-ease) both; }
+.adm .amenu-l button { border-radius: 16px; transition: background .2s; }
+.adm .amenu-l button[aria-current="page"] { color: #0B0B0B; background: linear-gradient(180deg, #DDBF80, #C9A45C 60%, #B38E46); }
+.adm .amenu-l button[aria-current="page"] svg { color: #0B0B0B; }
+.amenu-h, .asite-h { margin: 12px 14px 4px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.amenu-l a { display: flex; align-items: center; min-height: 46px; padding: 0 14px; border-radius: 14px; color: var(--text); text-decoration: none; font-size: 16px; font-weight: 600; transition: background .2s; }
+@media (hover: hover) { .amenu-l a:hover { background: var(--a-hover); } }
+
+/* the side column: sections, then links to the rest of the site */
+.adm .side { min-width: 0; }
+.adm .asite { display: none; }
+@media (min-width: 900px) {
+  .adm .side { position: sticky; top: 84px; padding-left: var(--gutter); }
+  .adm .side .nav { position: static; padding: 6px 0; }
+  .adm .asite { display: grid; gap: 2px; margin: 10px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); }
+  .adm .asite a { display: flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 600; transition: color .2s, background .2s, transform .2s; }
+  .adm .asite a:hover { color: var(--gold-text); background: var(--a-hover); transform: translateX(2px); }
+  .adm .asite-h { margin: 0 14px 6px; }
+}
+
+/* ---- page titles, panels, tiles ---- */
+.adm .vh h2 { position: relative; padding-bottom: 10px; letter-spacing: -.01em; }
+.adm .vh h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 44px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--gold), transparent); }
+.adm .pnl, .adm .kpi, .adm .attn, .adm .gauge { border-radius: 20px; transition: border-color .25s, box-shadow .3s var(--ui-ease), transform .3s var(--ui-ease); }
+@media (hover: hover) { .adm .pnl:hover, .adm .kpi:hover { border-color: var(--gold); box-shadow: var(--a-shadow); } .adm .kpi:hover { transform: translateY(-2px); } }
+.adm .kpi b { color: var(--gold-text); }
+.adm .kpi.good b { color: var(--ok); } .adm .kpi.bad b { color: var(--bad); } .adm .kpi.warn b { color: var(--gold-text); }
+.adm .pnl > h3 { font-size: 19px; }
+.adm .view > .enter .vh, .adm .view > .enter .attn, .adm .view > .enter .pnl, .adm .view > .enter .grid > *, .adm .view > .enter .cols > * { animation: a-in .5s var(--ui-ease) both; }
+.adm .view > .enter .grid > :nth-child(2), .adm .view > .enter .cols > :nth-child(2) { animation-delay: .06s; }
+.adm .view > .enter .grid > :nth-child(3) { animation-delay: .12s; } .adm .view > .enter .grid > :nth-child(4) { animation-delay: .18s; }
+.adm .view > .enter .pnl:nth-of-type(2) { animation-delay: .08s; } .adm .view > .enter .pnl:nth-of-type(3) { animation-delay: .14s; }
+
+/* ---- buttons, tags, tables, fields: the same as the Developer Centre ---- */
+.adm .btn { border-radius: 14px; transition: transform .15s var(--ui-ease), box-shadow .25s, background .25s, border-color .25s, opacity .2s; }
+.adm .btn:not(:disabled):active { transform: scale(.97); }
+.adm .btn.solid { background: linear-gradient(180deg, #DDBF80, #C9A45C 60%, #B38E46); border-color: transparent; }
+.adm .btn.solid.danger { background: var(--bad); }
+@media (hover: hover) { .adm .btn.solid:not(:disabled):not(.danger):hover { box-shadow: 0 14px 26px -14px rgba(201, 164, 92, .7); transform: translateY(-1px); } .adm .btn:not(.solid):not(:disabled):hover { background: var(--a-hover); border-color: var(--gold); } }
+.adm .tag { font-weight: 700; }
+.adm .live { transition: border-color .2s, background .2s; }
+@media (hover: hover) { .adm .live:hover { border-color: var(--gold); background: var(--a-hover); } }
+.adm input:not([type=checkbox]):not([type=radio]), .adm select, .adm textarea { transition: border-color .2s, box-shadow .2s; }
+.adm input:not([type=checkbox]):not([type=radio]):focus-visible, .adm select:focus-visible, .adm textarea:focus-visible { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-faint); }
+.adm .dlg { border-radius: 26px; border-color: var(--card-border); animation: a-pop .25s var(--ui-ease) both; }
+.adm .toast { border-radius: 999px; border: 1px solid var(--gold); box-shadow: var(--a-shadow); }
+
+/* ---- footer ---- */
+.afoot { max-width: 1240px; margin: 10px auto 0; padding: 22px var(--gutter) calc(30px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; color: var(--muted); font-size: 13.5px; }
+.afoot nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.afoot a { display: inline-flex; align-items: center; min-height: 36px; color: var(--text); text-decoration: none; transition: color .2s; }
+@media (hover: hover) { .afoot a:hover { color: var(--gold-text); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .adm .lg-box, .adm .amenu, .adm .dlg, .adm .view > .enter .vh, .adm .view > .enter .attn, .adm .view > .enter .pnl, .adm .view > .enter .grid > *, .adm .view > .enter .cols > * { animation: none; }
+  .adm .btn, .adm .nav button, .adm .pnl, .adm .kpi { transition: none; }
+}
+.adm .err:empty::before { content: none; }

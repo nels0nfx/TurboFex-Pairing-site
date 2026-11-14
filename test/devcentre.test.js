@@ -838,3 +838,14 @@ test('collections: owner builds them in the admin dashboard; they are checked, s
     } finally { t2.close(); }
   } catch (e) { try { t.close(); } catch (x) { /* already closed */ } throw e; }
 });
+
+test('admin redesign: the dashboard page loads the new styles, has the site links and footer, and the styles are served', async () => {
+  const t = await boot();
+  try {
+    const r = await t.req('GET', '/admin'); assert.strictEqual(r.status, 200);
+    for (const bit of ['href="/admin-ui.css"', 'class="asite"', 'class="afoot"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
+    assert.ok(r.text.indexOf('/admin.css') < r.text.indexOf('/admin-ui.css'), 'new styles come after the old');
+    const css = await t.req('GET', '/admin-ui.css'); assert.strictEqual(css.status, 200); assert.ok(css.text.includes('.adm .ah'));
+    assert.ok(!/script-src[^;]*unsafe-inline/.test(r.headers.get ? (r.headers.get('content-security-policy') || '') : ''), 'no inline scripts allowed');
+  } finally { t.close(); }
+});

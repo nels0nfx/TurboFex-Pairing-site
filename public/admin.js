@@ -111,6 +111,8 @@
       if (t[2] && !can(t[2])) return;
       list.appendChild(h('button', { type: 'button', id: 'm-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] }), t[0] === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
     });
+    list.appendChild(h('span', { class: 'amenu-h', text: 'TurboFex site' }));
+    [['Pairing page', '/'], ['Marketplace', '/plugins'], ['Developer Centre', '/developers'], ['Plugin guide', '/plugin-guide'], ['Playground', '/playground']].forEach(function (l) { list.appendChild(h('a', { href: l[1], text: l[0] })); });
     bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
     document.addEventListener('keydown', key); document.body.appendChild(bg); var cur = list.querySelector('[aria-current=page]') || list.querySelector('button'); if (cur) cur.focus();
   }
