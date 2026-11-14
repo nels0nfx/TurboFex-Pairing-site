@@ -187,3 +187,22 @@ test('collections in the signed index: only published plugins are kept, a set un
     assert.ok((await (await fetch(t.base + '/plugins')).text()).includes('id="pcols"'));
   } finally { t.close(); }
 });
+
+test('redesign: every public page loads the shared interface layer; the files are served; security headers are unchanged', async () => {
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
+  const t = await boot(reg);
+  try {
+    for (const p of ['/', '/about', '/terms', '/privacy', '/plugins', '/developers', '/plugin-guide', '/playground']) {
+      const r = await fetch(t.base + p), h = await r.text();
+      assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/ui.css"') && h.includes('src="/ui.js"'), p + ' loads ui.css and ui.js');
+      assert.ok(h.indexOf('/style.css') < h.indexOf('/ui.css'), p + ': ui.css comes after the base styles');
+      const csp = r.headers.get('content-security-policy') || '';
+      assert.strictEqual(csp.includes('wasm-unsafe-eval'), p === '/playground', p + ': only the Playground may run WebAssembly');
+      assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), p + ': no inline scripts allowed');
+    }
+    const js = await fetch(t.base + '/ui.js'), css = await fetch(t.base + '/ui.css');
+    assert.match(js.headers.get('content-type'), /javascript/); assert.match(css.headers.get('content-type'), /css/);
+    assert.ok(!(await js.text()).includes('innerHTML'), 'the layer never writes raw HTML');
+    const admin = await fetch(t.base + '/admin'); assert.ok(admin.status === 200 || admin.status === 404);
+  } finally { t.close(); }
+});
