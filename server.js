@@ -32,6 +32,17 @@ const communityText = () =>
 // session ID LAST and alone (so it is the newest message and one long-press copies only it).
 const dmMessages = (id) => [{ text: communityText(), previewOf: LINKS.whatsapp }, dmText(), id];
 
+// Shared page pieces (icons, header, footer, phone tab bar) are written once in /partials and placed into any page that has the matching <!--tfx:...--> marker.
+const PARTIALS = {};
+function shellify(buf) {
+  const html = buf.toString('utf8');
+  if (!html.includes('<!--tfx:')) return buf;
+  return Buffer.from(html.replace(/<!--tfx:(sprite|head|foot|tabbar)-->/g, (m, k) => {
+    if (PARTIALS[k] === undefined) { try { PARTIALS[k] = fs.readFileSync(path.join(__dirname, 'partials', k + '.html'), 'utf8'); } catch (e) { PARTIALS[k] = ''; } }
+    return PARTIALS[k];
+  }), 'utf8');
+}
+
 function createApp(opts = {}) {
   const env = opts.env || process.env;
   const dataDir = opts.dataDir || path.join(__dirname, 'data');
@@ -361,7 +372,8 @@ function createApp(opts = {}) {
       const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
-          const body = fs.readFileSync(path.join(PUBLIC, name));
+          let body = fs.readFileSync(path.join(PUBLIC, name));
+          if (path.extname(name) === '.html') body = shellify(body);
           if (path.extname(name) === '.html') noteVisit(req, p);
           // the Playground page and its sandbox are the ONLY files allowed to start WebAssembly (the engine that runs plugin code); every other page keeps the strict rule
           const wasm = name === 'playground.html' || name === 'playground-sandbox.js';

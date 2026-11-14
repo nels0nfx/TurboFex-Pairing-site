@@ -241,7 +241,7 @@ test('the pages exist, say nothing risky and add everything as text', () => {
   const html = fs.readFileSync(path.join(__dirname, '../public/developers.html'), 'utf8'), js = fs.readFileSync(path.join(__dirname, '../public/developers.js'), 'utf8');
   assert.match(html, /Sign in|dstate/); assert.ok(!/<script>[^<]/.test(html), 'no inline script'); assert.ok(!/innerHTML|insertAdjacentHTML|document\.write|eval\(/.test(js), 'no HTML injection in the page script');
   assert.match(html, /14 days/);
-  for (const f of ['index', 'about', 'terms', 'privacy', 'plugins', 'developers']) assert.match(fs.readFileSync(path.join(__dirname, `../public/${f}.html`), 'utf8'), /id="m-dev"/, f);
+  for (const f of ['index', 'about', 'terms', 'privacy', 'plugins', 'developers']) { let h = fs.readFileSync(path.join(__dirname, `../public/${f}.html`), 'utf8'); if (h.includes('<!--tfx:head-->')) h += fs.readFileSync(path.join(__dirname, '../partials/head.html'), 'utf8'); assert.match(h, /id="m-dev"/, f); }
   const adminJs = fs.readFileSync(path.join(__dirname, '../public/admin.js'), 'utf8'); assert.ok(!/confirm\(|prompt\(|innerHTML/.test(adminJs.slice(adminJs.indexOf('Plugins (submissions'), adminJs.indexOf('// ---------- Settings'))), 'review screen: no native dialogs, no innerHTML');
   assert.match(fs.readFileSync(path.join(__dirname, '../public/privacy.html'), 'utf8'), /Developers and raters only/);
 });

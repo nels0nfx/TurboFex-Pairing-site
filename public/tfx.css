@@ -67,6 +67,11 @@ body.tfx img, body.tfx svg { max-width: 100%; }
 }
 .btn:active { transform: translateY(0) scale(.98); }
 
+.btn.sm { min-height: 42px; padding: 0 18px; font-size: 14.5px; gap: 8px; } .btn.sm svg { width: 18px; height: 18px; }
+.fine { margin: 10px 0 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.num { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gold-grad); color: var(--on-gold); font-weight: 800; }
+code { padding: 2px 7px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); color: var(--gold-text); font: 600 .92em ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
 /* ---- chips and status ---- */
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--line-gold); border-radius: 999px; background: var(--gold-faint); font-size: 13.5px; font-weight: 600; color: var(--text); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
@@ -109,6 +114,15 @@ body.tfx img, body.tfx svg { max-width: 100%; }
 .sheet nav a:hover { border-color: var(--gold); transform: translateX(3px); }
 .sheet nav a[aria-current] { background: var(--gold-faint); border-color: var(--gold); }
 .sheet nav a .go { margin-left: auto; color: var(--gold-text); width: 20px; height: 20px; }
+
+/* ---- the menu dropdown ---- */
+.menu { position: absolute; top: calc(100% + 6px); right: max(var(--gutter), calc((100% - var(--wrap)) / 2)); z-index: 70; display: grid; gap: 4px; width: min(300px, calc(100% - 24px)); padding: 8px; border: 1px solid var(--line-gold-strong); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 96%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: var(--shadow); animation: tfx-menuin .25s var(--ease); }
+.menu.out { animation: tfx-menuout .2s var(--ease) forwards; }
+@keyframes tfx-menuin { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } } @keyframes tfx-menuout { to { opacity: 0; transform: translateY(-6px) scale(.97); } }
+.menu .mi { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--text); font-weight: 600; font-size: 15.5px; text-align: left; text-decoration: none; cursor: pointer; transition: background .2s; }
+.menu .mi svg { width: 20px; height: 20px; flex: none; color: var(--gold-text); } .menu .mi:hover:not(:disabled) { background: var(--gold-faint); } .menu .mi:disabled { opacity: .45; cursor: default; }
+@media (min-width: 960px) { .pillmenu.dd { display: inline-flex; } }
+
 
 /* ---- bottom tab bar (phones) ---- */
 .tabbar { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 60; transform: translateX(-50%); display: grid; grid-template-columns: 1fr 1fr 84px 1fr 1fr; align-items: end; width: min(calc(100% - 24px), 520px); height: 68px; padding: 0 6px; border: 1px solid var(--line-gold); border-radius: 999px; background: var(--nav-bg); -webkit-backdrop-filter: blur(20px) saturate(1.5); backdrop-filter: blur(20px) saturate(1.5); box-shadow: 0 20px 40px -18px rgba(0, 0, 0, .8); }

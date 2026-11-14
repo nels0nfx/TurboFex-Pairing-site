@@ -83,7 +83,7 @@
   // featured plugins
   var pl = d.getElementById('plist'), note = d.getElementById('plugnote');
   function card(p) {
-    var a = el('a', 'pcard'); a.href = '/plugins';
+    var a = el('a', 'pcard'); a.href = '/plugins#' + encodeURIComponent(p.id);
     var pi = el('span', 'pi'); pi.setAttribute('aria-hidden', 'true');
     if (p.docs && p.docs.icon) { var im = el('img'); im.alt = ''; im.width = 56; im.height = 56; im.loading = 'lazy'; im.src = '/api/plugin-icon?id=' + encodeURIComponent(p.id) + '&v=' + encodeURIComponent(p.version); pi.appendChild(im); } else pi.textContent = (p.name || '?').charAt(0).toUpperCase();
     var t = el('span', 'pt'); t.appendChild(el('b', null, p.name)); t.appendChild(el('span', 'pd', p.description || ''));
