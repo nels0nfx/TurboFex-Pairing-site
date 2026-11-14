@@ -11,7 +11,7 @@
   }
   function svg(inner) { var s = d.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('width', '20'); s.setAttribute('height', '20'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.7'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); inner.forEach(function (p) { var e = d.createElementNS('http://www.w3.org/2000/svg', 'path'); e.setAttribute('d', p); s.appendChild(e); }); return s; }
 
-  var SECTION = { '/plugins': 'market', '/developers': 'dev', '/plugin-guide': 'docs', '/playground': 'play', '/about': 'about', '/terms': 'terms', '/privacy': 'privacy', '/': 'home' };
+  var SECTION = { '/plugins': 'market', '/developers': 'dev', '/plugin-guide': 'docs', '/playground': 'play', '/about': 'about', '/terms': 'terms', '/privacy': 'privacy', '/': 'home', '/pair': 'pair' };
   var here = SECTION[path] || '';
   d.documentElement.classList.add('ui-on');
 
@@ -58,7 +58,7 @@
     var lg = h('span', 'logo sm'); var im = h('img', null, null, { src: '/logo-gold.png', alt: '', width: '26', height: '18' }); lg.appendChild(im); brand.appendChild(lg);
     var bt = h('div'); bt.appendChild(h('b', null, 'TURBOFEX')); bt.appendChild(h('small', null, 'More power. More possibilities.')); brand.appendChild(bt); inner.appendChild(brand);
     var cols = [
-      ['Pair', [['Connect WhatsApp', '/#connect'], ['FAQ', '/#faq']]],
+      ['Pair', [['Connect WhatsApp', '/pair'], ['FAQ', '/pair#faq']]],
       ['Plugins', [['Marketplace', '/plugins'], ['Developer Centre', '/developers'], ['Plugin guide', '/plugin-guide'], ['Playground', '/playground']]],
       ['TurboFex', [['About', '/about'], ['Terms', '/terms'], ['Privacy', '/privacy'], ['Help', 'https://t.me/+7PwU2Vo9czE1NTRk']]]
     ];

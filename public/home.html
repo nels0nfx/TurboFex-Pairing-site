@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TurboFex — The WhatsApp Bot Ecosystem</title>
+<meta name="description" content="Pair your WhatsApp, install plugins from a signed marketplace and build your own. TurboFex is a WhatsApp bot ecosystem for people who run groups.">
+<meta name="theme-color" content="#070707">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tfx.css">
+<link rel="stylesheet" href="/home.css">
+<script src="/theme.js"></script>
+</head>
+<body class="tfx has-tabbar">
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" class="sr" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9c0 1.700 1.300 2.500 2.700 2.500S9.300 10.700 9.300 9c0 1.700 1.300 2.500 2.700 2.500s2.700-.8 2.700-2.500c0 1.700 1.300 2.500 2.700 2.500S20 10.700 20 9M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-2-1.300-4.500-2-8-2v14c3.500 0 6 .7 8 2 2-1.300 4.500-2 8-2V4c-3.500 0-6 .7-8 2zM12 6v14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.500 5l-3 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.500-3 8.300-7 10-4-1.700-7-5.500-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.800 12l2.300 2.300 4.200-4.600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.200" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 19c.6-3.200 3-5 6-5s5.400 1.800 6 5M16 5.200a3.200 3.200 0 0 1 0 5.600M17.500 14.300c2 .6 3.200 2.300 3.500 4.700" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.500h6L10 21l8-10.500h-6z" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linejoin="round"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.600" fill="currentColor"/><circle cx="12" cy="6" r="1.600" fill="currentColor"/><circle cx="18" cy="6" r="1.600" fill="currentColor"/><circle cx="6" cy="12" r="1.600" fill="currentColor"/><circle cx="12" cy="12" r="1.600" fill="currentColor"/><circle cx="18" cy="12" r="1.600" fill="currentColor"/><circle cx="6" cy="18" r="1.600" fill="currentColor"/><circle cx="12" cy="18" r="1.600" fill="currentColor"/><circle cx="18" cy="18" r="1.600" fill="currentColor"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.200A8 8 0 0 1 9.800 4 8.500 8.500 0 1 0 20 14.200z" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.700"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.600 5.600l1.400 1.400M17 17l1.400 1.400M5.600 18.400L7 17M17 7l1.400-1.400" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3l8 4.500v9L12 21l-8-4.500v-9zM4 7.500l8 4.500 8-4.500M12 12v9" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linejoin="round"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.500" y="4.500" width="17" height="15" rx="2.500" fill="none" stroke="currentColor" stroke-width="1.700"/><circle cx="9" cy="10" r="1.700" fill="currentColor"/><path d="M4 17l5-4.500 4 3.500 3-2.500 4 3.500" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linejoin="round"/></symbol>
+    <symbol id="i-group" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.500-3 8.300-7 10-4-1.700-7-5.500-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.200" fill="none" stroke="currentColor" stroke-width="1.600"/><path d="M8.300 16c.6-1.700 2-2.600 3.700-2.600s3.100.9 3.700 2.600" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3" fill="none" stroke="currentColor" stroke-width="1.700"/><path d="M5 6v12c0 1.700 3.100 3 7 3s7-1.300 7-3V6M5 12c0 1.700 3.100 3 7 3s7-1.300 7-3" fill="none" stroke="currentColor" stroke-width="1.700"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" fill="none" stroke="currentColor" stroke-width="1.700"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2" fill="none" stroke="currentColor" stroke-width="1.700" stroke-linecap="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.500-6.500 10-6.500S22 12 22 12s-3.500 6.500-10 6.500S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.700"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.700"/></symbol>
+    <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.030-.967-.273-.099-.471-.148-.670.150-.197.297-.767.966-.940 1.164-.173.199-.347.223-.644.075-.297-.150-1.255-.463-2.390-1.475-.883-.788-1.480-1.761-1.653-2.059-.173-.297-.018-.458.130-.606.134-.133.298-.347.446-.520.149-.174.198-.298.298-.497.099-.198.050-.371-.025-.520-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.500-.669-.510-.173-.008-.371-.010-.570-.010-.198 0-.520.074-.792.372-.272.297-1.040 1.016-1.040 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.200 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.360.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.570-.347m-5.421 7.403h-.004a9.870 9.870 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.860 9.860 0 01-1.510-5.260c.001-5.450 4.436-9.884 9.888-9.884 2.640 0 5.122 1.030 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.450-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.050 0C5.495 0 .160 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.480-8.413Z"/></symbol>
+    <symbol id="i-tg" viewBox="0 0 24 24"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm4.962 7.224c.1-.002.321.023.465.140a.506.506 0 0 1 .171.325c.016.093.036.306.020.472-.180 1.898-.962 6.502-1.360 8.627-.168.900-.499 1.201-.820 1.230-.696.065-1.225-.460-1.900-.902-1.056-.693-1.653-1.124-2.678-1.800-1.185-.780-.417-1.210.258-1.910.177-.184 3.247-2.977 3.307-3.230.007-.032.014-.150-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.140-5.061 3.345-.480.330-.913.490-1.302.480-.428-.008-1.252-.241-1.865-.440-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.830-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></symbol>
+  </defs>
+</svg>
+
+<header class="tfx-head" id="head">
+  <div class="tfx-wrap">
+    <a class="tfx-brand" href="/" aria-label="TurboFex home"><img src="/logo-gold.png" alt="" width="40" height="28"><b>Turbo<span>Fex</span></b></a>
+    <nav class="tfx-links" aria-label="Main">
+      <a href="/plugins">Marketplace</a>
+      <a href="/developers">Developers</a>
+      <a href="/plugin-guide">Docs</a>
+      <a href="/playground">Playground</a>
+      <a href="#community">Community</a>
+    </nav>
+    <div class="push">
+      <button class="round" id="theme" type="button" aria-label="Switch theme"><svg class="i-moon"><use href="#i-moon"/></svg><svg class="i-sun"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-gold head-cta" href="/pair">Get started</a>
+      <button class="pillmenu" id="menu-open" type="button" aria-haspopup="dialog" aria-controls="sheet" aria-expanded="false"><svg><use href="#i-menu"/></svg>Menu</button>
+    </div>
+  </div>
+</header>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
+  <div class="sheet-top"><a class="tfx-brand" href="/"><img src="/logo-gold.png" alt="" width="40" height="28"><b>Turbo<span>Fex</span></b></a><button class="round" id="menu-close" type="button" aria-label="Close menu"><svg><use href="#i-close"/></svg></button></div>
+  <nav aria-label="All pages">
+    <a href="/pair"><span class="ico"><svg><use href="#i-link"/></svg></span><span>Pair your WhatsApp<small>Pairing code or QR code</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="/plugins"><span class="ico"><svg><use href="#i-store"/></svg></span><span>Plugin marketplace<small>Install signed, reviewed plugins</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="/developers"><span class="ico"><svg><use href="#i-code"/></svg></span><span>Developer Centre<small>Send and manage your plugins</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="/plugin-guide"><span class="ico"><svg><use href="#i-book"/></svg></span><span>Documentation<small>The plugin guide</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="/playground"><span class="ico"><svg><use href="#i-play"/></svg></span><span>Playground<small>Try plugin code in your browser</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="#community" data-close><span class="ico"><svg><use href="#i-people"/></svg></span><span>Community<small>WhatsApp channel and Telegram</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+    <a href="/about"><span class="ico"><svg><use href="#i-eye"/></svg></span><span>About<small>Terms and privacy are in the footer</small></span><svg class="go"><use href="#i-arrow"/></svg></a>
+  </nav>
+</div>
+
+<main id="main">
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="tfx-wrap hero-grid">
+      <div class="hero-copy">
+        <p class="chip rv" id="statuschip"><span class="dot" id="statusdot"></span><span id="statustext">Checking status…</span></p>
+        <h1 class="rv">TurboFex<br>The Ultimate<br><span class="gold">WhatsApp Bot<br>Ecosystem</span></h1>
+        <p class="tag rv">Connect. Automate. Build. Grow.</p>
+        <p class="t-lead rv">Powerful plugins, seamless pairing and a growing developer community, all in one premium platform.</p>
+        <div class="cta rv">
+          <a class="btn btn-gold" href="/pair"><svg><use href="#i-bolt"/></svg>Get started</a>
+          <a class="btn btn-ghost" href="/plugins"><svg><use href="#i-store"/></svg>Explore marketplace</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 480 540" class="art" focusable="false">
+          <defs>
+            <radialGradient id="g-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F2DCA4" stop-opacity=".55"/><stop offset=".5" stop-color="#D4AE62" stop-opacity=".16"/><stop offset="1" stop-color="#D4AE62" stop-opacity="0"/></radialGradient>
+            <radialGradient id="g-globe" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#2B2518"/><stop offset="1" stop-color="#0A0A09"/></radialGradient>
+            <linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4DFA8"/><stop offset=".5" stop-color="#D4AE62"/><stop offset="1" stop-color="#8F6D25"/></linearGradient>
+            <linearGradient id="g-body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4DFA8"/><stop offset=".25" stop-color="#6E5420"/><stop offset=".6" stop-color="#1A1710"/><stop offset="1" stop-color="#D4AE62"/></linearGradient>
+            <linearGradient id="g-screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1C1912"/><stop offset="1" stop-color="#050504"/></linearGradient>
+            <linearGradient id="g-pod" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0D38A"/><stop offset="1" stop-color="#5E4716"/></linearGradient>
+            <clipPath id="c-globe"><circle cx="300" cy="190" r="168"/></clipPath>
+          </defs>
+          <circle cx="260" cy="260" r="250" fill="url(#g-glow)"/>
+          <g class="globe">
+            <circle cx="300" cy="190" r="168" fill="url(#g-globe)" stroke="url(#g-gold)" stroke-width="1.500" stroke-opacity=".7"/>
+            <g clip-path="url(#c-globe)" fill="none" stroke="#D4AE62" stroke-opacity=".5" stroke-dasharray="1.500 7" stroke-linecap="round" stroke-width="2.200">
+              <ellipse cx="300" cy="190" rx="168" ry="40"/><ellipse cx="300" cy="190" rx="168" ry="95"/><ellipse cx="300" cy="190" rx="168" ry="140"/>
+              <ellipse cx="300" cy="190" rx="40" ry="168"/><ellipse cx="300" cy="190" rx="95" ry="168"/><ellipse cx="300" cy="190" rx="140" ry="168"/>
+              <path d="M132 190H468M300 22V358"/>
+            </g>
+          </g>
+          <g class="twinkle" fill="#F2DCA4"><circle cx="410" cy="120" r="2.400"/><circle cx="440" cy="190" r="1.800"/><circle cx="90" cy="150" r="2"/><circle cx="60" cy="300" r="1.600"/><circle cx="430" cy="300" r="2.200"/><circle cx="150" cy="60" r="1.800"/></g>
+          <g class="pod">
+            <ellipse cx="250" cy="470" rx="190" ry="40" fill="#0B0A08" stroke="url(#g-gold)" stroke-width="2"/>
+            <ellipse cx="250" cy="452" rx="150" ry="30" fill="url(#g-pod)"/>
+            <ellipse cx="250" cy="446" rx="150" ry="30" fill="#14110A" stroke="url(#g-gold)" stroke-width="1.500"/>
+            <ellipse cx="250" cy="440" rx="112" ry="22" fill="none" stroke="#F2DCA4" stroke-opacity=".5"/>
+          </g>
+          <g class="orbit"><ellipse cx="250" cy="340" rx="212" ry="64" fill="none" stroke="url(#g-gold)" stroke-width="2.600" stroke-opacity=".9" transform="rotate(-14 250 340)"/></g>
+          <g class="orbit o2"><ellipse cx="250" cy="300" rx="190" ry="48" fill="none" stroke="#F2DCA4" stroke-width="1.200" stroke-opacity=".5" stroke-dasharray="3 9" transform="rotate(-24 250 300)"/></g>
+          <g class="phone" transform="rotate(-11 255 250)">
+            <rect x="170" y="70" width="170" height="340" rx="32" fill="url(#g-body)"/>
+            <rect x="175" y="75" width="160" height="330" rx="28" fill="#0A0A09"/>
+            <rect x="180" y="80" width="150" height="320" rx="24" fill="url(#g-screen)"/>
+            <rect x="228" y="88" width="54" height="14" rx="7" fill="#050504"/>
+            <circle cx="255" cy="205" r="62" fill="#D4AE62" fill-opacity=".10"/>
+            <path d="M255 148a52 52 0 1 0 0 104 52 52 0 0 0 0-104z" fill="#1FA855"/>
+            <path d="M229 232l4-14a38 38 0 1 1 15 14z" fill="#fff"/>
+            <path d="M246 196c1 6 8 14 16 17l5-4-6-4-3 2c-3-1-6-4-7-7l2-3-4-6z" fill="#1FA855"/>
+            <image href="/logo-gold.png" x="215" y="300" width="80" height="56" preserveAspectRatio="xMidYMid meet"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIVE FACTS ============ -->
+  <section class="tfx-wrap stats rv" aria-label="Platform facts" id="stats"><div class="statbar" id="statbar" aria-live="polite"><div class="skel sk"></div><div class="skel sk"></div><div class="skel sk"></div></div></section>
+
+  <!-- ============ QUICK LINKS ============ -->
+  <section class="tfx-wrap quick" aria-label="Explore TurboFex">
+    <a class="qcard rv" href="/plugins"><svg><use href="#i-store"/></svg><b>Plugin marketplace</b><span>Browse reviewed plugins</span></a>
+    <a class="qcard rv" href="/developers"><svg><use href="#i-code"/></svg><b>Developer Centre</b><span>Send your plugin</span></a>
+    <a class="qcard rv" href="#security"><svg><use href="#i-shield"/></svg><b>Secure &amp; reliable</b><span>How we protect you</span></a>
+    <a class="qcard rv" href="#community"><svg><use href="#i-people"/></svg><b>Community</b><span>Get help, share ideas</span></a>
+    <a class="qcard rv" href="/plugin-guide"><svg><use href="#i-book"/></svg><b>Documentation</b><span>The plugin guide</span></a>
+    <a class="qcard rv" href="/playground"><svg><use href="#i-play"/></svg><b>Playground</b><span>Try code in your browser</span></a>
+  </section>
+
+  <!-- ============ PAIRING ============ -->
+  <section class="tfx-wrap pairband rv" id="pairing">
+    <div class="card glow pair">
+      <div class="pair-copy">
+        <p class="chip"><svg class="mini"><use href="#i-shield"/></svg>Quick &amp; secure</p>
+        <h2 class="t-h2">Pair your <span class="gold">WhatsApp</span></h2>
+        <p class="t-lead">Use a pairing code or scan a QR code to link your account to your TurboFex bot in seconds. Your account stays yours.</p>
+        <div class="cta"><a class="btn btn-gold" href="/pair">Start pairing<svg><use href="#i-arrow"/></svg></a></div>
+      </div>
+      <div class="pair-art" aria-hidden="true">
+        <svg viewBox="0 0 200 200" class="qrart" focusable="false">
+          <rect x="6" y="6" width="188" height="188" rx="22" fill="none" stroke="#D4AE62" stroke-width="2" stroke-dasharray="46 20"/>
+          <g fill="#F6F2E9"><rect x="34" y="34" width="38" height="38" rx="6"/><rect x="128" y="34" width="38" height="38" rx="6"/><rect x="34" y="128" width="38" height="38" rx="6"/></g>
+          <g fill="#0A0A09"><rect x="42" y="42" width="22" height="22" rx="3"/><rect x="136" y="42" width="22" height="22" rx="3"/><rect x="42" y="136" width="22" height="22" rx="3"/></g>
+          <g fill="#D4AE62"><rect x="48" y="48" width="10" height="10" rx="2"/><rect x="142" y="48" width="10" height="10" rx="2"/><rect x="48" y="142" width="10" height="10" rx="2"/><rect x="88" y="34" width="12" height="12"/><rect x="104" y="50" width="12" height="12"/><rect x="88" y="66" width="12" height="12"/><rect x="34" y="88" width="12" height="12"/><rect x="58" y="96" width="12" height="12"/><rect x="88" y="94" width="12" height="12"/><rect x="112" y="88" width="12" height="12"/><rect x="136" y="100" width="12" height="12"/><rect x="154" y="88" width="12" height="12"/><rect x="104" y="116" width="12" height="12"/><rect x="128" y="128" width="12" height="12"/><rect x="152" y="136" width="14" height="14"/><rect x="88" y="142" width="12" height="12"/><rect x="112" y="152" width="12" height="12"/><rect x="136" y="154" width="12" height="12"/></g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURED PLUGINS ============ -->
+  <section class="tfx-wrap block" id="market" aria-labelledby="h-feat">
+    <div class="bar rv"><h2 class="t-h2 side" id="h-feat">Featured plugins</h2><a class="more" href="/plugins">View all<svg><use href="#i-arrow"/></svg></a></div>
+    <div class="plist" id="plist" aria-live="polite"><div class="skel pk"></div><div class="skel pk"></div><div class="skel pk"></div></div>
+    <p class="fine rv" id="plugnote"></p>
+  </section>
+
+  <!-- ============ DEVELOPERS ============ -->
+  <section class="tfx-wrap block" id="developers" aria-labelledby="h-dev">
+    <div class="split">
+      <div class="rv">
+        <p class="t-eyebrow">Developer ecosystem</p>
+        <h2 class="t-h2" id="h-dev">Build it once. <span class="gold">Reach every group.</span></h2>
+        <p class="t-lead">Write a plugin, push a release tag to GitHub and send it for review. When it passes, it is signed and published to the marketplace for bot owners to install.</p>
+        <div class="cta"><a class="btn btn-gold" href="/developers">Open Developer Centre<svg><use href="#i-arrow"/></svg></a><a class="btn btn-ghost" href="/plugin-guide">Read the guide</a></div>
+      </div>
+      <ol class="steps">
+        <li class="rv"><span class="num">1</span><div><b>Sign in with GitHub</b><p>No new password. Your repository stays yours.</p></div></li>
+        <li class="rv"><span class="num">2</span><div><b>Send a release tag</b><p>Or let a GitHub webhook send each new release for you.</p></div></li>
+        <li class="rv"><span class="num">3</span><div><b>Automatic checks, then review</b><p>The manifest, permissions and code are checked before a person looks.</p></div></li>
+        <li class="rv"><span class="num">4</span><div><b>Signed and published</b><p>Approved releases are signed with the TurboFex key and appear in the store.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ AUTOMATION ============ -->
+  <section class="tfx-wrap block" id="automation" aria-labelledby="h-auto">
+    <div class="head-c rv"><p class="t-eyebrow">Automation</p><h2 class="t-h2" id="h-auto">What a plugin can do</h2><p class="t-lead">Plugins add commands and reactions to your bot. Each one only gets the powers its owner approves.</p></div>
+    <div class="feat">
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-chat"/></svg></span><h3>Commands</h3><p>New commands that use your normal prefix, with their own help text.</p></article>
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-bolt"/></svg></span><h3>Events</h3><p>React to new messages, members joining and members leaving.</p></article>
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-image"/></svg></span><h3>Pictures and files</h3><p>Send and convert media, within safe size limits.</p></article>
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-group"/></svg></span><h3>Group tools</h3><p>Group management, only for plugins you allow and bots that are admins.</p></article>
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-sliders"/></svg></span><h3>Options</h3><p>Owners change a plugin's settings with one command.</p></article>
+      <article class="fcard rv"><span class="ico"><svg><use href="#i-db"/></svg></span><h3>Private storage</h3><p>Each plugin keeps its own notes, apart from every other plugin.</p></article>
+    </div>
+  </section>
+
+  <!-- ============ SECURITY ============ -->
+  <section class="tfx-wrap block" id="security" aria-labelledby="h-sec">
+    <div class="card glow sec">
+      <div class="head-c rv"><p class="t-eyebrow">Security and reliability</p><h2 class="t-h2" id="h-sec">Safe by design, not by promise</h2></div>
+      <div class="secgrid">
+        <div class="sitem rv"><span class="ico"><svg><use href="#i-key"/></svg></span><div><b>Signed store</b><p>Every published plugin is signed. A bot refuses anything that was changed.</p></div></div>
+        <div class="sitem rv"><span class="ico"><svg><use href="#i-box"/></svg></span><div><b>Sandboxed code</b><p>Plugins run in a sealed sandbox, away from your bot's files and keys.</p></div></div>
+        <div class="sitem rv"><span class="ico"><svg><use href="#i-shield"/></svg></span><div><b>Owner approves powers</b><p>A plugin cannot use a power its owner did not allow.</p></div></div>
+        <div class="sitem rv"><span class="ico"><svg><use href="#i-eye"/></svg></span><div><b>Reviewed first</b><p>Nothing reaches the store without checks and a human review.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY + DOCS ============ -->
+  <section class="tfx-wrap block" id="community" aria-labelledby="h-com">
+    <div class="head-c rv"><p class="t-eyebrow">Community and documentation</p><h2 class="t-h2" id="h-com">You are not building alone</h2></div>
+    <div class="comgrid">
+      <a class="ccard rv" href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer"><svg><use href="#i-wa"/></svg><b>WhatsApp Channel</b><span>News and updates</span></a>
+      <a class="ccard rv" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><svg><use href="#i-tg"/></svg><b>Telegram group</b><span>Help from the team and other developers</span></a>
+      <a class="ccard rv" href="/plugin-guide"><svg><use href="#i-book"/></svg><b>Plugin guide</b><span>Manifest, permissions, events, examples</span></a>
+      <a class="ccard rv" href="/playground"><svg><use href="#i-play"/></svg><b>Playground</b><span>Run plugin code safely in your browser</span></a>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="tfx-wrap block final rv">
+    <div class="card glow fin">
+      <h2 class="t-h2">Ready to <span class="gold">connect</span>?</h2>
+      <p class="t-lead">Pair your WhatsApp in a minute, then explore the marketplace.</p>
+      <div class="cta"><a class="btn btn-gold" href="/pair"><svg><use href="#i-bolt"/></svg>Pair now</a><a class="btn btn-ghost" href="/plugins">Explore marketplace</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="tfx-foot">
+  <div class="tfx-wrap">
+    <div class="cols">
+      <div class="about"><a class="tfx-brand" href="/"><img src="/logo-gold.png" alt="" width="40" height="28"><b>Turbo<span>Fex</span></b></a><p>The WhatsApp bot ecosystem: pairing, plugins and a developer community.</p></div>
+      <div class="links">
+        <div><h4>Product</h4><ul><li><a href="/pair">Pair WhatsApp</a></li><li><a href="/plugins">Marketplace</a></li><li><a href="/playground">Playground</a></li></ul></div>
+        <div><h4>Developers</h4><ul><li><a href="/developers">Developer Centre</a></li><li><a href="/plugin-guide">Plugin guide</a></li></ul></div>
+        <div><h4>Community</h4><ul><li><a href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a></li><li><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Telegram</a></li></ul></div>
+        <div><h4>Company</h4><ul><li><a href="/about">About</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li></ul></div>
+      </div>
+    </div>
+    <div class="base"><span>© TurboFex. The ultimate WhatsApp bot ecosystem.</span><div class="socials"><a href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Channel"><svg><use href="#i-wa"/></svg></a><a href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><svg><use href="#i-tg"/></svg></a></div></div>
+  </div>
+</footer>
+
+<nav class="tabbar" aria-label="Quick navigation">
+  <a href="/" aria-current="page"><svg><use href="#i-home"/></svg>Home</a>
+  <a href="/plugins"><svg><use href="#i-store"/></svg>Market</a>
+  <a class="mid" href="/pair" aria-label="Pair your WhatsApp"><img src="/logo-gold.png" alt="" width="46" height="32"></a>
+  <a href="/plugin-guide"><svg><use href="#i-book"/></svg>Docs</a>
+  <a href="/developers"><svg><use href="#i-user"/></svg>Developers</a>
+</nav>
+
+<script src="/home.js" defer></script>
+</body>
+</html>

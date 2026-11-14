@@ -380,3 +380,8 @@ v1.x crash fix, pairing site, redesign, dark mode, floating island, sounds -> v2
 
 ## 56. v2.59.0 - full admin page redesign (front end only)
 admin.js: head() has icon tile (.vico); ctl() helper; vPluginList uses .ctls/.ctl cards, .clist collections, .subseg sub-view row. admin-ui.css 'PAGE-LEVEL REDESIGN' block styles every section (panels, kpi, tables .tr/.th, .empty, .note, .tag, forms, .seg, .sw). No inline styles (CSP). Tests: 113 pass; adminflow/flow pass.
+
+## 57. v2.60.0 - REDESIGN PHASE 1 (design system + landing)
+Owner asked (2026-11-14) for a full black/gold redesign of the whole site, PHASE BY PHASE: never start a phase before the owner confirms the previous one is complete. Plan: P1 design system + landing; P2 pairing (/pair); P3 marketplace + plugin detail; P4 Developer Centre + Developer Dashboard; P5 Admin dashboard (nav: Dashboard, Users, Plugins, Reviews, Transactions, System, Moderation, Analytics, Settings - only sections with real data/permissions); P6 docs, community, legal, support; P7 full test + report.
+Rules: show real data only (no fake counts/ratings/earnings; hide what does not exist; there is no payments system, so no Transactions/Earnings until one exists); keep backend/API/auth/security; no inline styles (strict CSP).
+P1 files: public/tfx.css (tokens, buttons, cards, header, menu sheet, bottom tab bar, footer, motion), public/home.html, home.css, home.js. `/` serves home.html; the old pairing page (index.html) is served at /pair (server.js PAGES). All '/#connect' links became '/pair'. Tests: 114 pass.

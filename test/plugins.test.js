@@ -192,7 +192,7 @@ test('redesign: every public page loads the shared interface layer; the files ar
   const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
   const t = await boot(reg);
   try {
-    for (const p of ['/', '/about', '/terms', '/privacy', '/plugins', '/developers', '/plugin-guide', '/playground']) {
+    for (const p of ['/pair', '/about', '/terms', '/privacy', '/plugins', '/developers', '/plugin-guide', '/playground']) {
       const r = await fetch(t.base + p), h = await r.text();
       assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/ui.css"') && h.includes('src="/ui.js"'), p + ' loads ui.css and ui.js');
       assert.ok(h.indexOf('/style.css') < h.indexOf('/ui.css'), p + ': ui.css comes after the base styles');
@@ -205,4 +205,19 @@ test('redesign: every public page loads the shared interface layer; the files ar
     assert.ok(!(await js.text()).includes('innerHTML'), 'the layer never writes raw HTML');
     const admin = await fetch(t.base + '/admin'); assert.ok(admin.status === 200 || admin.status === 404);
   } finally { t.close(); }
+});
+
+test('v3 phase 1: the new landing page is at "/" and uses the new design system; pairing lives at /pair', async () => {
+  const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
+  const t = await boot(reg);
+  try {
+    const home = await (await fetch(t.base + '/')).text();
+    assert.ok(home.includes('href="/tfx.css"') && home.includes('src="/home.js"') && home.includes('href="/pair"'), 'landing uses tfx.css and links to pairing');
+    assert.ok(!home.includes('id="connect"'), 'the pairing form is not on the landing page');
+    const pair = await (await fetch(t.base + '/pair')).text();
+    assert.ok(pair.includes('id="connect"') && pair.includes('/app.js'), 'the pairing page is at /pair');
+    for (const f of ['/tfx.css', '/home.css', '/home.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    assert.ok(!/style="/.test(home), 'no inline styles (strict security rule)');
+    assert.ok(!/wasm-unsafe-eval/.test((await fetch(t.base + '/')).headers.get('content-security-policy')));
+  } finally { await t.close(); }
 });
