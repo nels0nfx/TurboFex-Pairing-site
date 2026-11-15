@@ -410,3 +410,11 @@ plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin p
 - No Transactions/Earnings/Analytics tabs: the site has no such data (no payment system).
 - Tests: devcentre.test.js admin-redesign test now checks admin3.css; pgtest/adminflow.js and shootadmin.js pass; 117 tests pass.
 - NEXT: Phase 6 docs, community, support, legal pages (only after the user confirms Phase 5).
+
+## 62. v2.65.0 - REDESIGN PHASE 5 REDO (admin section layouts)
+- User said the Phase 5 admin sections/sub-sections UI/UX were bad ("plain/boring"); chose "Rebuild layouts". Done in admin.js + admin3.css.
+- New helpers in admin.js: `tabs()` (`.stabs/.stab`), `toolbar()` (search `.tq` + filter chips `.tchip`), `hit()`, `initial()`. `table()` adds a search box when a list has 7+ rows.
+- Plugins is a hub (state.plug = {open, tab, q, f}): tabs queue | devs | reviews | reports | collections | store. Queue = `.pcard2` cards in `.pgrid`. vPluginReviews/Reports/Devs now return a node (pane), not a page. Submission page uses `reviewLayout()`: tabs (Review, What changed, Code, Docs and images) + sticky `.dcard` Decision card. Settings has tabs (state.set.tab: site | sec).
+- Class-name traps found: `.lg` is the login page class (never reuse it for sizes); `.ptags/.pact` have `grid-column:2` inside cards.
+- Tests: pgtest/admhub.js (26 checks) + adminflow.js; 117 unit tests pass.
+- NEXT: Phase 6 (docs, community, support, legal pages) only after user confirms Phase 5.

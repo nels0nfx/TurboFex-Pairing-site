@@ -130,7 +130,7 @@
   window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (me && t !== tab && VIEWS[t]) go(t); });
   var VIEWS = { overview: vOverview, pairing: vPairing, visitors: vVisitors, security: vSecurity, server: vServer, activity: vActivity, audit: vAudit, announce: vAnnounce, plugins: vPlugins, settings: vSettings };
   var REFRESH = { overview: 15000, pairing: 5000, visitors: 20000, security: 15000, server: 5000, activity: 8000, audit: 0, announce: 0, plugins: 0, settings: 0 };
-  var state = { visitors: { days: 1, kind: 'clients' }, activity: { type: '' }, plug: { open: '' } };
+  var state = { visitors: { days: 1, kind: 'clients' }, activity: { type: '' }, plug: { open: '', tab: 'queue', q: '', f: 'all' }, set: { tab: 'site' } };
 
   var lastLoad = 0;
   function skeleton() { return h('div', { class: 'askel', 'aria-label': 'Loading' }, h('i', { class: 'sk t' }), h('i', { class: 'sk s' }), h('div', { class: 'sk-g' }, h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' })), h('i', { class: 'sk p' })); }
@@ -181,7 +181,11 @@
     var hd = h('div', { class: 'th', role: 'row' }); cols.forEach(function (c) { hd.appendChild(h('div', { role: 'columnheader', text: c })); }); t.appendChild(hd);
     rows.forEach(function (r) { t.appendChild(r); });
     t.classList.add('c' + cols.length); void style;
-    return t;
+    if (rows.length < 7) return t;
+    // long lists get a quick search that hides rows that do not match
+    var q = h('input', { type: 'search', class: 'tq', placeholder: 'Search this list', 'aria-label': 'Search this list', autocomplete: 'off', spellcheck: 'false', maxlength: 60 }), none = h('p', { class: 'empty', text: 'Nothing matches.', hidden: true });
+    q.addEventListener('input', function () { var v = q.value.toLowerCase(), shown = 0; rows.forEach(function (r) { var ok = !v || r.textContent.toLowerCase().indexOf(v) >= 0; r.hidden = !ok; if (ok) shown++; }); none.hidden = shown > 0; });
+    return h('div', null, h('div', { class: 'tools' }, h('label', { class: 'tsearch' }, svg('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' }, svg('path', { d: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' })), q)), t, none);
   }
   function row(cells, actions) {
     var r = h('div', { class: 'tr', role: 'row' });
@@ -248,7 +252,7 @@
       var o = r[0], s = r[1], an = r[2].announcements.filter(function (a) { return a.active && (!a.endsAt || a.endsAt > Date.now()); });
       var t = o.totals; pollAlerts();
       var n = h('div');
-      n.appendChild(head('Dashboard', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
+      n.appendChild(head('Dashboard', 'Welcome back, ' + me.user + ' · last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
       // what needs a look right now: each chip opens the tab that deals with it
       var items = [];
@@ -453,48 +457,89 @@
       api('POST', 'plugins/collections', { save: { id: v.id, name: v.name, description: v.description, plugins: v.plugins } }).then(function () { toast('Collection saved'); load(false); }, fail);
     });
   }
+  // ----- shared bits for the new section layouts -----
+  function tabs(items, cur, pick) {
+    var bar = h('div', { class: 'stabs', role: 'tablist' });
+    items.forEach(function (t) {
+      bar.appendChild(h('button', { type: 'button', role: 'tab', class: 'stab', 'aria-selected': t[0] === cur ? 'true' : 'false', onclick: function () { pick(t[0]); } }, t[1], t[2] ? h('i', { class: 'sn' + (t[3] ? ' hot' : ''), text: String(t[2]) }) : null));
+    });
+    return bar;
+  }
+  function initial(name) { return String(name || '?').trim().charAt(0).toUpperCase() || '?'; }
+  function agoShort(t) { return t ? ago(t) : ''; }
+  // search box + filter chips; draws nothing itself, calls back so the list can redraw in place
+  function toolbar(o) {
+    var box = h('div', { class: 'tools' });
+    var q = h('input', { type: 'search', class: 'tq', placeholder: o.placeholder || 'Search', 'aria-label': o.placeholder || 'Search', value: o.q || '', autocomplete: 'off', spellcheck: 'false', maxlength: 60 });
+    q.addEventListener('input', function () { o.onQ(q.value); });
+    box.appendChild(h('label', { class: 'tsearch' }, svg('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' }, svg('path', { d: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' })), q));
+    if (o.chips) {
+      var cw = h('div', { class: 'tchips', role: 'group', 'aria-label': 'Filter' });
+      var draw = function (cur) { clear(cw); o.chips.forEach(function (c) { cw.appendChild(h('button', { type: 'button', class: 'tchip', 'aria-pressed': c[0] === cur ? 'true' : 'false', onclick: function () { o.onChip(c[0]); draw(c[0]); } }, c[1], h('i', { text: String(c[2]) }))); }); };
+      draw(o.chip); box.appendChild(cw);
+    }
+    return box;
+  }
+  function hit(hay, q) { return !q || String(hay).toLowerCase().indexOf(q.toLowerCase()) >= 0; }
+
   function vPluginList() {
     return api('GET', 'plugins/submissions').then(function (j) {
-      var n = h('div');
-      n.appendChild(head('Plugins and reviews', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', null));
-      var pbox = (h('div', { class: 'avr' }, h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' }), ' ', h('button', { class: 'btn' + (j.paused ? '' : ' danger'), type: 'button', onclick: function (e) { var b = e.currentTarget, go = function () { act(b, function () { return api('POST', 'plugins/pause', { paused: !j.paused }); }, j.paused ? 'Store opened' : 'Store paused', function () { load(false); }); }; if (j.paused) go(); else confirmThen('Pause the plugin store? The Plugins page shows nothing and nobody can send, rate or report plugins. Bots and already installed plugins are not affected.', go, 'Pause'); } }, j.paused ? 'Open the store again' : 'Pause the store')));
-      var iv = j.invites || { on: false, logins: [] };
-      var ibox = h('div', { class: 'avr' }, h('span', { class: 'tag ' + (iv.on ? 'warn' : 'ok'), text: iv.on ? 'Invite-only beta: ON' : 'Open to every developer' }), ' ',
-        h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/invites', { on: !iv.on }); }, iv.on ? 'Open to everyone' : 'Invite-only is on', function () { load(false); }); } }, iv.on ? 'Open to everyone' : 'Turn on invite-only'), ' ',
-        h('button', { class: 'btn', type: 'button', onclick: function () { dlg({ title: 'Invite a developer', text: 'Their GitHub username. While invite-only is on, only listed people can send plugins.', fields: [{ name: 'login', label: 'GitHub username' }], ok: 'Add' }, function (v) { api('POST', 'plugins/invites', { add: v.login }).then(function () { load(false); }, function () { load(false); }); }); } }, 'Invite someone'));
-      var cols = j.collections || [];
-      var cbox = h('div', { class: 'avr' }, h('span', { class: 'tag ok', text: 'Collections: ' + cols.length }), ' ',
-        h('button', { class: 'btn', type: 'button', onclick: function () { colDlg(null); } }, 'New collection'));
-      n.appendChild(cbox);
-      n.appendChild(h('div', { class: 'ctls' },
-        ctl('Store status', j.paused ? 'The store is closed: nothing is shown and nobody can send, rate or report.' : 'The store is open to visitors and developers.', pbox),
-        ctl('Developer access', iv.on ? 'Only invited people can send plugins right now.' : 'Any developer who signs in can send plugins.', ibox),
-        ctl('Collections', 'Ready-made sets of 2 to 8 plugins that bot owners install with one command.', cbox)));
-      if (cols.length) n.appendChild(panel('Collections', String(cols.length), h('div', { class: 'clist' }, cols.map(function (c) {
-        return h('div', { class: 'citem' }, h('div', { class: 'cinfo' }, h('b', { text: c.name }), h('span', { class: 'muted', text: ' ' + c.id }), h('div', { class: 'cchips' }, c.plugins.map(function (p) { return h('span', { class: 'cchip', text: p }); }))),
-          h('div', { class: 'cact' }, h('button', { class: 'btn sm', type: 'button', onclick: function () { colDlg(c); } }, 'Edit'),
-            h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
-      })), h('p', { class: 'note', text: 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' })));
-      if (iv.logins.length) n.appendChild(h('p', { class: 'muted' }, 'Invited: ', iv.logins.map(function (l) { return h('button', { class: 'btn sm', type: 'button', title: 'Remove ' + l, onclick: function (e) { act(e.currentTarget, function () { return api('POST', 'plugins/invites', { remove: l }); }, 'Removed', function () { load(false); }); } }, l + ' ✕'); })));
+      var P = state.plug, n = h('div'), iv = j.invites || { on: false, logins: [] }, cols = j.collections || [];
+      n.appendChild(head('Plugins and reviews', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' })));
       if (!j.configured) n.appendChild(h('p', { class: 'note warn', text: 'GitHub sign-in is not set up yet (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are missing on the server), so developers cannot send plugins.' }));
       if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'The phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));
       n.appendChild(h('div', { class: 'grid' }, stat('Waiting', String(j.counts.pending), 'for your review', j.counts.pending ? 'warn' : ''), stat('Approved', String(j.counts.approved), 'wait for the phone command', j.counts.approved ? 'good' : ''), stat('Published', String(j.counts.published), 'in the registry', ''), stat('Rejected', String(j.counts.rejected), '', '')));
-      var rows = j.submissions.map(function (s) {
-        return row([{ l: 'Status', node: pstat(s.status) }, { l: 'Plugin', v: s.name + ' (' + s.pluginId + ')' }, { l: 'Version', v: s.version }, { l: 'Developer', v: s.login + (s.verified ? ' ✓' : '') }, { l: 'Risk', node: h('span', { class: 'tag ' + s.risk, text: s.risk + (s.flags ? ' · ' + s.flags + ' flag' + (s.flags > 1 ? 's' : '') : '') }) }, { l: 'Sent', v: when(s.createdAt) }],
-          [h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = s.id; load(true); } }, 'Open')]);
-      });
-      n.appendChild(panel('Submissions', String(j.submissions.length), table(['Status', 'Plugin', 'Version', 'Developer', 'Risk', 'Sent', ''], rows, 'Nobody has sent a plugin yet.')));
-      var sbox = (h('div', { class: 'avr subseg' }, h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#devs'; load(true); } }, 'Developers'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reviews'; load(true); } }, 'Ratings and reviews'), ' ', h('button', { class: 'btn', type: 'button', onclick: function () { state.plug.open = '#reports'; load(true); } }, 'Reports'), ' ', h('a', { class: 'btn', href: '/admin/api/plugins/export', download: 'turbofex-plugin-store-backup.json' }, 'Download backup')));
-      n.insertBefore(sbox, n.children[1]);
-      return n;
+      var body = h('div', { class: 'tabbody' });
+      n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
+      n.appendChild(body);
+      if (P.tab === 'queue') {
+        var list = h('div', { class: 'pgrid' });
+        var chips = [['all', 'All', j.submissions.length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], j.submissions.filter(function (x) { return c[0] === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === c[0]; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
+        var drawList = function () {
+          clear(list);
+          var rows = j.submissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
+          if (!j.submissions.length) { list.appendChild(h('p', { class: 'empty', text: 'Nobody has sent a plugin yet.' })); return; }
+          if (!rows.length) { list.appendChild(h('p', { class: 'empty', text: 'Nothing matches. Clear the search or pick another filter.' })); return; }
+          rows.forEach(function (x) {
+            list.appendChild(h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
+              h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(x.name) }),
+              h('span', { class: 'pmain' }, h('b', { text: x.name }), h('small', { text: x.pluginId + ' · v' + x.version }), h('span', { class: 'pmeta' }, 'by ' + x.login + (x.verified ? ' ✓' : '') + ' · ' + agoShort(x.createdAt))),
+              h('span', { class: 'ptags' }, pstat(x.status), h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') }))));
+          });
+        };
+        body.appendChild(toolbar({ placeholder: 'Search plugin or developer', q: P.q, onQ: function (v) { P.q = v; drawList(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; drawList(); } }));
+        drawList(); body.appendChild(list);
+        return n;
+      }
+      if (P.tab === 'collections') {
+        body.appendChild(h('div', { class: 'tools' }, h('p', { class: 'muted grow', text: 'Ready-made sets of 2 to 8 published plugins that bot owners install with one command.' }), h('button', { class: 'btn solid', type: 'button', onclick: function () { colDlg(null); } }, '+ New collection')));
+        body.appendChild(cols.length ? h('div', { class: 'clist' }, cols.map(function (c) {
+          return h('div', { class: 'citem' }, h('div', { class: 'cinfo' }, h('b', { text: c.name }), h('span', { class: 'muted', text: ' ' + c.id }), h('div', { class: 'cchips' }, c.plugins.map(function (p) { return h('span', { class: 'cchip', text: p }); }))),
+            h('div', { class: 'cact' }, h('button', { class: 'btn sm', type: 'button', onclick: function () { colDlg(c); } }, 'Edit'),
+              h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
+        })) : h('p', { class: 'empty', text: 'No collections yet.' }));
+        body.appendChild(h('p', { class: 'note', text: 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' }));
+        return n;
+      }
+      if (P.tab === 'store') {
+        var pbox = h('div', { class: 'avr' }, h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' }), h('button', { class: 'btn' + (j.paused ? '' : ' danger'), type: 'button', onclick: function (e) { var b = e.currentTarget, go = function () { act(b, function () { return api('POST', 'plugins/pause', { paused: !j.paused }); }, j.paused ? 'Store opened' : 'Store paused', function () { load(false); }); }; if (j.paused) go(); else confirmThen('Pause the plugin store? The Plugins page shows nothing and nobody can send, rate or report plugins. Bots and already installed plugins are not affected.', go, 'Pause'); } }, j.paused ? 'Open the store again' : 'Pause the store'));
+        var ibox = h('div', { class: 'avr' }, h('span', { class: 'tag ' + (iv.on ? 'warn' : 'ok'), text: iv.on ? 'Invite-only beta: ON' : 'Open to every developer' }),
+          h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/invites', { on: !iv.on }); }, iv.on ? 'Open to everyone' : 'Invite-only is on', function () { load(false); }); } }, iv.on ? 'Open to everyone' : 'Turn on invite-only'),
+          h('button', { class: 'btn', type: 'button', onclick: function () { dlg({ title: 'Invite a developer', text: 'Their GitHub username. While invite-only is on, only listed people can send plugins.', fields: [{ name: 'login', label: 'GitHub username' }], ok: 'Add' }, function (v) { api('POST', 'plugins/invites', { add: v.login }).then(function () { load(false); }, function () { load(false); }); }); } }, 'Invite someone'));
+        body.appendChild(h('div', { class: 'ctls' },
+          ctl('Store status', j.paused ? 'The store is closed: nothing is shown and nobody can send, rate or report.' : 'The store is open to visitors and developers.', pbox),
+          ctl('Developer access', iv.on ? 'Only invited people can send plugins right now.' : 'Any developer who signs in can send plugins.', ibox),
+          ctl('Backup', 'Download everything the store keeps (submissions, ratings, reports) as one file.', h('div', { class: 'avr' }, h('a', { class: 'btn', href: '/admin/api/plugins/export', download: 'turbofex-plugin-store-backup.json' }, 'Download backup')))));
+        if (iv.logins.length) body.appendChild(panel('Invited developers', String(iv.logins.length), h('div', { class: 'cchips' }, iv.logins.map(function (l) { return h('button', { class: 'btn sm', type: 'button', title: 'Remove ' + l, onclick: function (e) { act(e.currentTarget, function () { return api('POST', 'plugins/invites', { remove: l }); }, 'Removed', function () { load(false); }); } }, l + ' ✕'); }))));
+        return n;
+      }
+      var sub = P.tab === 'devs' ? vPluginDevs() : P.tab === 'reviews' ? vPluginReviews() : vPluginReports();
+      return sub.then(function (node) { body.appendChild(node); return n; });
     });
   }
   function vPluginOne(id) {
-    if (id === '#devs') return vPluginDevs();
-    if (id === '#reviews') return vPluginReviews();
-    if (id === '#reports') return vPluginReports();
     return api('GET', 'plugins/submission?id=' + encodeURIComponent(id)).then(function (s) {
-      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
+      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← Back to review queue');
       n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
       var m = s.manifest;
       n.appendChild(panel('Overview', null,
@@ -543,46 +588,83 @@
       if (s.dev) {
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: s.dev.githubId, verified: !s.dev.verified }); }, s.dev.verified ? 'Verified mark removed' : 'Developer verified', function () { load(false); }); } }, s.dev.verified ? 'Remove verified mark' : 'Mark developer as verified'));
       }
-      n.appendChild(bar);
-      return n;
+      return reviewLayout(n, bar, s);
     });
+  }
+  // the review page: tabs for the long parts on the left, the decision always in view on the right
+  function reviewLayout(n, bar, s) {
+    var kids = [].slice.call(n.children), hd = kids.shift(), G = { review: [], changes: [], code: [], docs: [] };
+    kids.forEach(function (k) {
+      var h3 = k.querySelector && k.querySelector('h3'), t = h3 && h3.firstChild ? h3.firstChild.textContent : '';
+      G[/^What changed/.test(t) ? 'changes' : /^(turbofex-plugin|Plugin code)/.test(t) ? 'code' : /^(Logo|Screenshots|README|CHANGELOG)/.test(t) ? 'docs' : 'review'].push(k);
+    });
+    var names = [['review', 'Review'], ['changes', 'What changed'], ['code', 'Code'], ['docs', 'Docs and images']].filter(function (x) { return G[x[0]].length; });
+    var cur = names[0][0], pane = h('div', { class: 'rpane' }), tb = h('div');
+    function show(t) { cur = t; clear(pane); G[t].forEach(function (k) { pane.appendChild(k); }); clear(tb); tb.appendChild(tabs(names, cur, show)); }
+    var side = h('aside', { class: 'rside' }, h('div', { class: 'dcard' },
+      h('div', { class: 'rhead' }, h('span', { class: 'pav big', 'aria-hidden': 'true', text: initial(s.name) }), h('div', null, h('b', { text: s.name }), h('small', { text: 'v' + s.version + ' · ' + s.login + (s.verified ? ' ✓' : '') }))),
+      h('div', { class: 'ptags' }, pstat(s.status), h('span', { class: 'tag ' + s.risk, text: s.risk + ' risk' }), s.flagList && s.flagList.length ? h('span', { class: 'tag warn', text: s.flagList.length + ' to check' }) : null),
+      h('h4', { text: 'Decision' }), bar));
+    show(cur);
+    return h('div', null, hd, h('div', { class: 'rv' }, h('div', { class: 'rmain' }, tb, pane), side));
   }
   function vPluginReviews() {
     return api('GET', 'plugins/reviews').then(function (j) {
-      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
-      n.appendChild(head('Ratings and reviews', 'Newest first. A hidden rating is not shown and does not count in the average.', back));
-      var rows = j.reviews.map(function (r) {
-        return row([{ l: 'Plugin', v: r.plugin }, { l: 'Stars', v: '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars) }, { l: 'By', v: r.login }, { l: 'Review', v: r.text || '(no text)' }, { l: 'State', node: h('span', { class: 'tag ' + (r.hidden ? 'bad' : 'ok'), text: r.hidden ? 'hidden' : 'shown' }) }, { l: 'Sent', v: when(r.at) }],
-          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/review-hide', { plugin: r.plugin, githubId: r.githubId, hidden: !r.hidden }); }, r.hidden ? 'Shown again' : 'Hidden', function () { load(false); }); } }, r.hidden ? 'Show' : 'Hide')]);
-      });
-      n.appendChild(panel('Ratings', String(j.reviews.length), table(['Plugin', 'Stars', 'By', 'Review', 'State', 'Sent', ''], rows, 'Nobody has rated a plugin yet.')));
-      return n;
+      var P = state.plug, box = h('div'), list = h('div', { class: 'tbl-wrap' });
+      var chips = [['all', 'All', j.reviews.length], ['shown', 'Shown', j.reviews.filter(function (r) { return !r.hidden; }).length], ['hidden', 'Hidden', j.reviews.filter(function (r) { return r.hidden; }).length]];
+      var draw = function () {
+        clear(list);
+        var rows = j.reviews.filter(function (r) { return (P.f === 'all' || (P.f === 'hidden') === !!r.hidden) && hit(r.plugin + ' ' + r.login + ' ' + r.text, P.q); }).map(function (r) {
+          return h('div', { class: 'rev' + (r.hidden ? ' off' : '') }, h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(r.login) }),
+            h('div', { class: 'rbody' }, h('div', { class: 'rtop' }, h('b', { text: r.login }), h('span', { class: 'stars', text: '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars), 'aria-label': r.stars + ' of 5 stars' }), h('span', { class: 'muted', text: 'on ' + r.plugin + ' · ' + when(r.at) })), h('p', { text: r.text || '(no text)' })),
+            h('div', { class: 'ract' }, h('span', { class: 'tag ' + (r.hidden ? 'bad' : 'ok'), text: r.hidden ? 'hidden' : 'shown' }), h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/review-hide', { plugin: r.plugin, githubId: r.githubId, hidden: !r.hidden }); }, r.hidden ? 'Shown again' : 'Hidden', function () { load(false); }); } }, r.hidden ? 'Show' : 'Hide')));
+        });
+        list.appendChild(rows.length ? h('div', { class: 'revs' }, rows) : h('p', { class: 'empty', text: j.reviews.length ? 'Nothing matches.' : 'Nobody has rated a plugin yet.' }));
+      };
+      box.appendChild(h('p', { class: 'muted', text: 'Newest first. A hidden rating is not shown and does not count in the average.' }));
+      box.appendChild(toolbar({ placeholder: 'Search plugin, person or text', q: P.q, onQ: function (v) { P.q = v; draw(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; draw(); } }));
+      draw(); box.appendChild(list); return box;
     });
   }
   function vPluginReports() {
     return api('GET', 'plugins/reports').then(function (j) {
-      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
-      n.appendChild(head('Reports', 'People who signed in with GitHub and reported a plugin. Open ones first. To remove a plugin, open it under Submissions and use Withdraw.', back));
-      var rows = j.reports.map(function (r) {
-        var open = r.status === 'open';
-        return row([{ l: 'Plugin', v: r.plugin }, { l: 'Reason', v: r.reasonText }, { l: 'Details', v: r.text || '(none)' }, { l: 'By', v: r.login }, { l: 'State', node: h('span', { class: 'tag ' + (open ? 'bad' : 'ok'), text: open ? 'open' : 'closed' }) }, { l: 'Sent', v: when(r.at) }],
-          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/report-set', { plugin: r.plugin, githubId: r.githubId, status: open ? 'closed' : 'open' }); }, open ? 'Closed' : 'Reopened', function () { load(false); }); } }, open ? 'Close' : 'Reopen')]);
-      });
-      n.appendChild(panel('Reports', String(j.reports.filter(function (r) { return r.status === 'open'; }).length) + ' open', table(['Plugin', 'Reason', 'Details', 'By', 'State', 'Sent', ''], rows, 'Nobody has reported a plugin.')));
-      return n;
+      var P = state.plug, box = h('div'), list = h('div'), nOpen = j.reports.filter(function (r) { return r.status === 'open'; }).length;
+      var chips = [['all', 'All', j.reports.length], ['open', 'Open', nOpen], ['closed', 'Closed', j.reports.length - nOpen]];
+      var draw = function () {
+        clear(list);
+        var rows = j.reports.filter(function (r) { return (P.f === 'all' || r.status === P.f) && hit(r.plugin + ' ' + r.login + ' ' + r.reasonText + ' ' + r.text, P.q); }).map(function (r) {
+          var open = r.status === 'open';
+          return h('div', { class: 'rev' + (open ? ' flag' : ' off') }, h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(r.plugin) }),
+            h('div', { class: 'rbody' }, h('div', { class: 'rtop' }, h('b', { text: r.plugin }), h('span', { class: 'tag warn', text: r.reasonText }), h('span', { class: 'muted', text: 'by ' + r.login + ' · ' + when(r.at) })), h('p', { text: r.text || '(no details)' })),
+            h('div', { class: 'ract' }, h('span', { class: 'tag ' + (open ? 'bad' : 'ok'), text: open ? 'open' : 'closed' }), h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/report-set', { plugin: r.plugin, githubId: r.githubId, status: open ? 'closed' : 'open' }); }, open ? 'Closed' : 'Reopened', function () { load(false); }); } }, open ? 'Close' : 'Reopen')));
+        });
+        list.appendChild(rows.length ? h('div', { class: 'revs' }, rows) : h('p', { class: 'empty', text: j.reports.length ? 'Nothing matches.' : 'Nobody has reported a plugin.' }));
+      };
+      box.appendChild(h('p', { class: 'muted', text: 'People who signed in with GitHub and reported a plugin. Open ones first. To remove a plugin, open it under Review queue and use Withdraw.' }));
+      box.appendChild(toolbar({ placeholder: 'Search plugin, person or reason', q: P.q, onQ: function (v) { P.q = v; draw(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; draw(); } }));
+      draw(); box.appendChild(list); return box;
     });
   }
   function vPluginDevs() {
     return api('GET', 'plugins/devs').then(function (j) {
-      var n = h('div'), back = h('button', { class: 'btn sm', type: 'button', onclick: function () { state.plug.open = ''; load(true); } }, '← All submissions');
-      n.appendChild(head('Developers', 'People who signed in with GitHub. Blocking stops them from signing in and sending plugins.', back));
-      var rows = j.developers.map(function (d) {
-        return row([{ l: 'Developer', v: d.login }, { l: 'GitHub #', v: String(d.githubId), mono: true }, { l: 'Status', node: h('span', { class: 'tag ' + (d.blocked ? 'bad' : d.verified ? 'ok' : ''), text: d.blocked ? 'blocked' : d.verified ? 'verified' : 'new' }) }, { l: 'Plugins', v: String(d.submissions) }, { l: 'Last sign-in', v: when(d.lastLogin) }],
-          [h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, verified: !d.verified }); }, d.verified ? 'Verified mark removed' : 'Verified', function () { load(false); }); } }, d.verified ? 'Unverify' : 'Verify'), ' ',
-            h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; var go2 = function () { act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, blocked: !d.blocked }); }, d.blocked ? 'Unblocked' : 'Blocked', function () { load(false); }); }; if (d.blocked) go2(); else confirmThen('Block ' + d.login + '? They can no longer sign in or send plugins.', go2, 'Block'); } }, d.blocked ? 'Unblock' : 'Block')]);
-      });
-      n.appendChild(panel('Developers', String(j.developers.length), table(['Developer', 'GitHub #', 'Status', 'Plugins', 'Last sign-in', ''], rows, 'Nobody has signed in yet.')));
-      return n;
+      var P = state.plug, box = h('div'), list = h('div', { class: 'pgrid' });
+      var st = function (d) { return d.blocked ? 'blocked' : d.verified ? 'verified' : 'new'; };
+      var chips = [['all', 'All', j.developers.length]].concat(['verified', 'new', 'blocked'].map(function (k) { return [k, k.charAt(0).toUpperCase() + k.slice(1), j.developers.filter(function (d) { return st(d) === k; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
+      var draw = function () {
+        clear(list);
+        var rows = j.developers.filter(function (d) { return (P.f === 'all' || st(d) === P.f) && hit(d.login + ' ' + d.githubId, P.q); }).map(function (d) {
+          return h('div', { class: 'pcard2 dev' }, h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(d.login) }),
+            h('span', { class: 'pmain' }, h('b', { text: d.login }), h('small', { text: 'GitHub #' + d.githubId }), h('span', { class: 'pmeta', text: d.submissions + (d.submissions === 1 ? ' plugin' : ' plugins') + ' · last sign-in ' + agoShort(d.lastLogin) })),
+            h('span', { class: 'ptags' }, h('span', { class: 'tag ' + (d.blocked ? 'bad' : d.verified ? 'ok' : ''), text: st(d) })),
+            h('span', { class: 'pact' },
+              h('button', { class: 'btn sm', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, verified: !d.verified }); }, d.verified ? 'Verified mark removed' : 'Verified', function () { load(false); }); } }, d.verified ? 'Unverify' : 'Verify'),
+              h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; var go2 = function () { act(b, function () { return api('POST', 'plugins/dev', { githubId: d.githubId, blocked: !d.blocked }); }, d.blocked ? 'Unblocked' : 'Blocked', function () { load(false); }); }; if (d.blocked) go2(); else confirmThen('Block ' + d.login + '? They can no longer sign in or send plugins.', go2, 'Block'); } }, d.blocked ? 'Unblock' : 'Block')));
+        });
+        add(list, rows.length ? rows : h('p', { class: 'empty', text: j.developers.length ? 'Nothing matches.' : 'Nobody has signed in yet.' }));
+      };
+      box.appendChild(h('p', { class: 'muted', text: 'People who signed in with GitHub. Blocking stops them from signing in and sending plugins.' }));
+      box.appendChild(toolbar({ placeholder: 'Search developer', q: P.q, onQ: function (v) { P.q = v; draw(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; draw(); } }));
+      draw(); box.appendChild(list); return box;
     });
   }
 
@@ -590,20 +672,22 @@
   function vSettings() {
     return api('GET', 'settings').then(function (s) {
       var n = h('div'); n.appendChild(head('Settings', s.canEdit ? 'Changes apply immediately' : 'Read only: only an owner can change settings', null));
-      var edit = s.canEdit;
+      var edit = s.canEdit, pA = h('div'), pB = h('div');
       var on = h('input', { id: 'st-on', type: 'checkbox', checked: s.maintenance.on, disabled: !edit }), msg = h('textarea', { id: 'st-msg', maxlength: 200, disabled: !edit, placeholder: 'TurboFex Pair is paused for maintenance. Please come back soon.' });
       msg.value = s.maintenance.message || '';
       on.addEventListener('change', function () { $('st-lbl').textContent = on.checked ? 'Turn ON when you press Save (pairing paused)' : 'Turn OFF when you press Save (site open)'; });
-      n.appendChild(panel('Maintenance mode', null, h('p', { class: 'muted', text: 'While this is on, nobody can start a new pairing (the public page shows your message). Pairings already running finish normally, and the dashboard keeps working.' }),
+      pA.appendChild(panel('Maintenance mode', null, h('p', { class: 'muted', text: 'While this is on, nobody can start a new pairing (the public page shows your message). Pairings already running finish normally, and the dashboard keeps working.' }),
         h('label', { class: 'sw', for: 'st-on' }, on, h('span', { id: 'st-lbl', text: s.maintenance.on ? 'Maintenance is ON (pairing paused)' : 'Maintenance is OFF (site open)' })),
         h('div', { class: 'fld' }, h('label', { for: 'st-msg', text: 'Message shown to visitors' }), msg),
         edit ? h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; var go = function () { act(b, function () { return api('POST', 'settings', { maintenance: { on: on.checked, message: msg.value } }); }, on.checked ? 'Maintenance mode is ON' : 'Maintenance mode is off', function () { load(false); }); }; if (on.checked && !s.maintenance.on) confirmThen('Turn maintenance mode ON? Nobody will be able to start a pairing.', go); else go(); } }, 'Save maintenance') : null));
       var fields = [['pair', 'Pairing attempts per visitor', 'every 15 minutes'], ['number', 'Attempts per phone number', 'every 15 minutes'], ['maxJobs', 'Pairings running at the same time', 'the whole site']];
       var inputs = {};
       var rows = fields.map(function (f) { inputs[f[0]] = h('input', { id: 'lm-' + f[0], type: 'number', min: s.ranges[f[0]].min, max: s.ranges[f[0]].max, step: 1, value: s.limits[f[0]], disabled: !edit, inputmode: 'numeric' }); return h('div', { class: 'fld' }, h('label', { for: 'lm-' + f[0], text: f[1] + ' (' + f[2] + ')' }), inputs[f[0]], h('small', { text: 'Allowed: ' + s.ranges[f[0]].min + '–' + s.ranges[f[0]].max + ' · default ' + s.defaults[f[0]] })); });
-      n.appendChild(panel('Pairing limits', null, h('div', { class: 'frow c3' }, rows), edit ? h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { var l = {}; Object.keys(inputs).forEach(function (k) { l[k] = inputs[k].value; }); return api('POST', 'settings', { limits: l }); }, 'Limits saved', function () { load(false); }); } }, 'Save limits') : null));
-      n.appendChild(panel('Trusted devices', null, h('p', { class: 'muted', text: 'A device you trusted at sign-in skips the 6-digit code for 30 days (the password is still asked). Press this to cancel that on every device, for your account.' }), h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; confirmThen('Forget all trusted devices? Every device will ask for the code again.', function () { act(b, function () { return api('POST', 'trust/forget'); }, 'Trusted devices forgotten'); }); } }, 'Forget trusted devices')));
-      n.appendChild(panel('Your account', null, h('div', { class: 'kv' }, h('div', null, h('span', { text: 'Signed in as' }), h('b', { text: me.user })), h('div', null, h('span', { text: 'Role' }), h('b', { text: me.role })), h('div', null, h('span', { text: 'Allowed' }), h('b', { text: me.perms.join(', ') })), h('div', null, h('span', { text: 'Auto sign-out' }), h('b', { text: Math.round(me.idleMs / 60000) + ' min idle · 8 h at most' })))));
+      pA.appendChild(panel('Pairing limits', null, h('div', { class: 'frow c3' }, rows), edit ? h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { var l = {}; Object.keys(inputs).forEach(function (k) { l[k] = inputs[k].value; }); return api('POST', 'settings', { limits: l }); }, 'Limits saved', function () { load(false); }); } }, 'Save limits') : null));
+      pB.appendChild(panel('Trusted devices', null, h('p', { class: 'muted', text: 'A device you trusted at sign-in skips the 6-digit code for 30 days (the password is still asked). Press this to cancel that on every device, for your account.' }), h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; confirmThen('Forget all trusted devices? Every device will ask for the code again.', function () { act(b, function () { return api('POST', 'trust/forget'); }, 'Trusted devices forgotten'); }); } }, 'Forget trusted devices')));
+      pB.appendChild(panel('Your account', null, h('div', { class: 'kv' }, h('div', null, h('span', { text: 'Signed in as' }), h('b', { text: me.user })), h('div', null, h('span', { text: 'Role' }), h('b', { text: me.role })), h('div', null, h('span', { text: 'Allowed' }), h('b', { text: me.perms.join(', ') })), h('div', null, h('span', { text: 'Auto sign-out' }), h('b', { text: Math.round(me.idleMs / 60000) + ' min idle · 8 h at most' })))));
+      n.appendChild(tabs([['site', 'Site and pairing'], ['sec', 'Security and account']], state.set.tab, function (t) { state.set.tab = t; load(true); }));
+      n.appendChild(state.set.tab === 'sec' ? pB : pA);
       return n;
     });
   }
