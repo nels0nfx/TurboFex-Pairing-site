@@ -52,11 +52,29 @@
     finally { show(); btn.disabled = false; }
   }
 
+  // small synchronous SHA-256 (the browser's own one is asynchronous, the broker needs an answer right away)
+  function sha256Hex(text) {
+    var K = [], H = [], p = 2, j, i;
+    for (; K.length < 64; p++) { for (j = 2; j * j <= p; j++) if (p % j === 0) break; if (j * j > p) { if (H.length < 8) H.push((Math.pow(p, 0.5) % 1) * 4294967296 | 0); K.push((Math.pow(p, 1 / 3) % 1) * 4294967296 | 0); } }
+    var b = new TextEncoder().encode(text), l = b.length, m = new Uint8Array(((l + 9 + 63) >> 6) << 6); m.set(b); m[l] = 128;
+    var dv = new DataView(m.buffer); dv.setUint32(m.length - 8, Math.floor(l * 8 / 4294967296)); dv.setUint32(m.length - 4, (l * 8) >>> 0);
+    var w = new Array(64), rr = function (x, c) { return (x >>> c) | (x << (32 - c)); };
+    for (var o = 0; o < m.length; o += 64) {
+      for (i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+      for (i = 16; i < 64; i++) { var s0 = rr(w[i - 15], 7) ^ rr(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = rr(w[i - 2], 17) ^ rr(w[i - 2], 19) ^ (w[i - 2] >>> 10); w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0; }
+      var a = H.slice();
+      for (i = 0; i < 64; i++) { var S1 = rr(a[4], 6) ^ rr(a[4], 11) ^ rr(a[4], 25), ch = (a[4] & a[5]) ^ (~a[4] & a[6]), t1 = (a[7] + S1 + ch + K[i] + w[i]) | 0, S0 = rr(a[0], 2) ^ rr(a[0], 13) ^ rr(a[0], 22), mj = (a[0] & a[1]) ^ (a[0] & a[2]) ^ (a[1] & a[2]), t2 = (S0 + mj) | 0; a = [(t1 + t2) | 0, a[0], a[1], a[2], (a[3] + t1) | 0, a[4], a[5], a[6]]; }
+      H = H.map(function (h, k) { return (h + a[k]) | 0; });
+    }
+    return H.map(function (h) { return ('00000000' + (h >>> 0).toString(16)).slice(-8); }).join('');
+  }
+
   function runInSandbox(m, source, kind, name) {
     return new Promise(function (resolve) {
       var who = $('pg-as').value, words = $('pg-args').value.trim().split(/\s+/).filter(Boolean);
       var settings = {}; (m.settings || []).forEach(function (s) { settings[s.key] = s.default; });
       var ctx = { args: kind === 'command' ? words : [], rest: kind === 'command' ? words.join(' ') : '', prefix: '.', chat: kind === 'schedule' ? null : { id: 'chat-1', isGroup: true, name: 'Test group' }, settings: settings, mentions: [], sender: kind === 'schedule' ? null : { id: 'person-1', name: 'Sam', isAdmin: who !== 'member', isOwner: who === 'owner' } };
+      if (kind === 'command') { ctx.quoted = { text: 'a quoted message', sender: 'person-2', media: null }; ctx.hasMedia = null; }
       if (kind === 'event') { ctx.event = name; ctx.text = words.join(' ') || 'hello'; ctx.members = name === 'message' ? [] : ['person-2']; }
       var pretendPng = function () { return TFXBuffer.from('iVBORw0KGgo=', 'base64'); };
       var env = {
@@ -64,6 +82,8 @@
         isPublicHost: async function (h) { return (m.network && m.network.domains || []).indexOf(h) >= 0; },
         fetch: async function (url) { say('network (pretend): ', url); return { status: 200, text: '{"pretend":"answer"}' }; },
         fetchBytes: async function (url) { say('network (pretend, 4 bytes): ', url); return { status: 200, bytes: TFXBuffer.from('test') }; },
+        post: async function (url) { say('network POST (pretend): ', url); return { status: 200, text: '{"pretend":"answer"}' }; },
+        hash: function (algo, text) { if (algo !== 'sha256') throw new Error('the Playground only does sha256 (the bot also does sha1 and md5)'); return sha256Hex(text); },
         notifyOwner: async function (t) { say('message to the owner: ', t); },
         toSticker: async function () { say('', 'picture to sticker (pretend)'); return TFXBuffer.from('UklGRgAAAABXRUJQ' + 'AAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'base64'); },
         toAudio: async function () { say('', 'audio to MP3 (pretend)'); return TFXBuffer.from('ID3' + '\u0000'.repeat(40)); },
@@ -73,7 +93,14 @@
         send: async function (t) { say('bot says: ', t); },
         react: async function (e) { say('bot reacts: ', e); },
         sendMedia: async function (x) { say('bot sends: ', x.kind + (x.fileName ? ' ' + x.fileName : '')); },
-        manage: async function (a, w) { say('group: ', 'would ' + a + (w ? ' ' + w : '')); },
+        manage: async function (a, w) { say('group: ', 'would ' + a + (w ? ' ' + w : '')); return a === 'invite' ? 'https://chat.whatsapp.com/PRETEND' : undefined; },
+        quote: async function (t) { say('bot replies (quoted): ', t); },
+        mention: async function (t, ids) { say('bot says (mentioning ' + ids.length + '): ', t); },
+        presence: async function (k) { say('bot shows: ', k); },
+        poll: async function (q, o) { say('bot sends a poll: ', q + ' [' + o.join(' / ') + ']'); },
+        members: async function () { return [{ id: 'person-1', admin: true }, { id: 'person-2', admin: false }, { id: 'person-3', admin: false }]; },
+        dm: kind === 'command' ? async function (t) { say('private message to the sender: ', t); } : undefined,
+        download: kind === 'command' ? async function () { say('', 'media download (pretend, 4 bytes)'); return { kind: 'image', buffer: TFXBuffer.from('test'), mimetype: 'image/png' }; } : undefined,
         groupInfo: { name: 'Test group', size: 12, admins: 2 },
       });
       st.pending = [];

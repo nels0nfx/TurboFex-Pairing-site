@@ -19,8 +19,12 @@ const PERMS = {
   'owner.notify': ['medium', 'Send the bot owner a short message now and then'],
   network: ['medium', 'Connect to the internet (only the sites it lists)'],
   'events.message': ['medium', 'Read the text of messages sent in the groups where it is allowed'],
-  'events.members': ['medium', 'Know when members join or leave a group (no phone numbers)'],
-  'group.manage': ['high', 'Remove members, open or close the group, and rename it (only where the bot is an admin, never the owner or an admin)'],
+  'events.members': ['medium', 'Know when members join, leave, or are made admin or lose it (no phone numbers)'],
+  'group.manage': ['high', 'Remove members, open or close the group, rename it and change its description (only where the bot is an admin, never the owner or an admin)'],
+  'user.dm': ['medium', 'Send a private message to the person who used one of its commands (a few an hour, never to anyone else)'],
+  'group.members': ['medium', 'See the list of members of the group it is used in and who is an admin (no phone numbers)'],
+  'media.read': ['medium', 'Read the picture, sticker, audio or short video that a command was used on (up to 2 MB, a few a minute)'],
+  'group.invite': ['high', 'Get the group invite link (only through a command used by a group admin, where the bot is an admin)'],
   'group.admins': ['high', 'Make a member an admin or take admin away (only through a command used by a group admin, where the bot is an admin; never the owner or the group creator)'],
 };
 const semverCmp = (a, b) => { const x = String(a).split('.').map(Number); const y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };

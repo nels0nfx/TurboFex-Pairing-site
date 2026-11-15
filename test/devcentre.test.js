@@ -849,3 +849,12 @@ test('admin redesign: the dashboard page loads the new styles, has the site link
     assert.ok(!/script-src[^;]*unsafe-inline/.test(r.headers.get ? (r.headers.get('content-security-policy') || '') : ''), 'no inline scripts allowed');
   } finally { t.close(); }
 });
+
+test('Plugin API 1.1: the new permissions and promote/demote events are accepted, and events still need their permission', () => {
+  const ok = checkPlugin(manifest({ permissions: ['chat.send', 'user.dm', 'group.members', 'media.read', 'group.invite', 'group.manage', 'events.members'], events: ['member.promote', 'member.demote'] }), CODE);
+  assert.strictEqual(ok.ok, true, JSON.stringify(ok.errors));
+  const bad = checkPlugin(manifest({ permissions: ['chat.send'], events: ['member.promote'] }), CODE);
+  assert.strictEqual(bad.ok, false);
+  const { PERMS } = require('../registry');
+  for (const p of ['user.dm', 'group.members', 'media.read', 'group.invite']) assert.ok(PERMS[p], p);
+});

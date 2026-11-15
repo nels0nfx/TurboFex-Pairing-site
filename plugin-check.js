@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { PERMS } = require('./registry');
 
 const PERMISSIONS = Object.keys(PERMS);
-const EVENTS = { message: 'events.message', 'member.join': 'events.members', 'member.leave': 'events.members' };
+const EVENTS = { message: 'events.message', 'member.join': 'events.members', 'member.leave': 'events.members', 'member.promote': 'events.members', 'member.demote': 'events.members' };
 const WHO = ['everyone', 'admin', 'owner'];
 const reKey = /^[a-z][a-z0-9]{1,19}$/, SETTING_TYPES = ['text', 'number', 'toggle', 'choice'];
 const reId = /^[a-z0-9-]{3,32}$/, reCmd = /^[a-z0-9]{2,20}$/, reSemver = /^\d+\.\d+\.\d+$/;

@@ -429,3 +429,6 @@ plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin p
 
 ## 64. Pairing code refused with 400 bad-request (v2.67.0)
 Render log signature: `custom code refused 400 bad-request` then `code refused 400 bad-request`. WhatsApp refuses the request itself (not the redesign). Known cause (Baileys PR #2559): a non-standard device label, e.g. the Android identity from PAIR_BROWSER=android. Fix: PAIR_BROWSER=android now applies to QR links only; code links always use Ubuntu/Chrome; a 400 refusal retries on a fresh socket as macOS/Chrome then Windows/Chrome; log line `device identity X/Y/Z` shows what was used. Unverified against real WhatsApp (sandbox cannot reach it).
+
+## 65. Plugin API 1.1 (site v2.68.0 + bot v1.7.0)
+He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote/mention/typing/poll/dm, ctx.quoted/hasMedia, tfx.group.members/describe/inviteLink, tfx.media.download, tfx.net.post, tfx.storage.chat.*, tfx.util.hash/fromBase64, events member.promote/demote; new permissions user.dm, group.members, media.read, group.invite. Site: registry.js PERMS + plugin-check.js EVENTS know them, plugin guide has section 4b quick reference, Playground rebuilt from the bot broker (tools/build-playground.js) with pretend versions (sha256 only). broker.js must stay free of require() (it runs in the browser).
