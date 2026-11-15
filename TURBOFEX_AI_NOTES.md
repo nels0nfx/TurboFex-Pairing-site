@@ -402,3 +402,11 @@ plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin p
 - Sprite got icons: grid, chart, life, send, out, puzzle, users, gear, alert, flag.
 - Tests: plugins.test.js "v3 phase 4"; pgtest/flow.js developer checks rewritten; 117 tests pass.
 - NEXT: Phase 5 admin dashboard (only after the user confirms Phase 4).
+
+## 61. v2.64.0 - REDESIGN PHASE 5 (Admin Dashboard)
+- admin.html rebuilt on tfx.css + new `admin3.css` (old admin.css and admin-ui.css deleted; style.css no longer loaded by admin). Shell: `#app.ashell` = left `aside.side` (brand, `#nav`, site links, `.who` with `#who-u/#who-r`) + `.main` (sticky `.ah` top bar with `#menu #theme #out`, `#view`, footer). Login = `.lg` with `.lg-art` brand panel + `.lg-box`.
+- admin.js logic unchanged except TABS now carry a 4th item (group heading: Main, Marketplace, Safety, System), nav/menu draw `.ng`/`.amenu-h` headings, "Overview" renamed "Dashboard", "Plugins" renamed "Plugins and reviews". Tab ids/hash routes are the same.
+- All JS-emitted classes (kpi, pnl, tbl/tr/td, tag, btn, fld, sw, seg, subseg, gauge, ctl, citem, dlg, toast...) are restyled in admin3.css; compat vars (--field, --track, --card-border, --gold-soft) are defined on `.adm`.
+- No Transactions/Earnings/Analytics tabs: the site has no such data (no payment system).
+- Tests: devcentre.test.js admin-redesign test now checks admin3.css; pgtest/adminflow.js and shootadmin.js pass; 117 tests pass.
+- NEXT: Phase 6 docs, community, support, legal pages (only after the user confirms Phase 5).

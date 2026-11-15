@@ -84,8 +84,10 @@
     visitors: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 20c1-4 4-5 8-5s7 1 8 5', security: 'M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z', server: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01',
     activity: 'M3 12h4l3-8 4 16 3-8h4', audit: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5', announce: 'M4 10v4h3l7 4V6L7 10zM17 9a4 4 0 0 1 0 6', plugins: 'M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5', settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z' };
   var TABS = [
-    ['overview', 'Overview', null], ['pairing', 'Pairing', null], ['visitors', 'Visitors', null], ['security', 'Security', null], ['server', 'Server', null],
-    ['activity', 'Activity', null], ['audit', 'Audit log', 'audit.view'], ['announce', 'Announcements', null], ['plugins', 'Plugins', 'plugins.review'], ['settings', 'Settings', null],
+    ['overview', 'Dashboard', null, 'Main'], ['pairing', 'Pairing', null], ['visitors', 'Visitors', null],
+    ['plugins', 'Plugins and reviews', 'plugins.review', 'Marketplace'],
+    ['security', 'Security', null, 'Safety'], ['activity', 'Activity', null], ['audit', 'Audit log', 'audit.view'],
+    ['server', 'Server', null, 'System'], ['announce', 'Announcements', null], ['settings', 'Settings', null],
   ];
   var alertCount = 0;
   function drawNav() {
@@ -93,6 +95,7 @@
     var nav = clear($('nav'));
     TABS.forEach(function (t) {
       if (t[2] && !can(t[2])) return;
+      if (t[3]) nav.appendChild(h('span', { class: 'ng', 'aria-hidden': 'true', text: t[3] }));
       var b = h('button', { type: 'button', role: 'tab', id: 'tab-' + t[0], 'aria-selected': t[0] === tab ? 'true' : 'false', onclick: function () { go(t[0]); } },
         svg('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' }, svg('path', { d: ICON[t[0]], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })),
         t[1], t[0] === 'security' && alertCount ? h('span', { class: 'n', text: alertCount }) : null);
@@ -109,6 +112,7 @@
     function key(e) { if (e.key === 'Escape') close(); }
     TABS.forEach(function (t) {
       if (t[2] && !can(t[2])) return;
+      if (t[3]) list.appendChild(h('span', { class: 'amenu-h', text: t[3] }));
       list.appendChild(h('button', { type: 'button', id: 'm-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] }), t[0] === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
     });
     list.appendChild(h('span', { class: 'amenu-h', text: 'TurboFex site' }));
@@ -244,7 +248,7 @@
       var o = r[0], s = r[1], an = r[2].announcements.filter(function (a) { return a.active && (!a.endsAt || a.endsAt > Date.now()); });
       var t = o.totals; pollAlerts();
       var n = h('div');
-      n.appendChild(head('Overview', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
+      n.appendChild(head('Dashboard', 'Last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
       // what needs a look right now: each chip opens the tab that deals with it
       var items = [];
@@ -452,7 +456,7 @@
   function vPluginList() {
     return api('GET', 'plugins/submissions').then(function (j) {
       var n = h('div');
-      n.appendChild(head('Plugins', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', null));
+      n.appendChild(head('Plugins and reviews', 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', null));
       var pbox = (h('div', { class: 'avr' }, h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' }), ' ', h('button', { class: 'btn' + (j.paused ? '' : ' danger'), type: 'button', onclick: function (e) { var b = e.currentTarget, go = function () { act(b, function () { return api('POST', 'plugins/pause', { paused: !j.paused }); }, j.paused ? 'Store opened' : 'Store paused', function () { load(false); }); }; if (j.paused) go(); else confirmThen('Pause the plugin store? The Plugins page shows nothing and nobody can send, rate or report plugins. Bots and already installed plugins are not affected.', go, 'Pause'); } }, j.paused ? 'Open the store again' : 'Pause the store')));
       var iv = j.invites || { on: false, logins: [] };
       var ibox = h('div', { class: 'avr' }, h('span', { class: 'tag ' + (iv.on ? 'warn' : 'ok'), text: iv.on ? 'Invite-only beta: ON' : 'Open to every developer' }), ' ',

@@ -843,9 +843,9 @@ test('admin redesign: the dashboard page loads the new styles, has the site link
   const t = await boot();
   try {
     const r = await t.req('GET', '/admin'); assert.strictEqual(r.status, 200);
-    for (const bit of ['href="/admin-ui.css"', 'class="asite"', 'class="afoot"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
-    assert.ok(r.text.indexOf('/admin.css') < r.text.indexOf('/admin-ui.css'), 'new styles come after the old');
-    const css = await t.req('GET', '/admin-ui.css'); assert.strictEqual(css.status, 200); assert.ok(css.text.includes('.adm .ah'));
+    for (const bit of ['href="/admin3.css"', 'class="asite"', 'class="afoot"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
+    assert.ok(r.text.indexOf('/tfx.css') < r.text.indexOf('/admin3.css'), 'admin styles come after the shared design tokens');
+    const css = await t.req('GET', '/admin3.css'); assert.strictEqual(css.status, 200); assert.ok(css.text.includes('.adm .ashell'));
     assert.ok(!/script-src[^;]*unsafe-inline/.test(r.headers.get ? (r.headers.get('content-security-policy') || '') : ''), 'no inline scripts allowed');
   } finally { t.close(); }
 });
