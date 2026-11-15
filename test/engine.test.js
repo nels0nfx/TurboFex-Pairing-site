@@ -214,7 +214,16 @@ test('pickBrowser: unchanged unless PAIR_BROWSER=android, and guarded', () => {
   const B = { ubuntu: (b) => ['Ubuntu', b, '22.04'], android: (v) => ['Android', 'Chrome', v] };
   assert.deepStrictEqual(pickBrowser(B, {}), ['Ubuntu', 'Chrome', '22.04']);
   assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'web' }), ['Ubuntu', 'Chrome', '22.04']);
-  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'android' }), ['Android', 'Chrome', '13']);
-  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: ' ANDROID'.trim() }), ['Android', 'Chrome', '13']);
-  assert.deepStrictEqual(pickBrowser({ ubuntu: B.ubuntu }, { PAIR_BROWSER: 'android' }), ['Ubuntu', 'Chrome', '22.04'], 'falls back (with a log line) when the library has no android identity');
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'android' }, 'qr'), ['Android', 'Chrome', '13']);
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: 'android' }, 'code'), ['Ubuntu', 'Chrome', '22.04'], 'android is not used for pairing codes');
+  assert.deepStrictEqual(pickBrowser(B, { PAIR_BROWSER: ' ANDROID'.trim() }, 'qr'), ['Android', 'Chrome', '13']);
+  assert.deepStrictEqual(pickBrowser({ ubuntu: B.ubuntu }, { PAIR_BROWSER: 'android' }, 'qr'), ['Ubuntu', 'Chrome', '22.04'], 'falls back (with a log line) when the library has no android identity');
+});
+
+test('pickBrowser: after a refused code it tries macOS, then Windows', () => {
+  const { pickBrowser } = require('../engine');
+  const B = { ubuntu: (b) => ['Ubuntu', b, '22.04'], macOS: (b) => ['Mac OS', b, '14.4.1'], windows: (b) => ['Windows', b, '10.0.22631'] };
+  assert.deepStrictEqual(pickBrowser(B, {}, 'code', 1), ['Mac OS', 'Chrome', '14.4.1']);
+  assert.deepStrictEqual(pickBrowser(B, {}, 'code', 2), ['Windows', 'Chrome', '10.0.22631']);
+  assert.deepStrictEqual(pickBrowser({ ubuntu: B.ubuntu }, {}, 'code', 1), ['Ubuntu', 'Chrome', '22.04']);
 });

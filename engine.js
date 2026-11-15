@@ -17,10 +17,17 @@ function makeCustomCode() {
 
 // Which device identity the link is made with. The identity is fixed at the moment of linking.
 // PAIR_BROWSER=android -> Android companion (so view-once files can reach the bot); anything else or unset -> exactly the identity used before.
-const pickBrowser = (Browsers, env = process.env) => {
+const pickBrowser = (Browsers, env = process.env, method = 'qr', attempt = 0) => {
+  // after WhatsApp refused a pairing code (400 bad-request), try the other well-known identities
+  if (attempt > 0) {
+    const alt = attempt === 1 ? Browsers.macOS : Browsers.windows;
+    if (typeof alt === 'function') return alt('Chrome');
+  }
   if (String(env.PAIR_BROWSER || '').toLowerCase() === 'android') {
-    if (typeof Browsers.android === 'function') return Browsers.android('13');
-    console.log('Android identity not available in this Baileys version, using the default one');
+    // WhatsApp refuses pairing CODES (400 bad-request) from the Android identity, so it is used for QR links only
+    if (method === 'qr' && typeof Browsers.android === 'function') return Browsers.android('13');
+    if (method !== 'qr') console.log('PAIR_BROWSER=android is ignored for pairing codes (WhatsApp refuses them), using the default identity');
+    else console.log('Android identity not available in this Baileys version, using the default one');
   }
   return Browsers.ubuntu('Chrome'); // the identity WhatsApp accepted for pairing codes
 };
@@ -174,6 +181,7 @@ function start(number, hooks, opts = {}) {
     let asked = false;
     let reconnects = 0;
     let lastIqError = null;
+    let attempt = 0;
 
     // The library only sets creds.registered for pairing CODES. After a QR scan the login is complete once creds.me is set.
     const isLinked = () => (method === 'qr' ? !!(state.creds.me && state.creds.me.id) : !!state.creds.registered);
@@ -205,9 +213,11 @@ function start(number, hooks, opts = {}) {
 
     const connect = () => {
       if (finished) return;
+      const browser = pickBrowser(lib.Browsers, process.env, method, attempt);
+      log('device identity', browser.join('/'));
       const s = lib.makeWASocket({
         auth: state,
-        browser: pickBrowser(lib.Browsers),
+        browser,
         ...version,
         logger: opts.logger || require('pino')({ level: 'silent' }),
         printQRInTerminal: false,
@@ -277,6 +287,14 @@ function start(number, hooks, opts = {}) {
               raw = await s.requestPairingCode(number);
               await nap(2500);
               if (finished) return;
+            }
+            if (lastIqError && lastIqError.at >= t0b - 500 && String(lastIqError.code) === '400' && attempt < 2) {
+              attempt++;
+              log('code refused 400 - trying again with another device identity, attempt', attempt);
+              lastIqError = null; asked = false;
+              const old = sock;
+              setTimeout(() => { try { old.end(undefined); } catch (e) {} }, 0);
+              return void connect();
             }
             if (lastIqError && lastIqError.at >= t0b - 500) {
               log('code refused', lastIqError.code, lastIqError.text);   // the details stay in the server log only

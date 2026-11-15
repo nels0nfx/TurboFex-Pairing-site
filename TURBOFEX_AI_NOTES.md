@@ -426,3 +426,6 @@ plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin p
 - Class trap: `.prose .upd`, `.cl`, `.link2` are old class names kept inside converted legal content and styled in docs.css.
 - Tests: plugins.test.js shared-layer test covers all 7 pages; pgtest/docsflow.js (64 checks); 116 unit tests pass.
 - NEXT: Phase 7 = full testing + implementation/testing report (only after the user confirms Phase 6).
+
+## 64. Pairing code refused with 400 bad-request (v2.67.0)
+Render log signature: `custom code refused 400 bad-request` then `code refused 400 bad-request`. WhatsApp refuses the request itself (not the redesign). Known cause (Baileys PR #2559): a non-standard device label, e.g. the Android identity from PAIR_BROWSER=android. Fix: PAIR_BROWSER=android now applies to QR links only; code links always use Ubuntu/Chrome; a 400 refusal retries on a fresh socket as macOS/Chrome then Windows/Chrome; log line `device identity X/Y/Z` shows what was used. Unverified against real WhatsApp (sandbox cannot reach it).
