@@ -192,17 +192,19 @@ test('redesign: every public page loads the shared interface layer; the files ar
   const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
   const t = await boot(reg);
   try {
-    for (const p of ['/about', '/terms', '/privacy', '/plugin-guide', '/playground']) {
+    for (const p of ['/about', '/terms', '/privacy', '/plugin-guide', '/playground', '/community', '/support']) {
       const r = await fetch(t.base + p), h = await r.text();
-      assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/ui.css"') && h.includes('src="/ui.js"'), p + ' loads ui.css and ui.js');
-      assert.ok(h.indexOf('/style.css') < h.indexOf('/ui.css'), p + ': ui.css comes after the base styles');
+      assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/tfx.css"') && h.includes('href="/docs.css"') && h.includes('src="/shell.js"'), p + ' loads the shared design system');
+      assert.ok(!h.includes('/style.css') && !h.includes('/ui.js') && !h.includes('/ui.css') && !h.includes('/page.js'), p + ' no longer loads the old layer');
+      assert.ok(!h.includes('<!--tfx:') && h.includes('id="menupanel"') && h.includes('class="tfx-foot"'), p + ': shared header and footer present');
       const csp = r.headers.get('content-security-policy') || '';
       assert.strictEqual(csp.includes('wasm-unsafe-eval'), p === '/playground', p + ': only the Playground may run WebAssembly');
       assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), p + ': no inline scripts allowed');
+      assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), p + ': no inline script or style');
     }
-    const js = await fetch(t.base + '/ui.js'), css = await fetch(t.base + '/ui.css');
-    assert.match(js.headers.get('content-type'), /javascript/); assert.match(css.headers.get('content-type'), /css/);
-    assert.ok(!(await js.text()).includes('innerHTML'), 'the layer never writes raw HTML');
+    for (const f of ['/docs.css', '/doc.js', '/support.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    for (const f of ['/ui.js', '/ui.css', '/style.css', '/page.js']) assert.strictEqual((await fetch(t.base + f)).status, 404, f + ' was removed');
+    assert.ok(!(await (await fetch(t.base + '/doc.js')).text()).includes('innerHTML'), 'the contents script never writes raw HTML');
     const admin = await fetch(t.base + '/admin'); assert.ok(admin.status === 200 || admin.status === 404);
   } finally { t.close(); }
 });

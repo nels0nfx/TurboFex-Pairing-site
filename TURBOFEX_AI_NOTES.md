@@ -418,3 +418,11 @@ plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin p
 - Class-name traps found: `.lg` is the login page class (never reuse it for sizes); `.ptags/.pact` have `grid-column:2` inside cards.
 - Tests: pgtest/admhub.js (26 checks) + adminflow.js; 117 unit tests pass.
 - NEXT: Phase 6 (docs, community, support, legal pages) only after user confirms Phase 5.
+
+## 63. v2.66.0 - REDESIGN PHASE 6 (docs, legal, community, support)
+- New shared stylesheet `docs.css` + `doc.js` (builds the contents list `#toc` from the page's `h2`s; text only). Pages about, terms, privacy, plugin-guide, playground were converted to: tfx.css + docs.css, `<!--tfx:...-->` markers, `.dchero` header, `.dclay.has-toc` with `.toc` + `.prose` article. Their wording/ids are unchanged (the playground keeps its pg-* ids and scripts).
+- NEW pages: `/community` (community.html) and `/support` (support.html + support.js: live /api/status, FAQ copied from the pairing page's 11 answers with a search box). Added to PAGES in server.js, the menu (`m-community`, `m-support`) and the footer.
+- REMOVED obsolete: style.css, ui.css, ui.js, page.js, hero-*.webp. Nothing may load them; a test checks they return 404.
+- Class trap: `.prose .upd`, `.cl`, `.link2` are old class names kept inside converted legal content and styled in docs.css.
+- Tests: plugins.test.js shared-layer test covers all 7 pages; pgtest/docsflow.js (64 checks); 116 unit tests pass.
+- NEXT: Phase 7 = full testing + implementation/testing report (only after the user confirms Phase 6).

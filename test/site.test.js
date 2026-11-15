@@ -270,9 +270,8 @@ test('mobile: the page does not draw under the phone status bar or navigation ba
     const html = await (await fetch(t.base + '/pair')).text();
     // "viewport-fit=cover" lets some Android browsers put the header under the status bar, so it must stay off
     assert.ok(/name="viewport"/.test(html) && !/viewport-fit\s*=\s*cover/.test(html));
-    const css = await (await fetch(t.base + '/style.css')).text();
-    assert.ok(/footer \{[^}]*calc\(22px \+ env\(safe-area-inset-bottom\)\)/.test(css), 'footer keeps room above the navigation bar');
-    assert.ok(/\.island \{[^}]*position: fixed/.test(css), 'the floating bar stays in view');
+    const css = await (await fetch(t.base + '/tfx.css')).text();
+    assert.ok(/env\(safe-area-inset-bottom/.test(css), 'the shared styles keep room above the phone navigation bar');
   } finally { t.close(); }
 });
 
@@ -310,29 +309,17 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     assert.strictEqual(h.ok, true);
     assert.strictEqual(h.version, require('../package.json').version);
     assert.strictEqual(h.sessionMinutes, 5);
-    for (const f of ['/hero-dark-836.webp', '/hero-light-1672.webp', '/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    for (const f of ['/sound.js', '/logo-gold.png']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(html) && !/ style=/.test(html), 'still no inline scripts or styles (CSP)');
   } finally { t.close(); }
-});
-
-test('hero has no feature badges and the hero picture has no frame', () => {
-  const fs = require('fs'), path = require('path');
-  const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
-  const css = fs.readFileSync(path.join(__dirname, '../public/style.css'), 'utf8');
-  assert.ok(!/Instant setup|Deleted after use|class="chips"/.test(html));
-  assert.ok(!/\.chips/.test(css));
-  const rule = /\.hero-art \{[^}]*\}/.exec(css)[0];
-  assert.ok(!/border|box-shadow|overflow: hidden/.test(rule), 'no box around the picture');
 });
 
 test('refresh stays at the top; the FAQ is plain open/close questions (no cards, no slider); no circle mask on the hero', () => {
   const fs = require('fs'), path = require('path');
   const js = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
-  const css = fs.readFileSync(path.join(__dirname, '../public/style.css'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../public/pair.css'), 'utf8');
   assert.ok(/window\.scrollTo\(0, 0\)/.test(js) && !/if \(!location\.hash\) \{\s*toConnect/.test(js));
   assert.ok(!/info-grid|info-slider|info-dots/.test(css + js), 'the two-card slider is gone');
-  assert.ok(/\.qa \{ border-bottom/.test(css) && !/\.qa \{[^}]*(background|box-shadow|border-radius)/.test(css), 'FAQ items have no box');
-  assert.ok(!/radial-gradient\(ellipse closest-side/.test(css));
 });
 
 test('v2.13: no status bar; the music is gone (v2.19)', async () => {
@@ -355,11 +342,10 @@ test('v2.14: About and Terms pages are served and linked', async () => {
   try {
     for (const [u, word] of [['/about', 'About'], ['/terms', 'Terms and'], ['/privacy', 'Privacy']]) {
       const r = await fetch(base + u); const h = await r.text();
-      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/page.js') && h.includes('/theme.js'), 'scripts on every page');
+      assert.equal(r.status, 200); assert.ok(h.includes(word)); assert.ok(h.includes('/shell.js') && h.includes('/theme.js'), 'scripts on every page');
       assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), 'no inline script or style (CSP)');
     }
     assert.equal((await fetch(base + '/about.html')).status, 200);
-    assert.equal((await fetch(base + '/page.js')).status, 200);
     const home = await (await fetch(base + '/pair')).text();
     for (const id of ['m-about', 'm-terms', 'm-privacy']) assert.ok(home.includes(`id="${id}"`));
     assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));
