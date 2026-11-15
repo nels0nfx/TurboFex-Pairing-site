@@ -393,3 +393,12 @@ Browser test: pgtest/pairflow.js (fake WhatsApp engine; code, QR, success, failu
 ## 59. v2.62.0 - REDESIGN PHASE 3 (marketplace + plugin pages)
 Shared shell: pairsite/partials/{sprite,head,foot,tabbar}.html are inserted by server.js (shellify) wherever an html page contains <!--tfx:sprite-->, <!--tfx:head-->, <!--tfx:foot-->, <!--tfx:tabbar-->. public/shell.js = header shadow, theme button, dropdown menu (#menu/#menupanel), aria-current marks, footer year. Dropdown menu css (.menu/.mi) and .btn.sm/.fine/.num/code now live in tfx.css. Partials are NOT served directly (404).
 plugins.html/plugins.css/plugins.js rewritten: browse view (#pbrowse) + plugin page (#pdetail, route = location.hash = plugin id). Filters/sort use only real fields (featured, dev.verified, permissions, rating); there are NO categories in the data, so none are shown. Reviews/ratings/report code kept (ratings(p, box, onRate)). Browser test: pgtest/marketflow.js (43 checks). Tests: 116 pass.
+
+## 60. v2.63.0 - REDESIGN PHASE 4 (Developer Centre + Developer Dashboard)
+- `/developers` (developers.html/.css/.js) is on the shared shell (partials, tfx.css). Does NOT load ui.js or style.css any more.
+- Signed out: `#dpublic` landing (hero, `#dstate` sign-in card, steps, rules, what we keep, resource cards). Signed in: `#dash` dashboard with `#dnav` (views: dashboard, plugins, send, tools, analytics, support, community, settings; panes `v-<name>`, URL hash picks the view).
+- Same backend/endpoints (/api/dev/me, submit, withdraw, reply, testcode, hooks, logout) and same ids for the form and webhook card. Real data only: no downloads/earnings/rank (not supported). Rating and bots tiles show only when data exists.
+- Added a global `[hidden]{display:none!important}` at the end of tfx.css (the menu panel showed open without it).
+- Sprite got icons: grid, chart, life, send, out, puzzle, users, gear, alert, flag.
+- Tests: plugins.test.js "v3 phase 4"; pgtest/flow.js developer checks rewritten; 117 tests pass.
+- NEXT: Phase 5 admin dashboard (only after the user confirms Phase 4).

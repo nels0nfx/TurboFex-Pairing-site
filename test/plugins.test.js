@@ -192,7 +192,7 @@ test('redesign: every public page loads the shared interface layer; the files ar
   const reg = createRegistry({ env: { REGISTRY_PUBLIC_KEY: PEM }, fetcher: files() });
   const t = await boot(reg);
   try {
-    for (const p of ['/about', '/terms', '/privacy', '/developers', '/plugin-guide', '/playground']) {
+    for (const p of ['/about', '/terms', '/privacy', '/plugin-guide', '/playground']) {
       const r = await fetch(t.base + p), h = await r.text();
       assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/ui.css"') && h.includes('src="/ui.js"'), p + ' loads ui.css and ui.js');
       assert.ok(h.indexOf('/style.css') < h.indexOf('/ui.css'), p + ': ui.css comes after the base styles');
@@ -249,5 +249,17 @@ test('v3 phase 3: the marketplace page uses the shared shell; the server fills i
     for (const f of ['/shell.js', '/plugins.js', '/plugins.css']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/innerHTML|insertAdjacentHTML|document\.write|eval\(/.test(await (await fetch(t.base + '/plugins.js')).text()));
     assert.strictEqual((await fetch(t.base + '/partials/head.html')).status, 404, 'the partial files are not served on their own');
+  } finally { await t.close(); }
+});
+
+test('v3 phase 4: the Developer Centre and Dashboard use the shared shell, keep every id the script needs, and have no inline code', async () => {
+  const t = await boot();
+  try {
+    const r = await fetch(t.base + '/developers'), h = await r.text();
+    assert.strictEqual(r.status, 200); assert.ok(!h.includes('<!--tfx:'), 'all markers were replaced');
+    for (const id of ['head', 'menu', 'dnotice', 'dpublic', 'dstate', 'dash', 'dnav', 'dform', 'dsend', 'drepo', 'dtag', 'dfolder', 'dgo', 'dmsg', 'dprob', 'dlist', 'dsubs', 'dhooks', 'dhooklist', 'dhookadd', 'dhrepo', 'dhfolder', 'dhmsg', 'dhshow', 'dhnew', 'dhinfo', 'dhurl', 'dhsecret', 'an-body', 'dout']) assert.ok(h.includes(`id="${id}"`), id);
+    assert.ok(h.includes('href="/tfx.css"') && h.includes('src="/developers.js"') && !h.includes('/style.css') && !h.includes('/ui.js'));
+    assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(h) && !/ style=/.test(h));
+    for (const f of ['/developers.js', '/developers.css']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
   } finally { await t.close(); }
 });

@@ -176,3 +176,4 @@ code { padding: 2px 7px; border: 1px solid var(--line); border-radius: 8px; back
   .dot.ok, .skel { animation: none; }
   .btn, .round, .sheet, .sheet nav a { transition: none; }
 }
+[hidden] { display: none !important; }
