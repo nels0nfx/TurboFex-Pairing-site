@@ -44,15 +44,28 @@
       var em = el('div', 'empty'); em.appendChild(ico('puzzle')); em.appendChild(el('b', null, 'You have not sent a plugin yet')); em.appendChild(el('p', 'dmuted', 'When you send one it shows up here with its review status.'));
       var sb = el('button', 'btn btn-gold sm', 'Send your first plugin'); sb.type = 'button'; sb.setAttribute('data-go', 'send'); em.appendChild(sb); subs.appendChild(em); return;
     }
-    list.forEach(function (s) {
+    // One card per plugin. A newer version of a plugin that is already in the store is an UPDATE of it, not a second plugin:
+    // the older versions are tucked into "Earlier versions" under the card.
+    var LIVE_NOW = { pending: 1, changes: 1, approved: 1, published: 1 }, groups = {}, order = [];
+    list.forEach(function (s) { if (!groups[s.pluginId]) { groups[s.pluginId] = []; order.push(s.pluginId); } groups[s.pluginId].push(s); });
+    function vnum(v) { var p = String(v).split('.').map(Number); return (p[0] || 0) * 1e8 + (p[1] || 0) * 1e4 + (p[2] || 0); }
+    order.forEach(function (pid) {
+      var all = groups[pid].slice().sort(function (a, b) { return vnum(b.version) - vnum(a.version) || b.createdAt - a.createdAt; });
+      var s = all.filter(function (x) { return LIVE_NOW[x.status]; })[0] || all[0];   // the newest version that still counts
+      var older = all.filter(function (x) { return x !== s; });
+      var live = all.filter(function (x) { return x.status === 'published'; })[0];       // what people can install right now
+      var olderPublished = older.some(function (x) { return x.status === 'published' || x.status === 'revoked'; });
       var st = STATUS[s.status] || [s.status, ''], card = el('article', 'dsub');
+      if (s.status === 'published' && olderPublished) st = ['Updated', 'ok'];
+      else if (live && live !== s && (s.status === 'pending' || s.status === 'changes' || s.status === 'approved')) st = ['Update: ' + st[0].charAt(0).toLowerCase() + st[0].slice(1), 'wait'];
       var top = el('div', 'dsub-t'); top.appendChild(el('b', null, s.name)); top.appendChild(el('span', 'dver', 'v' + s.version)); top.appendChild(el('span', 'dtag ' + st[1], st[0]));
       card.appendChild(top);
+      if (live && live !== s) card.appendChild(el('p', 'dmuted', 'Live in the store now: v' + live.version));
       card.appendChild(el('p', 'dmuted', s.pluginId + ' · ' + s.tag + ' · sent ' + day(s.createdAt)));
-      if (s.status === 'published') { var lk = el('a', 'more', 'View in the marketplace'); lk.href = '/plugins#' + encodeURIComponent(s.pluginId); lk.appendChild(ico('arrow')); card.appendChild(lk); }
-      var ps = s.status === 'published' && stats[s.pluginId];
+      if (live) { var lk = el('a', 'more', 'View in the marketplace'); lk.href = '/plugins#' + encodeURIComponent(s.pluginId); lk.appendChild(ico('arrow')); card.appendChild(lk); }
+      var ps = live && stats[s.pluginId];
       if (ps) { var vs = Object.keys(ps.versions).sort().map(function (v) { return v + ' × ' + ps.versions[v]; }).join(', '); card.appendChild(el('p', 'dmuted', 'Used by ' + ps.installs + (ps.installs === 1 ? ' bot' : ' bots') + ' (' + ps.enabled + ' switched on) · versions: ' + vs + ' · failures in their last reports: ' + ps.errors + '. Only bots whose owner shares anonymous statistics are counted.')); }
-      var ins = s.status === 'published' && insights[s.pluginId];
+      var ins = live && insights[s.pluginId];
       if (ins) {
         if (ins.rating) card.appendChild(el('p', 'dmuted', 'Rating: ★ ' + ins.rating.avg.toFixed(1) + ' out of 5 from ' + ins.rating.count + (ins.rating.count === 1 ? ' person' : ' people')));
         if (ins.reports) card.appendChild(el('p', 'dmuted', ins.reports + (ins.reports === 1 ? ' report was' : ' reports were') + ' sent about this plugin. The reviewer looks at them; you are not told who sent them.'));
@@ -77,6 +90,11 @@
         var b = el('button', 'btn btn-soft sm dwd', 'Withdraw'); b.type = 'button';
         b.addEventListener('click', function () { b.disabled = true; post('/api/dev/withdraw', { id: s.id }).then(function (x) { if (x.ok) load(); else { b.disabled = false; b.textContent = (x.j && x.j.error) || 'Could not withdraw'; } }); });
         acts.appendChild(b); if (!acts.parentNode) card.appendChild(acts);
+      }
+      if (older.length) {
+        var det = el('details', 'dolder'); det.appendChild(el('summary', null, 'Earlier versions (' + older.length + ')'));
+        older.forEach(function (o) { var ost = STATUS[o.status] || [o.status, '']; var row = el('p', 'dmuted'); row.textContent = 'v' + o.version + ' · ' + ost[0] + ' · sent ' + day(o.createdAt) + (o.status === 'rejected' && o.note ? ' · ' + o.note : ''); det.appendChild(row); });
+        card.appendChild(det);
       }
       subs.appendChild(card);
     });

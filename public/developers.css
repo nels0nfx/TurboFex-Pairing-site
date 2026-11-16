@@ -136,3 +136,7 @@
   .dcols { grid-template-columns: 1.2fr 1fr; }
   .dcols .help { grid-column: 1 / -1; }
 }
+
+.dolder { margin-top: 8px; border-top: 1px solid var(--line-gold); padding-top: 8px; }
+.dolder summary { cursor: pointer; font-size: 14px; color: var(--gold-deep, var(--text)); font-weight: 600; }
+.dolder p { margin: 4px 0 0; }

@@ -25,6 +25,9 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   const secure = site.startsWith('https://');
   const pullToken = String(env.REGISTRY_PULL_TOKEN || '').trim();
   const pullOn = pullToken.length >= 24;
+  // With a signing key on the site, approving publishes at once and withdrawing takes effect at once: nothing needs to run on the owner's phone
+  const signKey = require('./signer').loadKey(env.REGISTRY_SIGNING_KEY);
+  const autoOn = !!signKey;
   const dir = path.join(dataDir, 'devcentre');
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 
@@ -305,9 +308,16 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // ---------- the owner's side (the admin dashboard calls these after it has checked the role) ----------
-  const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
+  // a newer version of a plugin that is already in the store (published or withdrawn earlier) is an UPDATE of it: its older version number, or ''
+  const cmpV = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
+  function updateOf(s) {
+    let best = '';
+    for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId === s.githubId && (o.status === 'published' || o.status === 'revoked') && cmpV(o.manifest.version, s.manifest.version) < 0 && (!best || cmpV(o.manifest.version, best) > 0)) best = o.manifest.version;
+    return best;
+  }
+  const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, updateOf: updateOf(s), risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
-  const adminList = () => ({ paused, invites, collections, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, invites, collections, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, autoOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
   function lineDiff(a, b) {
     const x = a.split('\n'), y = b.split('\n');
@@ -332,7 +342,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), autoOn, icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
   }
   function adminReview(id, decision, note, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
@@ -343,6 +353,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       if (!c.ok || c.entrySha !== s.entrySha || c.manifestSha !== s.manifestSha) return { status: 400, error: 'The stored plugin no longer passes the check.' };
       for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId !== s.githubId && ['approved', 'published', 'revoked'].includes(o.status)) return { status: 409, error: 'Another developer already owns this plugin id.' };
       s.status = 'approved';
+      if (autoOn) { s.status = 'published'; s.publishedAt = now(); }   // the site signs the store itself
     } else if (decision === 'reject') {
       if (!['pending', 'approved'].includes(s.status)) return { status: 400, error: 'This submission cannot be rejected now.' };
       if (note.length < 3) return { status: 400, error: 'Write a short reason (at least 3 characters). The developer will see it.' };
@@ -361,7 +372,9 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     reason = String(reason || '').trim().slice(0, 200);
     if (s.status !== 'published' || s.revoke) return { status: 400, error: 'Only a published plugin can be withdrawn, and only once.' };
     if (reason.length < 3) return { status: 400, error: 'Write a short reason (at least 3 characters).' };
-    s.revoke = { reason, at: now(), by: String(by || '').slice(0, 40), done: false }; s.updatedAt = now(); save('sub', s);
+    s.revoke = { reason, at: now(), by: String(by || '').slice(0, 40), done: false }; s.updatedAt = now();
+    if (autoOn) { s.revoke.done = true; s.status = 'revoked'; }   // signed by the site at once
+    save('sub', s);
     return { status: 200, ok: true };
   }
   const hidden = () => new Set([...subs.values()].filter((s) => s.revoke).map((s) => s.manifest.id + '@' + s.manifest.version));
@@ -493,6 +506,26 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return n;
   }
 
+  // ---------- the signed store, made and signed here (only when REGISTRY_SIGNING_KEY is set) ----------
+  let regCache = null;
+  const regPrint = () => JSON.stringify([[...subs.values()].filter((s) => s.status === 'published' || s.status === 'revoked').map((s) => [s.id, s.status, s.manifestSha, s.entrySha, s.revoke ? s.revoke.at : 0]), collections]);
+  function registryNow() {
+    if (!autoOn) return null;
+    const fp = regPrint();
+    if (!regCache || regCache.fp !== fp) { try { regCache = { fp, ...require('./signer').build([...subs.values()], collections, signKey) }; } catch (e) { return regCache; } }
+    return regCache;
+  }
+  const registryFile = (rel) => { const r = registryNow(); return r && r.files.get(rel) ? r.files.get(rel) : null; };
+  // plugins the owner approved (or withdrew) while the site could not sign yet are finished the moment a key is set
+  if (autoOn) {
+    for (const s of subs.values()) {
+      let ch = false;
+      if (s.status === 'approved') { s.status = 'published'; s.publishedAt = s.publishedAt || now(); ch = true; }
+      if (s.revoke && !s.revoke.done) { s.revoke.done = true; s.status = 'revoked'; ch = true; }
+      if (ch) { s.updatedAt = now(); save('sub', s); }
+    }
+  }
+
   // ---------- HTTP ----------
   // returns true when the request was for the Developer Centre (and has been answered)
   async function handle(req, res, p, ctx) {
@@ -561,6 +594,14 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const out = takeTestCode(new URL(req.url, 'http://x').searchParams.get('code'));
       return out ? send(res, 200, out) : send(res, 404, { error: 'That code is not valid, was already used, or has run out.' }), true;
     }
+    if (p.startsWith('/registry/') && req.method === 'GET') {   // the signed store files the bots download
+      if (!autoOn) return send(res, 404, { error: 'Not found.' }), true;
+      if (limited('regfile', ip, 240, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
+      let rel; try { rel = decodeURIComponent(p.slice('/registry/'.length)); } catch (err) { rel = ''; }
+      const body = /^(index\.json(\.sig)?|plugins\/[a-z0-9-]{3,32}\/\d+\.\d+\.\d+\/[\w.-]{1,80})$/.test(rel) && !rel.includes('..') ? registryFile(rel) : null;
+      if (!body) return send(res, 404, { error: 'Not found.' }), true;
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': body.length, 'Cache-Control': 'public, max-age=60', 'X-Content-Type-Options': 'nosniff' }); res.end(body); return true;
+    }
     if (p === '/api/registry/approved' || p === '/api/registry/published' || p === '/api/registry/backup') {
       if (!pullOn) return send(res, 404, { error: 'Not found.' }), true;
       if (limited('regpull', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' }), true;
@@ -576,7 +617,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, autoOn, signingPublicKey: signKey ? signKey.publicPem : '', registryFile, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

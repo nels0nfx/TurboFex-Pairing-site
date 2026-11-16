@@ -432,3 +432,7 @@ Render log signature: `custom code refused 400 bad-request` then `code refused 4
 
 ## 65. Plugin API 1.1 (site v2.68.1 + bot v1.6.1)
 He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote/mention/typing/poll/dm, ctx.quoted/hasMedia, tfx.group.members/describe/inviteLink, tfx.media.download, tfx.net.post, tfx.storage.chat.*, tfx.util.hash/fromBase64, events member.promote/demote; new permissions user.dm, group.members, media.read, group.invite. Site: registry.js PERMS + plugin-check.js EVENTS know them, plugin guide has section 4b quick reference, Playground rebuilt from the bot broker (tools/build-playground.js) with pretend versions (sha256 only). broker.js must stay free of require() (it runs in the browser).
+
+## 66. Site signs the store (v3.0.1 + bot v1.6.4)
+- `signer.js` builds and signs index.json from published/revoked submissions; `devcentre.js` serves it at `/registry/...` when `REGISTRY_SIGNING_KEY` is set (own key, public part in the bot's `registry-key.json` backupKeys). Approve = published at once, withdraw = revoked at once. No key = old phone flow (`pull`).
+- The Plugins page reads the store in-process when the key is set. Developer cards are grouped per plugin (`public/developers.js`).

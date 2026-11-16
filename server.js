@@ -75,7 +75,10 @@ function createApp(opts = {}) {
     jobs: () => [...jobs.values()], stopJob: (j, m) => stopJob(j, m),
     defaults: { pair: pairLimit, number: Number(env.NUMBER_LIMIT) || 5, maxJobs },
   });
-  const registry = opts.registry || createRegistry({ env });   // the signed plugin list for the Plugins page
+  // with a signing key on this site the Plugins page reads the store straight from here (no GitHub, nothing to push)
+  const registry = opts.registry || (devcentre.autoOn
+    ? createRegistry({ env: { ...env, REGISTRY_URL: 'local:///', REGISTRY_PUBLIC_KEY: devcentre.signingPublicKey }, fetcher: async (url) => { const b = devcentre.registryFile(String(url).slice('local:///'.length)); if (!b) throw new Error('status 404'); return b; } })
+    : createRegistry({ env }));   // the signed plugin list for the Plugins page
   const hits = new Map(); // "kind:ip" -> [timestamps]
 
   // allows `max` hits per `windowMs` for one visitor
@@ -291,7 +294,7 @@ function createApp(opts = {}) {
     }
 
     // the Developer Centre: GitHub sign-in, plugin submissions, and the phone command's download (see devcentre.js)
-    if ((p === '/github/webhook' || p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p === '/api/plugin-reviews' || p === '/api/test-plugin') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, statsOf: botstats.of, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
+    if ((p === '/github/webhook' || p.startsWith('/auth/') || p.startsWith('/api/dev/') || p.startsWith('/api/registry/') || p.startsWith('/registry/') || p === '/api/plugin-reviews' || p === '/api/test-plugin') && await devcentre.handle(req, res, p, { ip, send, readBody, limited, statsOf: botstats.of, listed: async (id) => { try { return (await registry.list()).plugins.some((x) => x.id === id); } catch (e) { return false; } } })) return;
 
     if (p.startsWith('/bot/') && await botstats.handle(req, res, p, { ip, send, readBody, limited })) return;   // bots report anonymous counts here
 
