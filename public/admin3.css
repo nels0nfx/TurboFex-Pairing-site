@@ -379,3 +379,8 @@
 .adm .tbl-wrap { min-width: 0; }
 .adm .stab, .adm .tchip, .adm .pcard2 { -webkit-tap-highlight-color: transparent; }
 .adm .dcard .ptags, .adm .dcard .pact { grid-column: auto; }
+
+.adm .pgroup { display: flex; flex-direction: column; gap: 6px; }
+.adm .polder { padding: 0 14px; }
+.adm .polder summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 6px 0; }
+.adm .polder-row { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line, rgba(0,0,0,.08)); padding: 10px 0; font: inherit; color: inherit; cursor: pointer; }

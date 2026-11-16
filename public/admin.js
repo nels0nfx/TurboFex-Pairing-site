@@ -495,17 +495,29 @@
       n.appendChild(body);
       if (P.tab === 'queue') {
         var list = h('div', { class: 'pgrid' });
-        var chips = [['all', 'All', j.submissions.length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], j.submissions.filter(function (x) { return c[0] === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === c[0]; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
+        var matchF = function (x, f) { return f === 'all' || (f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === f); };
+        var plugOf = function (rows) { var seen = {}; return rows.filter(function (x) { if (seen[x.pluginId]) return false; seen[x.pluginId] = 1; return true; }); };
+        var chips = [['all', 'All', plugOf(j.submissions).length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], plugOf(j.submissions.filter(function (x) { return matchF(x, c[0]); })).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
         var drawList = function () {
           clear(list);
           var rows = j.submissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
           if (!j.submissions.length) { list.appendChild(h('p', { class: 'empty', text: 'Nobody has sent a plugin yet.' })); return; }
           if (!rows.length) { list.appendChild(h('p', { class: 'empty', text: 'Nothing matches. Clear the search or pick another filter.' })); return; }
-          rows.forEach(function (x) {
-            list.appendChild(h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
+          // one card per plugin: its newest version on top, older versions folded under it
+          function vn(v) { var q = String(v).split('.').map(Number); return (q[0] || 0) * 1e8 + (q[1] || 0) * 1e4 + (q[2] || 0); }
+          var groups = {}, order = [];
+          rows.forEach(function (x) { if (!groups[x.pluginId]) { groups[x.pluginId] = []; order.push(x.pluginId); } groups[x.pluginId].push(x); });
+          order.forEach(function (pid) {
+            var all = groups[pid].slice().sort(function (a, b) { return vn(b.version) - vn(a.version) || b.createdAt - a.createdAt; });
+            var x = all[0], older = all.slice(1);
+            var card = h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
               h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(x.name) }),
               h('span', { class: 'pmain' }, h('b', { text: x.name }), h('small', { text: x.pluginId + ' · v' + x.version }), h('span', { class: 'pmeta' }, 'by ' + x.login + (x.verified ? ' ✓' : '') + ' · ' + agoShort(x.createdAt))),
-              h('span', { class: 'ptags' }, pstat(x.status), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') }))));
+              h('span', { class: 'ptags' }, pstat(x.status), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') })));
+            if (!older.length) { list.appendChild(card); return; }
+            var det = h('details', { class: 'polder' }, h('summary', { text: 'Earlier versions (' + older.length + ')' }));
+            older.forEach(function (o) { det.appendChild(h('button', { type: 'button', class: 'polder-row', onclick: function () { P.open = o.id; load(true); } }, 'v' + o.version + ' · ' + o.status + ' · ' + agoShort(o.createdAt))); });
+            list.appendChild(h('div', { class: 'pgroup' }, card, det));
           });
         };
         body.appendChild(toolbar({ placeholder: 'Search plugin or developer', q: P.q, onQ: function (v) { P.q = v; drawList(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; drawList(); } }));
