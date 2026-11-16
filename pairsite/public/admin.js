@@ -448,7 +448,18 @@
 
   // ---------- Plugins (submissions from the Developer Centre) ----------
   var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], changes: ['Changes asked', 'warn'], withdrawn: ['Withdrawn', ''] };
-  function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
+  function pstat(st, updateOf) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: st === 'published' && updateOf ? 'Updated' : x[0] }); }
+  // Keep one live card per plugin: once a newer version is published, older published
+  // submissions remain available in the version history but do not clutter the queue.
+  function visiblePluginSubmissions(items) {
+    var latest = Object.create(null);
+    items.forEach(function (x) {
+      if (x.status !== 'published') return;
+      var old = latest[x.pluginId];
+      if (!old || String(x.version).localeCompare(String(old.version), undefined, { numeric: true }) > 0) latest[x.pluginId] = x;
+    });
+    return items.filter(function (x) { return x.status !== 'published' || latest[x.pluginId] === x; });
+  }
   function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
   function colDlg(c) {
     dlg({ title: c ? 'Edit collection' : 'New collection', text: 'A ready-made set of 2 to 8 published plugins. Bot owners install the whole set with one command.', fields: [
@@ -494,18 +505,18 @@
       n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
       n.appendChild(body);
       if (P.tab === 'queue') {
-        var list = h('div', { class: 'pgrid' });
-        var chips = [['all', 'All', j.submissions.length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], j.submissions.filter(function (x) { return c[0] === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === c[0]; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
+        var list = h('div', { class: 'pgrid' }), displaySubmissions = visiblePluginSubmissions(j.submissions);
+        var chips = [['all', 'All', displaySubmissions.length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], displaySubmissions.filter(function (x) { return c[0] === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === c[0]; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
         var drawList = function () {
           clear(list);
-          var rows = j.submissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
+          var rows = displaySubmissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
           if (!j.submissions.length) { list.appendChild(h('p', { class: 'empty', text: 'Nobody has sent a plugin yet.' })); return; }
           if (!rows.length) { list.appendChild(h('p', { class: 'empty', text: 'Nothing matches. Clear the search or pick another filter.' })); return; }
           rows.forEach(function (x) {
             list.appendChild(h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
               h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(x.name) }),
               h('span', { class: 'pmain' }, h('b', { text: x.name }), h('small', { text: x.pluginId + ' · v' + x.version }), h('span', { class: 'pmeta' }, 'by ' + x.login + (x.verified ? ' ✓' : '') + ' · ' + agoShort(x.createdAt))),
-              h('span', { class: 'ptags' }, pstat(x.status), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') }))));
+              h('span', { class: 'ptags' }, pstat(x.status, x.updateOf), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') }))));
           });
         };
         body.appendChild(toolbar({ placeholder: 'Search plugin or developer', q: P.q, onQ: function (v) { P.q = v; drawList(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; drawList(); } }));
@@ -544,7 +555,7 @@
       n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
       var m = s.manifest;
       n.appendChild(panel('Overview', null,
-        h('p', null, h('b', { text: 'Status: ' }), pstat(s.status)),
+        h('p', null, h('b', { text: 'Status: ' }), pstat(s.status, s.updateOf)),
         h('p', null, h('b', { text: 'Developer: ' }), s.login + (s.verified ? ' (verified)' : '') + ' · GitHub #' + (s.dev ? s.dev.githubId : '?')),
         h('p', { text: m.description }),
         h('p', { class: 'muted', text: 'Repository: ' + s.repo + ' · tag ' + s.tag + (s.folder ? ' · folder ' + s.folder : '') }),
