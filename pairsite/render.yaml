@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: turbofex-pair
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SITE_SECRET
+        generateValue: true
+      - key: PAIR_BROWSER
+        value: android
+      - key: ADMIN_ACCOUNTS
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: REGISTRY_PULL_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

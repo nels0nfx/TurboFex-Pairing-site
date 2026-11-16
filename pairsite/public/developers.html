@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer Centre — TurboFex Pair</title>
+<meta name="description" content="Build a plugin for the TurboFex WhatsApp bot, send it for review and manage your plugins.">
+<meta name="theme-color" content="#070707">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tfx.css">
+<link rel="stylesheet" href="/developers.css">
+<script src="/theme.js"></script>
+</head>
+<body class="tfx has-tabbar">
+<!--tfx:sprite-->
+<!--tfx:head-->
+<main id="main" class="tfx-wrap dv">
+  <p class="dnotice" id="dnotice" role="status" hidden></p>
+
+  <!-- ============ DEVELOPER CENTRE (signed out) ============ -->
+  <div id="dpublic">
+    <section class="dvhero">
+      <div class="dvcopy">
+        <p class="t-eyebrow">Developer Centre</p>
+        <h1>Build for the <span class="gold">TurboFex</span> ecosystem</h1>
+        <p class="t-lead">Build a plugin for the TurboFex bot and send it in. A person reads every plugin before it is published, then it is signed so bots can trust it.</p>
+        <ul class="dchips"><li><svg><use href="#i-gh"/></svg>Sign in with GitHub</li><li><svg><use href="#i-clock"/></svg>Review within 14 days</li><li><svg><use href="#i-check"/></svg>Free to publish</li></ul>
+      </div>
+      <section class="dsign card glow" id="dstate" aria-live="polite"><p class="dmuted">Loading…</p></section>
+    </section>
+
+    <section class="dsec2" aria-labelledby="h-how">
+      <p class="t-eyebrow">How it works</p><h2 class="t-h2" id="h-how">From idea to the store, in four steps</h2>
+      <ol class="dsteps">
+        <li><span class="num">1</span><div><b>Write it</b><p>Use the <a href="/plugin-guide">Plugin Guide</a>, keep it in a public GitHub repository with a <code>turbofex-plugin.json</code> file, and try it first in the <a href="/playground">Playground</a>.</p></div></li>
+        <li><span class="num">2</span><div><b>Tag a release</b><p>Make a release tag on GitHub, sign in here and send the repository address and the tag.</p></div></li>
+        <li><span class="num">3</span><div><b>Checks and review</b><p>The site checks the plugin is well formed. Then it waits for a person to read it. We aim to answer within 14 days.</p></div></li>
+        <li><span class="num">4</span><div><b>Signed and published</b><p>If approved, it is signed and added to the plugin list. Bot owners install it with one command.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="dsec2 dtwo">
+      <div class="card dbox"><h2>The rules</h2>
+        <ul class="drules">
+          <li>Plugins are free. Paid plugins are not supported.</li>
+          <li>A plugin can only do what it lists in <code>permissions</code>. Ask for as little as you can: plugins that ask for a lot get read more carefully.</li>
+          <li>Every new version is reviewed again. Raise the <code>version</code> number for each release.</li>
+          <li>The plugin id belongs to the first developer who gets it approved.</li>
+          <li>Approval is not a guarantee. We can withdraw a plugin at any time, and bots stop using a withdrawn plugin.</li>
+        </ul></div>
+      <div class="card dbox"><h2>What we keep about you</h2>
+        <p>Signing in with GitHub gives us your public GitHub number and username. We do not ask for your email address or any permission on your account, and we do not keep the GitHub access token. We keep your submissions, the code you sent and the review notes.</p>
+        <p>Examples to start from: <a href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer">the TurboFex examples folder</a>.</p></div>
+    </section>
+
+    <section class="dsec2 dres">
+      <a class="rcard" href="/plugin-guide"><svg><use href="#i-book"/></svg><b>Plugin guide</b><span>Manifest, permissions, events, examples</span></a>
+      <a class="rcard" href="/playground"><svg><use href="#i-play"/></svg><b>Playground</b><span>Run plugin code in your browser</span></a>
+      <a class="rcard" href="/plugins"><svg><use href="#i-store"/></svg><b>Marketplace</b><span>See what others have published</span></a>
+      <a class="rcard" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><svg><use href="#i-tg"/></svg><b>Ask for help</b><span>The Telegram developer group</span></a>
+    </section>
+  </div>
+
+  <!-- ============ DEVELOPER DASHBOARD (signed in) ============ -->
+  <div id="dash" class="dashgrid" hidden>
+    <nav class="dnav" id="dnav" aria-label="Developer dashboard" role="tablist"></nav>
+    <div class="dview">
+
+      <section class="dpane" id="v-dashboard" role="tabpanel" aria-labelledby="n-dashboard">
+        <div class="welcome card glow">
+          <div class="wcopy"><p class="t-eyebrow">Developer dashboard</p><h1 id="wname">Welcome back</h1><p class="t-lead">Build. Share. Grow. The TurboFex developer ecosystem.</p>
+            <div class="wcta"><button class="btn btn-gold" type="button" data-go="send"><svg><use href="#i-send"/></svg>Send a plugin</button><a class="btn btn-ghost" href="/plugin-guide"><svg><use href="#i-book"/></svg>Read the guide</a></div></div>
+          <div class="wstat" id="wstat"></div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="dcols">
+          <section class="panel"><div class="phd"><h2>Your plugins</h2><button class="more" type="button" data-go="plugins">View all<svg><use href="#i-arrow"/></svg></button></div><div id="ov-plugins"></div></section>
+          <section class="panel"><div class="phd"><h2>Recent activity</h2></div><ol class="feed" id="ov-feed"></ol></section>
+          <section class="panel help"><h2>Need help?</h2><p>Ask other developers and the TurboFex team, or read the guide.</p><div class="wcta"><a class="btn btn-gold sm" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Open Telegram</a><button class="btn btn-ghost sm" type="button" data-go="support">Support</button></div></section>
+        </div>
+        <section class="panel" id="ov-perf-box" hidden><div class="phd"><h2>Plugin performance</h2><button class="more" type="button" data-go="analytics">Analytics<svg><use href="#i-arrow"/></svg></button></div><div id="ov-perf"></div></section>
+      </section>
+
+      <section class="dpane" id="v-plugins" role="tabpanel" aria-labelledby="n-plugins" hidden>
+        <header class="phead"><h1>My plugins</h1><p class="t-lead">Everything you sent, with its review status and what you can do next.</p></header>
+        <section id="dlist"><div id="dsubs"></div></section>
+      </section>
+
+      <section class="dpane" id="v-send" role="tabpanel" aria-labelledby="n-send" hidden>
+        <header class="phead"><h1>Send a plugin</h1><p class="t-lead">Point us at a release tag in your public repository. The code is copied now, checked, then read by a person.</p></header>
+        <section class="panel" id="dform">
+          <form id="dsend" novalidate>
+            <div class="dfld"><label for="drepo">Repository address</label><input id="drepo" type="url" inputmode="url" placeholder="https://github.com/yourname/your-plugin" autocomplete="off" maxlength="200"><p class="dhint">It must be public and belong to your own GitHub account.</p></div>
+            <div class="dfld"><label for="dtag">Release tag</label><input id="dtag" type="text" placeholder="v1.0.0" autocomplete="off" autocapitalize="off" maxlength="60"><p class="dhint">The tag of the release you want reviewed. The code is copied now, so changing the tag later does not change what we read.</p></div>
+            <div class="dfld"><label for="dfolder">Folder <span class="dopt">(optional)</span></label><input id="dfolder" type="text" placeholder="Leave empty if the plugin is at the top of the repository" autocomplete="off" autocapitalize="off" maxlength="80"></div>
+            <button class="btn btn-gold" id="dgo" type="submit"><svg><use href="#i-send"/></svg>Send for review</button>
+            <p class="dmsg" id="dmsg" role="alert" hidden></p>
+            <ul class="dprob" id="dprob" hidden></ul>
+          </form>
+        </section>
+        <section class="panel"><h2>Before you send</h2>
+          <ul class="dcheck"><li>Your repository is public and has a <code>turbofex-plugin.json</code> file.</li><li>You made a release tag and raised the <code>version</code> number.</li><li>You tried the plugin in the <a href="/playground">Playground</a>.</li><li>It asks only for the permissions it needs.</li></ul></section>
+      </section>
+
+      <section class="dpane" id="v-tools" role="tabpanel" aria-labelledby="n-tools" hidden>
+        <header class="phead"><h1>Developer tools</h1><p class="t-lead">Everything for building, testing and shipping a plugin.</p></header>
+        <div class="toolgrid">
+          <a class="rcard" href="/plugin-guide"><svg><use href="#i-book"/></svg><b>Plugin guide and API reference</b><span>Manifest, permissions, events and the functions a plugin can call</span></a>
+          <a class="rcard" href="/playground"><svg><use href="#i-play"/></svg><b>Playground</b><span>Run and test plugin code safely in your browser</span></a>
+          <a class="rcard" href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer"><svg><use href="#i-gh"/></svg><b>Examples</b><span>Working plugins to start from</span></a>
+          <button class="rcard" type="button" data-go="plugins"><svg><use href="#i-key"/></svg><b>Private test codes</b><span>Try a waiting plugin on your own bot. Open My plugins and press “Get a private test code”.</span></button>
+        </div>
+        <section class="panel" id="dhooks" hidden>
+          <h2>Send new releases automatically</h2>
+          <p class="dmuted">Optional. List a repository here and tell GitHub to ping us, and every new release tag is sent for review by itself. You still choose the tag; the plugin is copied at that tag and checked just like a manual send.</p>
+          <div id="dhooklist"></div>
+          <form id="dhookadd" novalidate>
+            <div class="dfld"><label for="dhrepo">Repository address</label><input id="dhrepo" type="url" inputmode="url" placeholder="https://github.com/yourname/your-plugin" autocomplete="off" maxlength="200"></div>
+            <div class="dfld"><label for="dhfolder">Folder <span class="dopt">(optional)</span></label><input id="dhfolder" type="text" placeholder="Leave empty if the plugin is at the top" autocomplete="off" autocapitalize="off" maxlength="80"></div>
+            <button class="btn btn-ghost sm" type="submit">Add repository</button>
+            <p class="dmsg" id="dhmsg" role="alert" hidden></p>
+          </form>
+          <h3>Connect it on GitHub</h3>
+          <ol class="dsteps tight">
+            <li><span class="num">1</span><div>Press “Show my webhook details” below.</div></li>
+            <li><span class="num">2</span><div>On GitHub open your repository, then Settings, Webhooks, Add webhook.</div></li>
+            <li><span class="num">3</span><div>Paste the address into “Payload URL”. Set “Content type” to application/json. Paste the secret into “Secret”.</div></li>
+            <li><span class="num">4</span><div>Choose “Let me select individual events” and tick only “Releases”. Save.</div></li>
+            <li><span class="num">5</span><div>GitHub sends a test ping. A green tick means it is connected.</div></li>
+          </ol>
+          <div class="wcta"><button class="btn btn-ghost sm" id="dhshow" type="button">Show my webhook details</button><button class="btn btn-ghost sm" id="dhnew" type="button">Make a new secret</button></div>
+          <div id="dhinfo" class="dhinfo" hidden><p class="dmuted">Payload URL:</p><p><code id="dhurl"></code></p><p class="dmuted">Secret (keep it private):</p><p><code id="dhsecret"></code></p></div>
+        </section>
+      </section>
+
+      <section class="dpane" id="v-analytics" role="tabpanel" aria-labelledby="n-analytics" hidden>
+        <header class="phead"><h1>Analytics</h1><p class="t-lead">Real numbers for your published plugins. Install numbers only count bots whose owner shares anonymous statistics.</p></header>
+        <div id="an-body"></div>
+      </section>
+
+      <section class="dpane" id="v-support" role="tabpanel" aria-labelledby="n-support" hidden>
+        <header class="phead"><h1>Support</h1><p class="t-lead">Stuck on a plugin, a review or a sign-in? Start here.</p></header>
+        <div class="toolgrid">
+          <a class="rcard" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><svg><use href="#i-tg"/></svg><b>Ask in Telegram</b><span>Developers and the TurboFex team answer here</span></a>
+          <a class="rcard" href="/plugin-guide"><svg><use href="#i-book"/></svg><b>Plugin guide</b><span>Most questions are answered in the guide</span></a>
+        </div>
+        <section class="panel"><h2>Review and rules</h2>
+          <ul class="drules"><li>We aim to answer every submission within 14 days.</li><li>If we ask for changes, fix them, make a new tag (or move the tag) and send it again. You can write to the reviewer from My plugins.</li><li>Plugins are free. Paid plugins are not supported.</li><li>Every new version is reviewed again.</li><li>Approval is not a guarantee. We can withdraw a plugin at any time.</li></ul></section>
+      </section>
+
+      <section class="dpane" id="v-community" role="tabpanel" aria-labelledby="n-community" hidden>
+        <header class="phead"><h1>Community</h1><p class="t-lead">Meet other TurboFex developers and follow what is new.</p></header>
+        <div class="toolgrid">
+          <a class="rcard" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><svg><use href="#i-tg"/></svg><b>Telegram group</b><span>Chat, share ideas, get help</span></a>
+          <a class="rcard" href="https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w" target="_blank" rel="noopener noreferrer"><svg><use href="#i-wa"/></svg><b>WhatsApp Channel</b><span>News and updates</span></a>
+          <a class="rcard" href="/plugins"><svg><use href="#i-store"/></svg><b>Marketplace</b><span>See and rate what others published</span></a>
+        </div>
+      </section>
+
+      <section class="dpane" id="v-settings" role="tabpanel" aria-labelledby="n-settings" hidden>
+        <header class="phead"><h1>Settings</h1><p class="t-lead">Your developer account.</p></header>
+        <section class="panel"><h2>Account</h2><div id="acct"></div>
+          <div class="wcta"><button class="btn btn-ghost sm" id="dout" type="button"><svg><use href="#i-out"/></svg>Sign out</button></div></section>
+        <section class="panel"><h2>What we keep about you</h2><p class="dmuted">Signing in with GitHub gives us your public GitHub number and username. We do not ask for your email address or any permission on your account, and we do not keep the GitHub access token. We keep your submissions, the code you sent and the review notes.</p></section>
+      </section>
+    </div>
+  </div>
+</main>
+<!--tfx:foot-->
+<!--tfx:tabbar-->
+<script src="/notice.js"></script>
+<script src="/shell.js"></script>
+<script src="/developers.js"></script>
+</body>
+</html>
