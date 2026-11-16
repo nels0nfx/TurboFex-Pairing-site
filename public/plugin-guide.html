@@ -67,7 +67,8 @@
       <li><code>c.args</code> (the words after the command), <code>c.rest</code> (the same as one text), <code>c.prefix</code></li>
       <li><code>c.sender</code>: <code>{ id, name, isAdmin, isOwner }</code>. The id is a private code made for your plugin. You never see phone numbers.</li>
       <li><code>c.chat</code>: <code>{ id, isGroup, name }</code></li>
-      <li><code>c.mentions</code>: the people tagged in the command (private codes)</li>
+      <li><code>c.mentions</code>: the people tagged in the command or message (private codes)</li>
+      <li><code>c.mentionsOwner</code>: in a <code>message</code> event, <code>true</code> when the owner was tagged (bot 1.6.5 or newer). A reply to someone's message is not a tag.</li>
       <li><code>await c.reply(text)</code> sends a message in the same chat.</li>
       <li><code>c.quoted</code>: when the command replies to a message, <code>{ text, sender, media }</code> (the text of that message, who wrote it as a private code, and <code>image</code>, <code>video</code>, <code>sticker</code>, <code>audio</code> or <code>null</code>). Otherwise it is empty. <code>c.hasMedia</code> says what kind of file the command message itself carries.</li>
     </ul>

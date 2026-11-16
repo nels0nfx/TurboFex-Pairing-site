@@ -216,7 +216,11 @@
   .adm .td.act { grid-column: 1 / -1; justify-content: flex-start; }
   .adm .td.act:empty { display: none; }
 }
-.adm .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+.adm .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; overflow-wrap: anywhere; word-break: break-all; }
+.adm, .adm main, .adm .panel, .adm .card, .adm .cols > *, .adm [class*="grid"] > * { min-width: 0; max-width: 100%; }
+.adm :where(p, li, dd, dt, td, th, h1, h2, h3, h4, label, small, b, strong, em, span, a, summary) { overflow-wrap: anywhere; }
+.adm :where(code, kbd, samp) { overflow-wrap: anywhere; word-break: break-all; }
+.adm :where(pre) { max-width: 100%; overflow-x: auto; }
 .adm .empty { margin: 4px 0; padding: 30px 16px 26px; border: 1px dashed var(--line-gold); border-radius: 18px; background: radial-gradient(60% 90% at 50% 0%, var(--gold-faint), transparent 80%); text-align: center; color: var(--muted); font-size: 15px; }
 .adm .empty::before { content: ""; display: block; width: 40px; height: 40px; margin: 0 auto 12px; border-radius: 50%; border: 2px solid var(--line-gold); background: radial-gradient(circle, var(--gold-faint), transparent 70%); }
 .adm .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
