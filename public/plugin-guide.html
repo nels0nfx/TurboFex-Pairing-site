@@ -77,28 +77,31 @@
   <section class="docsec">
     <h2>3. Permissions</h2>
     <p>A plugin can only do what it lists in <code>permissions</code>. The bot owner sees the list, in plain words, before installing. Ask for as little as you can.</p>
-    <table class="gtable">
-      <thead><tr><th>Permission</th><th>What it allows</th><th>Risk</th></tr></thead>
-      <tbody>
-        <tr><td><code>chat.send</code></td><td><code>c.reply</code> and sending messages</td><td>Low</td></tr>
-        <tr><td><code>storage</code></td><td><code>tfx.storage.get / set / delete / list</code>: its own small notes</td><td>Low</td></tr>
-        <tr><td><code>chat.react</code></td><td><code>ctx.react</code>: react with one emoji to the message that used it</td><td>Low</td></tr>
-        <tr><td><code>group.read</code></td><td><code>tfx.group.info()</code>: group name, size, number of admins</td><td>Low</td></tr>
-        <tr><td><code>schedule</code></td><td>run now and then (<code>schedules</code> in the manifest)</td><td>Low</td></tr>
-        <tr><td><code>owner.notify</code></td><td><code>tfx.owner.notify(text)</code>: message the bot owner</td><td>Medium</td></tr>
-        <tr><td><code>media.convert</code></td><td><code>tfx.media.toSticker</code> and <code>tfx.media.toAudio</code>: the bot turns a picture into a sticker or audio into a small MP3</td><td>Medium</td></tr>
-        <tr><td><code>media.send</code></td><td><code>tfx.media.send</code>: pictures, stickers, files</td><td>Low</td></tr>
-        <tr><td><code>network</code></td><td><code>tfx.net.fetch</code> to the https websites you list in <code>network.domains</code></td><td>Medium</td></tr>
-        <tr><td><code>events.message</code></td><td>read the text of group messages that are not commands</td><td>Medium</td></tr>
-        <tr><td><code>events.members</code></td><td>know when someone joins or leaves a group</td><td>Medium</td></tr>
-        <tr><td><code>group.manage</code></td><td>remove a member, open or close the group, rename it</td><td>High</td></tr>
-        <tr><td><code>group.admins</code></td><td>make a member an admin, or take admin away</td><td>High</td></tr>
-        <tr><td><code>user.dm</code></td><td><code>c.dm(text)</code>: a private message to the person who used the command</td><td>Medium</td></tr>
-        <tr><td><code>group.members</code></td><td><code>tfx.group.members()</code>: the member list (private codes and who is an admin)</td><td>Medium</td></tr>
-        <tr><td><code>media.read</code></td><td><code>tfx.media.download()</code>: the picture, sticker, audio or short video a command was used on</td><td>Medium</td></tr>
-        <tr><td><code>group.invite</code></td><td><code>tfx.group.inviteLink()</code>: the group invite link (admins only)</td><td>High</td></tr>
-      </tbody>
-    </table>
+    <div class="pgroups">
+<section class="pgrp low"><header><span class="rk low">Low risk</span><b>Everyday</b><small>Safe, small things. Most plugins only need these.</small><em>6</em></header><ul class="pcards">
+<li class="pc"><code class="pn">chat.send</code><span class="pw"><code>c.reply</code> and sending messages</span></li>
+<li class="pc"><code class="pn">storage</code><span class="pw"><code>tfx.storage.get / set / delete / list</code>: its own small notes</span></li>
+<li class="pc"><code class="pn">chat.react</code><span class="pw"><code>ctx.react</code>: react with one emoji to the message that used it</span></li>
+<li class="pc"><code class="pn">group.read</code><span class="pw"><code>tfx.group.info()</code>: group name, size, number of admins</span></li>
+<li class="pc"><code class="pn">schedule</code><span class="pw">run now and then (<code>schedules</code> in the manifest)</span></li>
+<li class="pc"><code class="pn">media.send</code><span class="pw"><code>tfx.media.send</code>: pictures, stickers, files</span></li>
+</ul></section>
+<section class="pgrp medium"><header><span class="rk medium">Medium risk</span><b>Reads or sends more</b><small>The owner will look at these a little closer.</small><em>8</em></header><ul class="pcards">
+<li class="pc"><code class="pn">owner.notify</code><span class="pw"><code>tfx.owner.notify(text)</code>: message the bot owner</span></li>
+<li class="pc"><code class="pn">media.convert</code><span class="pw"><code>tfx.media.toSticker</code> and <code>tfx.media.toAudio</code>: the bot turns a picture into a sticker or audio into a small MP3</span></li>
+<li class="pc"><code class="pn">network</code><span class="pw"><code>tfx.net.fetch</code> to the https websites you list in <code>network.domains</code></span></li>
+<li class="pc"><code class="pn">events.message</code><span class="pw">read the text of group messages that are not commands</span></li>
+<li class="pc"><code class="pn">events.members</code><span class="pw">know when someone joins or leaves a group</span></li>
+<li class="pc"><code class="pn">user.dm</code><span class="pw"><code>c.dm(text)</code>: a private message to the person who used the command</span></li>
+<li class="pc"><code class="pn">group.members</code><span class="pw"><code>tfx.group.members()</code>: the member list (private codes and who is an admin)</span></li>
+<li class="pc"><code class="pn">media.read</code><span class="pw"><code>tfx.media.download()</code>: the picture, sticker, audio or short video a command was used on</span></li>
+</ul></section>
+<section class="pgrp high"><header><span class="rk high">High risk</span><b>Powerful</b><small>Can change the group. Ask for them only when you truly need them.</small><em>3</em></header><ul class="pcards">
+<li class="pc"><code class="pn">group.manage</code><span class="pw">remove a member, open or close the group, rename it</span></li>
+<li class="pc"><code class="pn">group.admins</code><span class="pw">make a member an admin, or take admin away</span></li>
+<li class="pc"><code class="pn">group.invite</code><span class="pw"><code>tfx.group.inviteLink()</code>: the group invite link (admins only)</span></li>
+</ul></section>
+</div>
   </section>
 
   <section class="docsec">
@@ -124,29 +127,29 @@
     <table class="gtable">
       <thead><tr><th>Call</th><th>Needs</th><th>What you get, and the limits</th></tr></thead>
       <tbody>
-        <tr><td><code>c.reply(text)</code></td><td><code>chat.send</code></td><td>Message in the same chat. Up to 4,000 characters; 5 per call, 20 per minute (shared with quote, mention and poll).</td></tr>
-        <tr><td><code>c.quote(text)</code></td><td><code>chat.send</code></td><td>The same, sent as a reply to the message that triggered it.</td></tr>
-        <tr><td><code>c.mention(text, ids)</code></td><td><code>chat.send</code></td><td>Write <code>{1}</code>, <code>{2}</code>… in the text where the people should be tagged; <code>ids</code> are 1 to 10 private codes from <code>c.sender</code>, <code>c.mentions</code>, <code>c.members</code> or <code>tfx.group.members()</code>.</td></tr>
-        <tr><td><code>c.typing(kind)</code></td><td><code>chat.send</code></td><td><code>'typing'</code>, <code>'recording'</code> or <code>'paused'</code>. 20 per minute.</td></tr>
-        <tr><td><code>c.poll(question, options, multi)</code></td><td><code>chat.send</code></td><td>Question up to 250 characters, 2 to 12 different options of up to 100. <code>multi</code> true lets people pick several. 6 polls an hour.</td></tr>
-        <tr><td><code>c.react(emoji)</code></td><td><code>chat.react</code></td><td>One emoji on the triggering message. 10 per minute.</td></tr>
-        <tr><td><code>c.dm(text)</code></td><td><code>user.dm</code></td><td>Private message to the person who used the command (commands only). One per call, 10 an hour.</td></tr>
-        <tr><td><code>tfx.group.info()</code></td><td><code>group.read</code></td><td><code>{ name, size, admins }</code></td></tr>
-        <tr><td><code>tfx.group.members()</code></td><td><code>group.members</code></td><td>A list of <code>{ id, admin }</code> (private codes, no phone numbers), up to 1,024. The codes work with kick, promote, demote and mention.</td></tr>
-        <tr><td><code>tfx.group.kick / open / close / rename / describe</code></td><td><code>group.manage</code></td><td>Where the bot is an admin; never the owner or an admin. <code>describe(text)</code> is up to 500 plain characters. 6 changes an hour (kick: 20).</td></tr>
-        <tr><td><code>tfx.group.promote / demote</code></td><td><code>group.admins</code></td><td>Only inside a command used by an admin. 6 an hour.</td></tr>
-        <tr><td><code>tfx.group.inviteLink()</code></td><td><code>group.invite</code></td><td>The invite link, only inside a command used by an admin. 6 an hour.</td></tr>
-        <tr><td><code>tfx.media.download(which)</code></td><td><code>media.read</code></td><td><code>which</code> is <code>'message'</code>, <code>'quoted'</code> or <code>'any'</code>. Gives <code>{ kind, mimetype, size, base64 }</code> or <code>null</code> when there is no file. Up to 2 MB, 6 a minute, commands only.</td></tr>
-        <tr><td><code>tfx.media.send / toSticker / toAudio</code></td><td><code>media.send</code> / <code>media.convert</code></td><td>See section 4.</td></tr>
-        <tr><td><code>tfx.net.fetch(url)</code>, <code>tfx.net.fetchBytes(url)</code></td><td><code>network</code></td><td>Only your listed https domains. 3 requests per call.</td></tr>
-        <tr><td><code>tfx.net.post(url, body, type)</code></td><td><code>network</code></td><td>Same rules. <code>type</code> is <code>application/json</code> (default), <code>application/x-www-form-urlencoded</code> or <code>text/plain</code>; body up to 64,000 characters; 10 a minute. Gives <code>{ status, text }</code>. Redirects are not followed.</td></tr>
-        <tr><td><code>tfx.storage.get / set / delete / list</code></td><td><code>storage</code></td><td>The plugin's notes (text), 200 keys, 1 MB.</td></tr>
-        <tr><td><code>tfx.storage.chat.get / set / delete</code></td><td><code>storage</code></td><td>The same, but kept separately for each chat (keys up to 40 characters). Counts toward the same 1 MB.</td></tr>
-        <tr><td><code>tfx.util.hash(text, algo)</code></td><td>nothing</td><td>Hex text of <code>'sha256'</code> (default), <code>'sha1'</code> or <code>'md5'</code>. Up to 100,000 characters. The Playground only does sha256.</td></tr>
-        <tr><td><code>tfx.util.toBase64(text)</code>, <code>tfx.util.fromBase64(b64)</code></td><td>nothing</td><td>Text to base64 and back (UTF-8).</td></tr>
-        <tr><td><code>tfx.owner.notify(text)</code></td><td><code>owner.notify</code></td><td>Up to 500 characters, 3 an hour.</td></tr>
-        <tr><td><code>tfx.log(text)</code></td><td>nothing</td><td>Writes to the plugin log. 100 lines per call.</td></tr>
-        <tr><td><code>tfx.on(event, fn)</code></td><td>see section 5</td><td>Events: <code>message</code>, <code>member.join</code>, <code>member.leave</code>, <code>member.promote</code>, <code>member.demote</code>.</td></tr>
+        <tr><td data-label="Call"><code>c.reply(text)</code></td><td data-label="Needs"><code>chat.send</code></td><td data-label="What you get, and the limits">Message in the same chat. Up to 4,000 characters; 5 per call, 20 per minute (shared with quote, mention and poll).</td></tr>
+        <tr><td data-label="Call"><code>c.quote(text)</code></td><td data-label="Needs"><code>chat.send</code></td><td data-label="What you get, and the limits">The same, sent as a reply to the message that triggered it.</td></tr>
+        <tr><td data-label="Call"><code>c.mention(text, ids)</code></td><td data-label="Needs"><code>chat.send</code></td><td data-label="What you get, and the limits">Write <code>{1}</code>, <code>{2}</code>… in the text where the people should be tagged; <code>ids</code> are 1 to 10 private codes from <code>c.sender</code>, <code>c.mentions</code>, <code>c.members</code> or <code>tfx.group.members()</code>.</td></tr>
+        <tr><td data-label="Call"><code>c.typing(kind)</code></td><td data-label="Needs"><code>chat.send</code></td><td data-label="What you get, and the limits"><code>'typing'</code>, <code>'recording'</code> or <code>'paused'</code>. 20 per minute.</td></tr>
+        <tr><td data-label="Call"><code>c.poll(question, options, multi)</code></td><td data-label="Needs"><code>chat.send</code></td><td data-label="What you get, and the limits">Question up to 250 characters, 2 to 12 different options of up to 100. <code>multi</code> true lets people pick several. 6 polls an hour.</td></tr>
+        <tr><td data-label="Call"><code>c.react(emoji)</code></td><td data-label="Needs"><code>chat.react</code></td><td data-label="What you get, and the limits">One emoji on the triggering message. 10 per minute.</td></tr>
+        <tr><td data-label="Call"><code>c.dm(text)</code></td><td data-label="Needs"><code>user.dm</code></td><td data-label="What you get, and the limits">Private message to the person who used the command (commands only). One per call, 10 an hour.</td></tr>
+        <tr><td data-label="Call"><code>tfx.group.info()</code></td><td data-label="Needs"><code>group.read</code></td><td data-label="What you get, and the limits"><code>{ name, size, admins }</code></td></tr>
+        <tr><td data-label="Call"><code>tfx.group.members()</code></td><td data-label="Needs"><code>group.members</code></td><td data-label="What you get, and the limits">A list of <code>{ id, admin }</code> (private codes, no phone numbers), up to 1,024. The codes work with kick, promote, demote and mention.</td></tr>
+        <tr><td data-label="Call"><code>tfx.group.kick / open / close / rename / describe</code></td><td data-label="Needs"><code>group.manage</code></td><td data-label="What you get, and the limits">Where the bot is an admin; never the owner or an admin. <code>describe(text)</code> is up to 500 plain characters. 6 changes an hour (kick: 20).</td></tr>
+        <tr><td data-label="Call"><code>tfx.group.promote / demote</code></td><td data-label="Needs"><code>group.admins</code></td><td data-label="What you get, and the limits">Only inside a command used by an admin. 6 an hour.</td></tr>
+        <tr><td data-label="Call"><code>tfx.group.inviteLink()</code></td><td data-label="Needs"><code>group.invite</code></td><td data-label="What you get, and the limits">The invite link, only inside a command used by an admin. 6 an hour.</td></tr>
+        <tr><td data-label="Call"><code>tfx.media.download(which)</code></td><td data-label="Needs"><code>media.read</code></td><td data-label="What you get, and the limits"><code>which</code> is <code>'message'</code>, <code>'quoted'</code> or <code>'any'</code>. Gives <code>{ kind, mimetype, size, base64 }</code> or <code>null</code> when there is no file. Up to 2 MB, 6 a minute, commands only.</td></tr>
+        <tr><td data-label="Call"><code>tfx.media.send / toSticker / toAudio</code></td><td data-label="Needs"><code>media.send</code> / <code>media.convert</code></td><td data-label="What you get, and the limits">See section 4.</td></tr>
+        <tr><td data-label="Call"><code>tfx.net.fetch(url)</code>, <code>tfx.net.fetchBytes(url)</code></td><td data-label="Needs"><code>network</code></td><td data-label="What you get, and the limits">Only your listed https domains. 3 requests per call.</td></tr>
+        <tr><td data-label="Call"><code>tfx.net.post(url, body, type)</code></td><td data-label="Needs"><code>network</code></td><td data-label="What you get, and the limits">Same rules. <code>type</code> is <code>application/json</code> (default), <code>application/x-www-form-urlencoded</code> or <code>text/plain</code>; body up to 64,000 characters; 10 a minute. Gives <code>{ status, text }</code>. Redirects are not followed.</td></tr>
+        <tr><td data-label="Call"><code>tfx.storage.get / set / delete / list</code></td><td data-label="Needs"><code>storage</code></td><td data-label="What you get, and the limits">The plugin's notes (text), 200 keys, 1 MB.</td></tr>
+        <tr><td data-label="Call"><code>tfx.storage.chat.get / set / delete</code></td><td data-label="Needs"><code>storage</code></td><td data-label="What you get, and the limits">The same, but kept separately for each chat (keys up to 40 characters). Counts toward the same 1 MB.</td></tr>
+        <tr><td data-label="Call"><code>tfx.util.hash(text, algo)</code></td><td data-label="Needs">nothing</td><td data-label="What you get, and the limits">Hex text of <code>'sha256'</code> (default), <code>'sha1'</code> or <code>'md5'</code>. Up to 100,000 characters. The Playground only does sha256.</td></tr>
+        <tr><td data-label="Call"><code>tfx.util.toBase64(text)</code>, <code>tfx.util.fromBase64(b64)</code></td><td data-label="Needs">nothing</td><td data-label="What you get, and the limits">Text to base64 and back (UTF-8).</td></tr>
+        <tr><td data-label="Call"><code>tfx.owner.notify(text)</code></td><td data-label="Needs"><code>owner.notify</code></td><td data-label="What you get, and the limits">Up to 500 characters, 3 an hour.</td></tr>
+        <tr><td data-label="Call"><code>tfx.log(text)</code></td><td data-label="Needs">nothing</td><td data-label="What you get, and the limits">Writes to the plugin log. 100 lines per call.</td></tr>
+        <tr><td data-label="Call"><code>tfx.on(event, fn)</code></td><td data-label="Needs">see section 5</td><td data-label="What you get, and the limits">Events: <code>message</code>, <code>member.join</code>, <code>member.leave</code>, <code>member.promote</code>, <code>member.demote</code>.</td></tr>
       </tbody>
     </table>
     <p>Every call can fail (the owner did not allow it, a limit was reached, the target is protected), so use <code>try / catch</code> around the ones that matter. Calls the manifest does not declare count as strikes against the plugin; five strikes and the bot switches it off.</p>

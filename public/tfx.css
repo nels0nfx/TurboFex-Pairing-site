@@ -40,8 +40,8 @@
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; max-width: 100%; overflow-x: clip; }
 /* Long unbroken text (a file code, a link, an ID, a version tag) must never make a page wider than the screen.
    It wraps instead. This is the safety net for every page and every card; :where() keeps it weaker than any rule a page sets itself. */
-:where(body.tfx p, body.tfx li, body.tfx dd, body.tfx dt, body.tfx td, body.tfx th, body.tfx h1, body.tfx h2, body.tfx h3, body.tfx h4, body.tfx label, body.tfx small, body.tfx b, body.tfx strong, body.tfx em, body.tfx span, body.tfx a, body.tfx figcaption, body.tfx summary) { overflow-wrap: anywhere; }
-:where(body.tfx code, body.tfx kbd, body.tfx samp) { overflow-wrap: break-word; }
+:where(body.tfx p, body.tfx li, body.tfx dd, body.tfx dt, body.tfx h1, body.tfx h2, body.tfx h3, body.tfx h4, body.tfx label, body.tfx small, body.tfx b, body.tfx strong, body.tfx em, body.tfx span, body.tfx a, body.tfx figcaption, body.tfx summary) { overflow-wrap: anywhere; }
+:where(body.tfx code, body.tfx kbd, body.tfx samp, body.tfx td, body.tfx th) { overflow-wrap: break-word; }
 :where(body.tfx .mono) { overflow-wrap: anywhere; word-break: break-all; }
 :where(body.tfx pre) { max-width: 100%; overflow-x: auto; }
 :where(body.tfx main, body.tfx section, body.tfx article, body.tfx aside, body.tfx form, body.tfx details) { min-width: 0; max-width: 100%; }
