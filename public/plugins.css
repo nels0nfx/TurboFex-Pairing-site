@@ -30,7 +30,7 @@
 .pcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line-gold); border-radius: var(--r-lg); background: linear-gradient(160deg, var(--surface2), var(--surface)); overflow: hidden; transition: transform .3s var(--ease), border-color .25s, box-shadow .3s; }
 .pcard.feat { border-color: var(--line-gold-strong); background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 9%, var(--surface2)), var(--surface)); }
 @media (hover: hover) { .pcard:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 20px 40px -22px var(--gold-glow); } }
-.pmain { display: grid; gap: 12px; flex: 1; padding: 18px 18px 8px; color: inherit; text-decoration: none; }
+.pmain { display: grid; gap: 14px; align-content: start; flex: 1; padding: 20px 18px 8px; color: inherit; text-decoration: none; }
 .ptop { display: flex; align-items: center; gap: 14px; }
 .picon { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; border: 1px solid var(--line-gold); background: var(--gold-faint); color: var(--gold-text); font: 800 24px/1 var(--sans); overflow: hidden; }
 .picon img { width: 100%; height: 100%; object-fit: cover; }
@@ -41,9 +41,13 @@
 .pdesc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); font-size: 15px; line-height: 1.55; }
 .pchip { display: inline-flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg2); font-size: 12.5px; font-weight: 650; color: var(--muted); }
 .pchip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; } .pchip.medium::before { background: var(--warn); } .pchip.high::before { background: var(--bad); }
-.pfoot { display: flex; align-items: center; gap: 12px; padding: 10px 14px 14px 18px; }
-.pver { color: var(--gold-text); font-weight: 700; font-size: 13.5px; }
-.prate { display: inline-flex; align-items: center; gap: 5px; color: var(--text); font-weight: 650; font-size: 13.5px; } .prate svg { width: 15px; height: 15px; color: var(--gold); }
+.pfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 12px 18px 18px; margin-top: 4px; border-top: 1px solid var(--line); }
+.pfoot .btn, .pfoot button { flex: 1 1 150px; min-width: 0; }
+.pver { color: var(--gold-text); font-weight: 700; font-size: 13.5px; white-space: nowrap; padding: 3px 10px; border-radius: 999px; background: var(--gold-faint); border: 1px solid var(--line-gold); }
+.pcmds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pcmd { padding: 3px 9px; border-radius: 8px; background: var(--raise); border: 1px solid var(--line); color: var(--gold-text); font: 600 12.5px ui-monospace, "SF Mono", Menlo, monospace; }
+.pcmore { color: var(--faint); font-size: 12.5px; }
+.prate { white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; color: var(--text); font-weight: 650; font-size: 13.5px; } .prate svg { width: 15px; height: 15px; color: var(--gold); }
 .pcopy { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 1px solid var(--line-gold); border-radius: 999px; background: transparent; color: var(--gold-text); font: 650 13px/1 var(--sans); cursor: pointer; transition: background .2s, border-color .2s; }
 .pcopy svg { width: 16px; height: 16px; } .pcopy:hover { background: var(--gold-faint); border-color: var(--gold); }
 

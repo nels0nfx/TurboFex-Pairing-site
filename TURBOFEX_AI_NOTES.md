@@ -16,6 +16,7 @@ Where this file lives: inside the pairing site project (the repo root of `nels0n
 - Every zip must have a **higher version number in its file name** than the last one, and the reply must say: **delete the older zips from Downloads** so the wrong one is not pushed.
 - Put changelog lines at the TOP of `changelog.txt`, under the heading `CHANGED IN THE NEXT VERSION`, as `- NEW (...)`, `- FIXED (...)`, `- CHANGED (...)` bullets. (Never append at the bottom.)
 - Long unbroken text (codes, links, IDs) must wrap inside its card on every page; a global rule in `tfx.css` and `admin3.css` does this (site v3.0.3). Never let a page scroll sideways.
+- The footer (links, community, legal) appears ONLY on the landing page (`home.html`). Do not add it back to other pages; Terms and Privacy stay in the top menu. (2026-11-16)
 - Use the owner's own words for things ("session ID", "pairing code", "the island").
 
 ## 2. The projects

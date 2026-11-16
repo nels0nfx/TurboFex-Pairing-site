@@ -102,7 +102,9 @@
     link.appendChild(top); link.appendChild(el('span', 'pdesc', p.description));
     var risk = topRisk(p), ch = el('span', 'pchip ' + risk);
     ch.textContent = p.permissions.length ? (p.permissions.length === 1 ? '1 permission' : p.permissions.length + ' permissions') + ' · ' + RISK[risk] + ' risk' : 'No special permissions';
-    link.appendChild(ch); a.appendChild(link);
+    var cl = el('span', 'pcmds'); (p.commands || []).slice(0, 4).forEach(function (n) { cl.appendChild(el('code', 'pcmd', '.' + n)); }); if ((p.commands || []).length > 4) cl.appendChild(el('span', 'pcmore', '+' + ((p.commands || []).length - 4)));
+    if (!(p.commands || []).length && (p.events || []).length) cl.appendChild(el('span', 'pcmore', 'Works by itself: listens to ' + p.events.length + (p.events.length === 1 ? ' event' : ' events')));
+    link.appendChild(ch); if (cl.childNodes.length) link.appendChild(cl); a.appendChild(link);
     var foot = el('div', 'pfoot'); foot.appendChild(el('span', 'pver', 'v' + p.version));
     if (p.rating) { var r = el('span', 'prate'); r.appendChild(ico('i-star')); r.appendChild(d.createTextNode(p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')')); foot.appendChild(r); }
     foot.appendChild(copyBtn('.plugin install ' + p.id, 'Copy install command')); a.appendChild(foot);
