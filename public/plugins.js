@@ -182,7 +182,7 @@
     tx.appendChild(meta); tx.appendChild(el('p', 'pdby', 'By ' + (p.author || 'unknown'))); row.appendChild(tx); hd.appendChild(row);
     hd.appendChild(el('p', 'pdlead', p.description));
     var inst = el('div', 'pinstall'); inst.appendChild(el('span', 'ilabel', 'Install on your bot')); var cmd = '.plugin install ' + p.id; var r2 = el('div', 'prow big'); r2.appendChild(el('code', null, cmd)); r2.appendChild(copyBtn(cmd, 'Copy', 'btn btn-gold sm')); inst.appendChild(r2);
-    inst.appendChild(el('p', 'fine', 'Send it as the bot owner. Switch plugins on first with .plugin on.')); hd.appendChild(inst);
+    inst.appendChild(el('p', 'fine', 'Send it as the bot owner.')); hd.appendChild(inst);
     detail.appendChild(hd);
     function setRate(r) { rt.hidden = !r; rt.textContent = ''; if (r) { rt.appendChild(ico('i-star')); rt.appendChild(d.createTextNode(r.avg.toFixed(1) + ' (' + r.count + ')')); } }
     setRate(p.rating || null);

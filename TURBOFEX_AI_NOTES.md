@@ -439,3 +439,8 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## 66. Site signs the store (v3.0.1 + bot v1.6.4)
 - `signer.js` builds and signs index.json from published/revoked submissions; `devcentre.js` serves it at `/registry/...` when `REGISTRY_SIGNING_KEY` is set (own key, public part in the bot's `registry-key.json` backupKeys). Approve = published at once, withdraw = revoked at once. No key = old phone flow (`pull`).
 - The Plugins page reads the store in-process when the key is set. Developer cards are grouped per plugin (`public/developers.js`).
+
+## Preinstalled plugins (site v3.0.9, bot v1.7.0) (2026-11-17)
+- The owner picks published plugins in the admin "Preinstalled" tab: Off, Install only, or Install and activate. Stored in `devcentre/preinstall.json` and signed into `index.json` as `preinstall: [{id, mode}]` (always present, even empty).
+- Bots read it every ~10 minutes. A plugin on the list is installed without confirm and cannot be removed by the bot owner. Off removes it from every bot. A store index without the `preinstall` field changes nothing on bots.
+- The owner's rule: plugins are always on in the bot (no `.plugin on/off`), per-plugin `enable`/`disable` stays.

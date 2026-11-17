@@ -491,7 +491,7 @@
       else if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'Automatic publishing is off (REGISTRY_SIGNING_KEY is not set) and the phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));
       n.appendChild(h('div', { class: 'grid' }, stat('Waiting', String(j.counts.pending), 'for your review', j.counts.pending ? 'warn' : ''), stat('Approved', String(j.counts.approved), j.autoOn ? 'published at once' : 'wait for the phone command', j.counts.approved ? 'good' : ''), stat('Published', String(j.counts.published), 'in the registry', ''), stat('Rejected', String(j.counts.rejected), '', '')));
       var body = h('div', { class: 'tabbody' });
-      n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
+      n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['preinstall', 'Preinstalled', Object.keys(j.preinstall || {}).length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
       n.appendChild(body);
       if (P.tab === 'queue') {
         var list = h('div', { class: 'pgrid' });
@@ -532,6 +532,19 @@
               h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: j.autoOn ? 'It disappears from bots and the Plugins page within a few minutes.' : 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
         })) : h('p', { class: 'empty', text: 'No collections yet.' }));
         body.appendChild(h('p', { class: 'note', text: j.autoOn ? 'Changes to collections reach bots by themselves within a few minutes.' : 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' }));
+        return n;
+      }
+      if (P.tab === 'preinstall') {
+        var pre = j.preinstall || {}, seenP = {}, pubs = j.submissions.filter(function (x) { if (x.status !== 'published' || seenP[x.pluginId]) return false; seenP[x.pluginId] = 1; return true; });
+        body.appendChild(h('p', { class: 'muted', text: 'Pick published plugins that every bot gets by itself: new bots at once, existing bots the next time they check (about 10 minutes). Bot owners cannot remove them. Setting a plugin back to Off removes it from every bot and stops sending it; it stays in the store for manual install.' }));
+        body.appendChild(pubs.length ? h('div', { class: 'clist' }, pubs.map(function (x) {
+          var sel = h('select', { class: 'sel', 'aria-label': 'Preinstall mode for ' + x.name, onchange: function (e) {
+            var el = e.currentTarget, mode = el.value, go = function () { act(el, function () { return api('POST', 'plugins/preinstall', { id: x.pluginId, mode: mode }); }, mode === 'off' ? 'Removed from every bot' : 'Saved', function () { load(false); }); };
+            if (mode === 'off' && pre[x.pluginId]) { el.value = pre[x.pluginId]; dlg({ title: 'Remove ' + x.name + ' from every bot?', text: 'Every bot that has it as a preinstalled plugin will remove it within about 10 minutes, and new bots will not get it. People can still install it from the store.', ok: 'Remove from all bots', danger: true }, function () { el.value = 'off'; go(); }); } else go();
+          } }, [['off', 'Off'], ['install', 'Install only (owner switches it on)'], ['activate', 'Install and activate']].map(function (o) { var op = h('option', { value: o[0], text: o[1] }); if ((pre[x.pluginId] || 'off') === o[0]) op.selected = true; return op; }));
+          return h('div', { class: 'citem' }, h('div', { class: 'cinfo' }, h('b', { text: x.name }), h('span', { class: 'muted', text: ' ' + x.pluginId + ' · v' + x.version }), h('div', { class: 'cchips' }, (x.permissions || []).map(function (p2) { return h('span', { class: 'cchip', text: p2 }); }))), h('div', { class: 'cact' }, sel));
+        })) : h('p', { class: 'empty', text: 'No published plugins yet.' }));
+        body.appendChild(h('p', { class: 'note', text: j.autoOn ? 'Preinstalled plugins get their permissions without the owner pressing confirm, so only choose plugins you fully trust.' : 'Preinstalling needs automatic publishing (REGISTRY_SIGNING_KEY). Without it, nothing is sent to bots.' }));
         return n;
       }
       if (P.tab === 'store') {

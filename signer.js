@@ -38,7 +38,7 @@ function cleanCollections(arr) {
 const isoOf = (t) => { try { return new Date(t || Date.now()).toISOString(); } catch (e) { return new Date().toISOString(); } };
 
 // subs: the submissions the site keeps. Only published versions (and withdrawn ones, which bots must still hear about) go in.
-function build(subs, collections, key) {
+function build(subs, collections, key, preinstall) {
   const files = new Map();   // 'plugins/<id>/<version>/<file>' -> Buffer
   const plugins = {}, revoked = [];
   const list = subs.filter((s) => (s.status === 'published' || s.status === 'revoked') && s.manifest && reId.test(String(s.manifest.id)) && /^\d+\.\d+\.\d+$/.test(String(s.manifest.version)) && typeof s.manifestRaw === 'string' && typeof s.entrySource === 'string')
@@ -70,6 +70,10 @@ function build(subs, collections, key) {
   }
   const index = { format: 1, updated: new Date().toISOString(), plugins: Object.fromEntries(Object.entries(plugins).sort()), revoked };
   const cols = cleanCollections(collections); if (cols.length) index.collections = cols;
+  // preinstalled plugins: always written (even empty), so a bot knows the list is complete and can drop plugins that left it
+  index.preinstall = Object.entries(preinstall && typeof preinstall === 'object' ? preinstall : {})
+    .filter(([id, m]) => reId.test(id) && (m === 'install' || m === 'activate') && plugins[id] && Object.keys(plugins[id].versions).some((v) => !revoked.some((r) => r.id === id && (!r.version || r.version === v))))
+    .sort(([a], [b]) => (a < b ? -1 : 1)).map(([id, mode]) => ({ id, mode }));
   const bytes = Buffer.from(JSON.stringify(index, null, 1) + '\n');
   const sig = Buffer.from(crypto.sign(null, bytes, key.priv).toString('base64') + '\n');
   files.set('index.json', bytes); files.set('index.json.sig', sig);

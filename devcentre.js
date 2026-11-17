@@ -90,6 +90,25 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (cloud && cloud.pushKv) cloud.pushKv('dc:collections', rec);
     return { status: 200, ok: true, collections };
   }
+  // preinstalled plugins: the owner marks a published plugin so every bot gets it by itself. Two modes: 'activate' (installed and switched on)
+  // or 'install' (installed, listed in the bot, the bot owner switches it on). A plugin that is not in this list is never pushed to bots.
+  const PRE_MODES = ['install', 'activate'];
+  const cleanPre = (o) => { const out = {}; for (const [k, v] of Object.entries(o && typeof o === 'object' ? o : {})) if (reCid.test(k) && PRE_MODES.includes(v)) out[k] = v; return out; };
+  let preinstall = {};
+  try { preinstall = cleanPre(JSON.parse(fs.readFileSync(path.join(dir, 'preinstall.json'), 'utf8')).map); } catch (err) { /* none yet */ }
+  const isPublished = (id) => [...subs.values()].some((s) => s.status === 'published' && s.manifest && s.manifest.id === id);
+  function setPreinstall(id, mode) {
+    id = String(id || '').trim().toLowerCase(); mode = String(mode || '');
+    if (!reCid.test(id)) return { status: 400, error: 'Bad plugin id.' };
+    if (mode !== 'off' && !PRE_MODES.includes(mode)) return { status: 400, error: 'Choose off, install only, or install and activate.' };
+    if (mode !== 'off' && !isPublished(id)) return { status: 400, error: 'Only a published plugin can be preinstalled.' };
+    const next = { ...preinstall }; if (mode === 'off') delete next[id]; else next[id] = mode;
+    if (Object.keys(next).length > 30) return { status: 400, error: 'Up to 30 preinstalled plugins.' };
+    preinstall = cleanPre(next); const rec = { map: preinstall, at: now() }, f = path.join(dir, 'preinstall.json'), tmp = f + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:preinstall', rec);
+    return { status: 200, ok: true, preinstall };
+  }
   // invite-only beta: while on, only the GitHub usernames on the list can send plugins (everyone can still sign in, rate and report)
   let invites = { on: false, logins: [] };
   try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'invites.json'), 'utf8')); invites = { on: f.on === true, logins: (Array.isArray(f.logins) ? f.logins : []).filter((x) => /^[a-z0-9-]{1,39}$/.test(x)).slice(0, 200) }; } catch (err) { /* open to everyone */ }
@@ -317,7 +336,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, updateOf: updateOf(s), risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
-  const adminList = () => ({ paused, invites, collections, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, autoOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, invites, collections, preinstall, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, autoOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
   function lineDiff(a, b) {
     const x = a.split('\n'), y = b.split('\n');
@@ -494,7 +513,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
-  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], collections, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], collections, preinstall, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
 
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
@@ -522,11 +541,11 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- the signed store, made and signed here (only when REGISTRY_SIGNING_KEY is set) ----------
   let regCache = null;
-  const regPrint = () => JSON.stringify([[...subs.values()].filter((s) => s.status === 'published' || s.status === 'revoked').map((s) => [s.id, s.status, s.manifestSha, s.entrySha, s.revoke ? s.revoke.at : 0]), collections]);
+  const regPrint = () => JSON.stringify([[...subs.values()].filter((s) => s.status === 'published' || s.status === 'revoked').map((s) => [s.id, s.status, s.manifestSha, s.entrySha, s.revoke ? s.revoke.at : 0]), collections, preinstall]);
   function registryNow() {
     if (!autoOn) return null;
     const fp = regPrint();
-    if (!regCache || regCache.fp !== fp) { try { regCache = { fp, ...require('./signer').build([...subs.values()], collections, signKey) }; } catch (e) { return regCache; } }
+    if (!regCache || regCache.fp !== fp) { try { regCache = { fp, ...require('./signer').build([...subs.values()], collections, signKey, preinstall) }; } catch (e) { return regCache; } }
     return regCache;
   }
   const registryFile = (rel) => { const r = registryNow(); return r && r.files.get(rel) ? r.files.get(rel) : null; };
@@ -631,7 +650,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, autoOn, signingPublicKey: signKey ? signKey.publicPem : '', registryFile, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, autoOn, signingPublicKey: signKey ? signKey.publicPem : '', registryFile, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setPreinstall, getPreinstall: () => preinstall, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

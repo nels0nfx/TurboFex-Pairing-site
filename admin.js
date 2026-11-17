@@ -499,6 +499,11 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
         const r = devcentre.setCollections(b); if (r.error) { json(res, r.status, { error: r.error }); return true; }
         act(b.remove !== undefined ? 'plugin.collection.remove' : 'plugin.collection.save', 'collection', String(b.remove !== undefined ? b.remove : (b.save && b.save.id) || '')); json(res, 200, r); return true;
       }
+      if (post && route === 'plugins/preinstall') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.setPreinstall(b.id, b.mode); if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        act('plugin.preinstall', String(b.id).slice(0, 32), String(b.mode).slice(0, 10)); json(res, 200, r); return true;
+      }
       if (post && route === 'plugins/feature') {
         const b = await body(); if (!b || typeof b.on !== 'boolean') { json(res, 400, { error: 'Bad request.' }); return true; }
         const r = devcentre.setFeatured(b.id, b.on); if (r.error) { json(res, r.status, { error: r.error }); return true; }
