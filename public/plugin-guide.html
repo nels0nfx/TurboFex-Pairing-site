@@ -55,6 +55,7 @@
       <li><code>id</code>: 3 to 32 characters, lowercase letters, numbers and dashes. <code>version</code> looks like <code>1.0.0</code> and goes up with every release. <code>apiVersion</code> is always 1.</li>
       <li><code>name</code> up to 40 characters, <code>description</code> up to 200. Only free plugins (leave out <code>pricing</code>).</li>
       <li>Optional: <code>"entry": "index.js"</code> (the code file name) and <code>"minBotVersion": "1.4.0"</code>.</li>
+      <li>Optional but recommended: <code>"category"</code>, the menu section where your commands appear on the bot (bot 1.6.6 or newer): <code>general, group, autoreply, status, watch, tools, fun, games, ai, budget, download, effect, media, audio, video, editor, security, lookup, other</code>. Without it the bot guesses from your plugin's name and description, and the owner can always move it with <code>.plugin category</code>. Set it, so the guess is never wrong: a mention or tag-reply plugin is <code>autoreply</code>, a group tool is <code>group</code>.</li>
       <li>A plugin needs at least one command, schedule or event.</li>
     </ul>
   </section>
