@@ -115,7 +115,7 @@ function createApp(opts = {}) {
       'Content-Type': type,
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'X-Frame-Options': /frame-ancestors 'self'/.test(csp) ? 'SAMEORIGIN' : 'DENY',
       'Referrer-Policy': 'no-referrer',
       'Content-Security-Policy': csp,
     });
@@ -371,15 +371,17 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const PAGES = { '/pair': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
+      const PAGES = { '/pair': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
       const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
         try {
           let body = fs.readFileSync(path.join(PUBLIC, name));
           if (path.extname(name) === '.html') body = shellify(body);
-          if (path.extname(name) === '.html') noteVisit(req, p);
+          if (path.extname(name) === '.html' && name !== 'smoketest.html') noteVisit(req, p);
           // the Playground page and its sandbox are the ONLY files allowed to start WebAssembly (the engine that runs plugin code); every other page keeps the strict rule
           const wasm = name === 'playground.html' || name === 'playground-sandbox.js';
+          // the owner's automatic test run (smoketest.html) runs the same sandbox, inside a hidden frame of the admin page only (same origin)
+          if (name === 'smoketest.html') return send(res, 200, body, TYPES[path.extname(name)], "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; img-src 'self' data:; frame-ancestors 'self'");
           return send(res, 200, body, TYPES[path.extname(name)], wasm ? "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; img-src 'self' data:; frame-ancestors 'none'" : undefined);
         } catch (err) {
           // fall through

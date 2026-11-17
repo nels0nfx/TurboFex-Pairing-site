@@ -388,3 +388,14 @@
 .adm .polder { padding: 0 14px; }
 .adm .polder summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 6px 0; }
 .adm .polder-row { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line, rgba(0,0,0,.08)); padding: 10px 0; font: inherit; color: inherit; cursor: pointer; }
+
+/* ---- review page: checklist and automatic test run ---- */
+.adm .ckl { flex-basis: 100%; display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--line-gold); border-radius: 16px; background: var(--gold-faint); }
+.adm .ck { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: 14.5px; line-height: 1.45; cursor: pointer; }
+.adm .ck input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--gold, #d4af37); }
+.adm .abar .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.adm .trun { margin-top: 12px; }
+.adm .trl { display: grid; gap: 8px; list-style: none; padding: 0; }
+.adm .trl li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.adm .trl li.x { border-color: var(--bad); } .adm .trl li.q { border-color: var(--warn); }
+.adm .trl li small { overflow-wrap: anywhere; }

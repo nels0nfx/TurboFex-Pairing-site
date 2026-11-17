@@ -339,12 +339,25 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     const pp = prev.manifest.permissions || [], cp = s.manifest.permissions || [], pd = (prev.manifest.network && prev.manifest.network.domains) || prev.manifest.domains || [], cd = (s.manifest.network && s.manifest.network.domains) || s.manifest.domains || [];
     return { version: prev.manifest.version, status: prev.status, permsAdded: cp.filter((x) => !pp.includes(x)), permsRemoved: pp.filter((x) => !cp.includes(x)), domainsAdded: cd.filter((x) => !pd.includes(x)), code: lineDiff(String(prev.entrySource || ''), String(s.entrySource || '')), manifest: lineDiff(String(prev.manifestRaw || ''), String(s.manifestRaw || '')) };
   }
+  // what this plugin shares with the plugins that are already live: the same command name (the bot refuses the second one) and the same event
+  function overlapsOf(s) {
+    const live = [...subs.values()].filter((o) => o.manifest.id !== s.manifest.id && ['approved', 'published'].includes(o.status));
+    const seen = new Set(); const out = [];
+    const mineCmds = new Set(((s.manifest && s.manifest.commands) || []).map((c) => c.name));
+    for (const o of live.sort((a, b) => b.createdAt - a.createdAt)) {
+      if (seen.has(o.manifest.id)) continue; seen.add(o.manifest.id);
+      const same = ((o.manifest.commands) || []).map((c) => c.name).filter((n) => mineCmds.has(n));
+      if (same.length) out.push({ kind: 'command', plugin: o.manifest.name, text: 'uses the same command name' + (same.length > 1 ? 's' : '') + ': ' + same.map((n) => '.' + n).join(', ') + '. The bot refuses to install both on one bot.' });
+      for (const e of (s.manifest.events || [])) if ((o.manifest.events || []).includes(e)) out.push({ kind: 'event', plugin: o.manifest.name, text: 'also reacts to "' + e + '", so both may answer at once.' });
+    }
+    return out;
+  }
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), autoOn, icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), autoOn, icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })), overlaps: overlapsOf(s), checked: s.checked || null };
   }
-  function adminReview(id, decision, note, by) {
+  function adminReview(id, decision, note, by, checks) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
     note = String(note || '').trim().slice(0, 400);
     if (decision === 'approve') {
@@ -352,6 +365,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const c = checkPlugin(s.manifestRaw, s.entrySource);   // the stored copy is checked again, so nothing changes between sending and approving
       if (!c.ok || c.entrySha !== s.entrySha || c.manifestSha !== s.manifestSha) return { status: 400, error: 'The stored plugin no longer passes the check.' };
       for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId !== s.githubId && ['approved', 'published', 'revoked'].includes(o.status)) return { status: 409, error: 'Another developer already owns this plugin id.' };
+      if (Array.isArray(checks) && checks.length) s.checked = { list: checks.slice(0, 10).map((x) => String(x).slice(0, 20)), at: now(), by: String(by || '').slice(0, 40) };   // what the owner ticked before approving
       s.status = 'approved';
       if (autoOn) { s.status = 'published'; s.publishedAt = now(); }   // the site signs the store itself
     } else if (decision === 'reject') {
@@ -366,7 +380,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     s.note = note; s.reviewedBy = String(by || '').slice(0, 40); s.reviewedAt = now(); s.updatedAt = now(); save('sub', s);
     return { status: 200, ok: true };
   }
-  // withdraw a published plugin: the site hides it at once and the phone command signs the withdrawal (bots switch it off after that)
+  // withdraw a published plugin: the site hides it at once and the phone command signs the withdrawal (bots remove it after that)
   function adminRevoke(id, reason, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
     reason = String(reason || '').trim().slice(0, 200);

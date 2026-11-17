@@ -460,7 +460,10 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       }
       if (post && route === 'plugins/review') {
         const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
-        const r = devcentre.adminReview(b.id, b.decision, b.note, sess.user);
+        // approving needs every step of the review checklist ticked (the page also locks the button; this is the real rule)
+        const NEED = ['perms', 'flags', 'tested', 'mine', 'fits'];
+        if (b.decision === 'approve' && !(Array.isArray(b.checks) && NEED.every((k) => b.checks.includes(k)))) { json(res, 400, { error: 'Tick every step of the review checklist first.' }); return true; }
+        const r = devcentre.adminReview(b.id, b.decision, b.note, sess.user, b.checks);
         if (r.error) { json(res, r.status, { error: r.error }); return true; }
         const one = devcentre.adminGet(b.id); act('plugin.' + (b.decision === 'approve' ? 'approve' : b.decision === 'changes' ? 'changes' : 'reject'), String(b.id).slice(0, 12), `${one.pluginId}@${one.version} by ${one.login}` + (b.note ? ': ' + String(b.note).slice(0, 120) : ''));
         json(res, 200, { ok: true }); return true;

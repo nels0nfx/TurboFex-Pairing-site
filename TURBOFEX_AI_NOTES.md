@@ -17,6 +17,7 @@ Where this file lives: inside the pairing site project (the repo root of `nels0n
 - Put changelog lines at the TOP of `changelog.txt`, under the heading `CHANGED IN THE NEXT VERSION`, as `- NEW (...)`, `- FIXED (...)`, `- CHANGED (...)` bullets. (Never append at the bottom.)
 - Long unbroken text (codes, links, IDs) must wrap inside its card on every page; a global rule in `tfx.css` and `admin3.css` does this (site v3.0.3). Never let a page scroll sideways.
 - The footer (links, community, legal) appears ONLY on the landing page (`home.html`). Do not add it back to other pages; Terms and Privacy stay in the top menu. (2026-11-16)
+- Plugin review (2026-11-17): the owner is not a coder. The review page has a 5-step checklist that locks Approve (also enforced in admin.js), an automatic test run (public/smoketest.html + smoketest.js, runs in a hidden same-origin frame with the wasm CSP) and an overlap warning. A withdrawn plugin is removed by bots within about 10 minutes. Rules for developers are at /rules.
 - Use the owner's own words for things ("session ID", "pairing code", "the island").
 
 ## 2. The projects
