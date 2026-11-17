@@ -13,6 +13,7 @@ const { checkPlugin } = require('./plugin-check');
 const { createRegistry } = require('./registry');
 const { createDevCentre } = require('./devcentre');
 const { createBotStats } = require('./botstats');
+const { createNextUi } = require('./nextui');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
@@ -80,6 +81,7 @@ function createApp(opts = {}) {
     ? createRegistry({ env: { ...env, REGISTRY_URL: 'local:///', REGISTRY_PUBLIC_KEY: devcentre.signingPublicKey }, fetcher: async (url) => { const b = devcentre.registryFile(String(url).slice('local:///'.length)); if (!b) throw new Error('status 404'); return b; } })
     : createRegistry({ env }));   // the signed plugin list for the Plugins page
   const hits = new Map(); // "kind:ip" -> [timestamps]
+  const nextUi = createNextUi({ dir: opts.nextDir || env.NEXT_UI_DIR || path.join(__dirname, 'web', 'dist'), env }); // the new interface under /next (does nothing until it is built)
 
   // allows `max` hits per `windowMs` for one visitor
   const botstats = opts.botstats || createBotStats({ dataDir, cloud });   // anonymous statistics from bots whose owner turned them on
@@ -368,6 +370,8 @@ function createApp(opts = {}) {
       for (const j of jobs.values()) if (j.sessionId && normalizeId(j.sessionId) === canon) { j.usedAt = Date.now(); j.sessionId = null; }
       return send(res, 200, creds);
     }
+
+    if (nextUi.serve(req, res, p)) return;
 
     // static page
     if (req.method === 'GET') {

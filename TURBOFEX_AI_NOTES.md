@@ -444,3 +444,11 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - The owner picks published plugins in the admin "Preinstalled" tab: Off, Install only, or Install and activate. Stored in `devcentre/preinstall.json` and signed into `index.json` as `preinstall: [{id, mode}]` (always present, even empty).
 - Bots read it every ~10 minutes. A plugin on the list is installed without confirm and cannot be removed by the bot owner. Off removes it from every bot. A store index without the `preinstall` field changes nothing on bots.
 - The owner's rule: plugins are always on in the bot (no `.plugin on/off`), per-plugin `enable`/`disable` stays.
+
+## New website migration (site v3.1.0, stage 0; v3.1.1 test fix) (2026-11-18)
+- The owner wants the whole site redone (resend.com-like, mobile first) in React, TypeScript, Vite, Tailwind 3.4, Framer Motion, Lucide, React Router, TanStack Query. Done in stages; do not start the next stage until the owner has run `npm run verify` in `web/` and says go. The owner works only from Termux + GitHub: NO GitHub Actions, workflows or Codespaces may be required or added.
+- Plan: stage 1 shell + landing + pairing page, 2 plugin store/detail/guide/docs/playground, 3 developer centre + sign-in, 4 admin, 5 support/community/about/legal + cutover. Old pages stay until the owner signs off.
+- `web/` is a separate npm project (own package.json) so the backend install stays small. Built into `web/dist`, served by `nextui.js` under `/next/` only when `dist/index.html` exists. `NEXT_UI=off` disables it. Vite base comes from `WEB_BASE` (`/next/` now, `/` at the final switch).
+- `render.yaml` still builds with `npm install` only. Changing the build command (add `npm --prefix web install && npm --prefix web run build`) must be announced to the owner first.
+- Verification without a browser: typecheck, eslint, vitest (jsdom), build, `web/scripts/smoke.mjs`. Real browsers cannot run in Termux, so say plainly what was not checked on a real phone.
+- Node on Termux has its own experimental localStorage that hides jsdom's; web/src/test/setup.ts replaces it with an in-memory copy. Do not use localStorage in tests without it.
