@@ -80,7 +80,9 @@ Near-black pages, silver gradient headlines in a serif display font (Instrument 
 ## What is in the new site so far
 
 - Stage 0: foundation and design kit (`/next/design`)
-- Stage 1: landing page (`/next/`) and the pairing page (`/next/pair`). The landing page shows real data only: featured plugins and the numbers come from the same server routes as the current landing page, and the admin announcement and maintenance notice show on every page.
+- Stage 1: landing page (`/next/`) and the pairing page (`/next/pair`). The admin announcement and maintenance notice show on every page.
+- Landing page (v3.4.0): presents TurboFex as the complete WhatsApp bot platform. Order: hero, what TurboFex is, the bot, deploy (with pairing as step 2), the platform map (available now / coming later), plugins (real store data, code example, test mode example), closing line, footer with a status pill. Plugin numbers and featured plugins come from the same server routes as the current landing page.
+- **All platform wording is in `src/lib/platform.ts`.** To add a product, a hosting option or a bot feature, add one entry there. Items with status `planned` show as "Coming later" and are never links. The bot numbers (version, commands, categories) are in the same file: update them after each bot release.
 
 The pairing page talks to the same server routes as the current pairing page, so the code, QR, session ID, Try again and refresh behaviour are the same. Pages that are not moved yet (marketplace, developers, docs, playground, community, about, terms, privacy) are normal links to the current pages.
 

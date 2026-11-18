@@ -9,13 +9,13 @@ import type { LucideIcon } from 'lucide-react';
 interface Tile { icon: LucideIcon; tone: Tone; value: string | number; label: string }
 
 // Only real numbers from the server. A number that does not exist is not shown.
-export function StatsStrip() {
+export function StatsStrip({ pairing = true }: { pairing?: boolean }) {
   const status = useSiteStatus();
   const store = useStore();
   if (!status.data && !store.data) return null;
   const tiles: Tile[] = [];
   const paused = !!status.data?.maintenance?.on;
-  if (status.data) tiles.push(paused ? { icon: PauseCircle, tone: 'warn', value: 'Paused', label: 'WhatsApp pairing' } : { icon: CheckCircle2, tone: 'ok', value: 'Online', label: 'WhatsApp pairing' });
+  if (pairing && status.data) tiles.push(paused ? { icon: PauseCircle, tone: 'warn', value: 'Paused', label: 'WhatsApp pairing' } : { icon: CheckCircle2, tone: 'ok', value: 'Online', label: 'WhatsApp pairing' });
   const list = store.data?.paused || !Array.isArray(store.data?.plugins) ? [] : store.data!.plugins;
   if (list.length) {
     tiles.push({ icon: Package, tone: 'accent', value: list.length, label: list.length === 1 ? 'Published plugin' : 'Published plugins' });

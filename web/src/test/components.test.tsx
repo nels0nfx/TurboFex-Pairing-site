@@ -92,7 +92,7 @@ describe('status and pages', () => {
   it('the app shows Home, the design kit, and a calm not-found page', async () => {
     mockFetch(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, version: '3.1.0', sessionMinutes: 5 }) }));
     const a = wrap(<App />, '/');
-    expect(screen.getByRole('heading', { level: 1, name: /WhatsApp bots, built to extend/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /complete WhatsApp bot platform/i })).toBeInTheDocument();
     a.unmount();
     const b = wrap(<App />, '/design');
     expect(screen.getByRole('heading', { name: 'Design kit' })).toBeInTheDocument();

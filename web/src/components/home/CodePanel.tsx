@@ -36,11 +36,10 @@ export function CodePanel() {
   const f = files.find((x) => x.id === id) ?? files[0];
   const lines = highlight(f.code, f.lang);
   return (
-    <section className="tf-wrap tf-section" aria-labelledby="code-h">
+    <div className="tf-sub" role="group" aria-labelledby="code-h">
       <div className="tf-split">
         <div className="tf-stack">
-          <p className="tf-eyebrow">Build</p>
-          <h2 id="code-h" className="tf-h2 tf-silver">A plugin is two small files</h2>
+          <h3 id="code-h" className="tf-h3 tf-silver">A plugin is two small files</h3>
           <p className="tf-lead">A manifest and one JavaScript file. Your code runs in a sealed sandbox and only gets the powers its owner approves.</p>
         </div>
         <div className="tf-code mt-8 lg:mt-0">
@@ -66,6 +65,6 @@ export function CodePanel() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

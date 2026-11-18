@@ -34,11 +34,10 @@ export function TestMode() {
   const run = runs.find((r) => r.id === id) ?? runs[0];
   const events = timelines[run.id];
   return (
-    <section className="tf-wrap tf-section" aria-labelledby="test-h">
+    <div className="tf-sub" role="group" aria-labelledby="test-h">
       <div className="tf-stack">
-        <p className="tf-eyebrow">Test mode</p>
-        <h2 id="test-h" className="tf-h2 tf-silver">Try it before anyone sees it</h2>
-        <p className="tf-lead max-w-xl">The test tool runs your plugin on your own computer, with a pretend chat. Pick an example to see what it prints and what happens, step by step.</p>
+        <h3 id="test-h" className="tf-h3 tf-silver">Test it before anyone sees it</h3>
+        <p className="tf-lead max-w-xl">The test tool runs your plugin on your own computer with a pretend chat. Pick an example to see what it prints.</p>
       </div>
       <div className="tf-tilerow mt-8" role="tablist" aria-label="Example runs">
         {runs.map((r) => {
@@ -83,6 +82,6 @@ export function TestMode() {
       <p className="tf-lead mt-6 max-w-xl" style={{ marginInline: 'auto' }}>
         Want to run real code? <a href={LEGACY.playground} className="tf-link" style={{ padding: 0, color: 'var(--tf-text)' }}>Open the Playground <ArrowRight size={14} aria-hidden="true" /></a>
       </p>
-    </section>
+    </div>
   );
 }

@@ -3,13 +3,16 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { LEGACY } from '@/lib/links';
 
-// Pages already in the new site are router links; the others are the current pages (plain links).
+// Sections of the landing page are router links (/#bot); pages not moved yet are plain links to the current pages.
+const sections = [
+  { to: '/#bot', label: 'Bot' },
+  { to: '/#deploy', label: 'Deploy' },
+  { to: '/#platform', label: 'Platform' },
+];
 const outside = [
   { href: LEGACY.marketplace, label: 'Marketplace' },
-  { href: LEGACY.developers, label: 'Developers' },
   { href: LEGACY.guide, label: 'Docs' },
-  { href: LEGACY.playground, label: 'Playground' },
-  { href: LEGACY.community, label: 'Community' },
+  { href: LEGACY.developers, label: 'Developers' },
 ];
 
 function Mark() {
@@ -42,9 +45,10 @@ export function Nav() {
         <div className="tf-navin">
           <Link to="/" aria-label="TurboFex home" className="tf-logo"><Mark /><span>TurboFex</span></Link>
           <nav className="tf-deskLinks" aria-label="Main">
+            {sections.map((l) => <Link key={l.to} to={l.to} className={cls}>{l.label}</Link>)}
             {outside.map((l) => <a key={l.href} href={l.href} className={cls}>{l.label}</a>)}
             <NavLink to="/pair" className={({ isActive }) => `${cls} ${isActive ? 'text-fg' : ''}`}>Pair</NavLink>
-            <Link to="/pair" className="tf-btn" style={{ height: '2.4rem', width: 'auto', padding: '0 1rem', marginLeft: '.6rem', fontSize: '.88rem', borderRadius: '.7rem' }}>Get started</Link>
+            <Link to="/#deploy" className="tf-btn" style={{ height: '2.4rem', width: 'auto', padding: '0 1rem', marginLeft: '.6rem', fontSize: '.88rem', borderRadius: '.7rem' }}>Get started</Link>
           </nav>
           <button type="button" className="tf-burger" onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} aria-controls="tf-menu"><Menu size={18} /></button>
         </div>
@@ -56,10 +60,11 @@ export function Nav() {
             <button type="button" className="tf-burger" onClick={() => setOpen(false)} aria-label="Close menu"><X size={18} /></button>
           </div>
           <nav aria-label="Main mobile" style={{ marginTop: '1rem' }}>
+            {sections.map((l) => <Link key={l.to} to={l.to} className="big" onClick={() => setOpen(false)}>{l.label}</Link>)}
             <Link to="/pair" className="big" onClick={() => setOpen(false)}>Pair WhatsApp</Link>
             {outside.map((l) => <a key={l.href} href={l.href} className="big">{l.label}</a>)}
           </nav>
-          <Link to="/pair" className="tf-btn" style={{ marginTop: 'auto' }} onClick={() => setOpen(false)}>Get started</Link>
+          <Link to="/#deploy" className="tf-btn" style={{ marginTop: 'auto' }} onClick={() => setOpen(false)}>Get started</Link>
         </div>
       )}
     </>

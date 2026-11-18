@@ -32,23 +32,23 @@ afterEach(() => vi.unstubAllGlobals());
 describe('landing page', () => {
   it('has the real headline, the pair button, and normal links to the pages not moved yet', () => {
     wrap('/');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('WhatsApp bots, built to extend');
-    expect(screen.getAllByRole('link', { name: /get started/i })[0]).toHaveAttribute('href', '/pair');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('The complete WhatsApp bot platform');
+    expect(screen.getAllByRole('link', { name: /get started/i })[0]).toHaveAttribute('href', '/#deploy');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/plugins');
     expect(within(nav).getByRole('link', { name: 'Docs' })).toHaveAttribute('href', '/plugin-guide');
   });
   it('shows the footer only here, with the real community links', () => {
     const a = wrap('/');
-    expect(screen.getByText(/The WhatsApp bot ecosystem: pairing/)).toBeInTheDocument();
+    expect(screen.getByText('The complete WhatsApp bot platform.')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Telegram' })[0]).toHaveAttribute('href', 'https://t.me/+7PwU2Vo9czE1NTRk');
     a.unmount();
     wrap('/pair');
-    expect(screen.queryByText(/The WhatsApp bot ecosystem: pairing/)).toBeNull();
+    expect(screen.queryByText('The complete WhatsApp bot platform.')).toBeNull();
   });
-  it('the status badge shows the real version', async () => {
+  it('the footer status badge shows the real answer of the server', async () => {
     wrap('/');
-    expect(await screen.findByText(/online · v3\.2\.0/)).toBeInTheDocument();
+    expect(await screen.findByText('All systems online')).toBeInTheDocument();
   });
 });
 
@@ -67,12 +67,12 @@ describe('landing page: real data, nothing made up', () => {
     wrap('/');
     expect(await screen.findByText(/No plugins are published yet/)).toBeInTheDocument();
   });
-  it('the numbers come from the server: online, plugin count, developer count', async () => {
+  it('the numbers come from the server: plugin count and developer count (pairing status is only in the footer)', async () => {
     plugins = store(3);
     wrap('/');
     const strip = await screen.findByRole('list', { name: 'TurboFex in numbers' });
     await waitFor(() => expect(within(strip).getByText('Published plugins')).toBeInTheDocument());
-    expect(within(strip).getByText('Online')).toBeInTheDocument();
+    expect(within(strip).queryByText('Online')).toBeNull();
     // the numbers count up, so give the animation a moment
     await waitFor(() => expect(within(strip).getByText('Developers').previousSibling).toHaveTextContent('2'), { timeout: 3000 });
     await waitFor(() => expect(within(strip).getByText('Published plugins').previousSibling).toHaveTextContent('3'), { timeout: 3000 });
@@ -82,7 +82,6 @@ describe('landing page: real data, nothing made up', () => {
     wrap('/');
     expect(await screen.findByText('Back in ten minutes.')).toBeInTheDocument();
     expect(await screen.findByText('New plugins today.')).toBeInTheDocument();
-    expect(screen.getByText('Paused')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByText('New plugins today.')).toBeNull();
   });
@@ -94,27 +93,55 @@ describe('landing page: real data, nothing made up', () => {
   });
 });
 
-describe('landing page: the new look (Phase A)', () => {
-  it('has the 3D hero object, hidden from screen readers, and a full-width main button plus a docs link', () => {
+describe('landing page: the whole platform', () => {
+  it('has the 3D hero object (hidden from screen readers), the version pill linking to the open source repo, and a full-width main button', () => {
     wrap('/');
     expect(screen.getByTestId('hero-cube')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.getByRole('link', { name: /browse the plugin marketplace/i })).toHaveAttribute('href', '/plugins');
-    expect(screen.getByRole('link', { name: /documentation/i })).toHaveAttribute('href', '/plugin-guide');
+    const pill = screen.getByRole('link', { name: /v1\.7\.1 · Open source/ });
+    expect(pill).toHaveAttribute('href', 'https://github.com/nels0nfx/TurboFex');
+    expect(screen.getByRole('link', { name: /see what it does/i })).toHaveAttribute('href', '/#bot');
   });
-  it('"Works with" lists only the real things, no company logos', () => {
+  it('"Built on" names only outside things, not TurboFex features', () => {
     wrap('/');
-    const sec = screen.getByRole('region', { name: 'Works with' });
-    for (const n of ['WhatsApp', 'GitHub', 'JavaScript plugins', 'Signed store']) expect(within(sec).getByText(n)).toBeInTheDocument();
-    expect(sec.querySelectorAll('img').length).toBe(0);
+    const row = screen.getByLabelText('Built on');
+    for (const n of ['WhatsApp', 'Node.js', 'GitHub']) expect(within(row).getByText(n)).toBeInTheDocument();
+    expect(row).not.toHaveTextContent(/signed store|plugins/i);
   });
-  it('"Link in a minute" changes with the chosen way to link', async () => {
-    const user = userEvent.setup();
+  it('explains what TurboFex is before any feature list', () => {
     wrap('/');
-    expect(screen.getByText(/Link with a pairing code/)).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'QR code' }));
-    expect(screen.getByText(/Link with a QR code/)).toBeInTheDocument();
+    const value = screen.getByRole('region', { name: 'What TurboFex is' });
+    for (const t of ['Run your groups', 'Have fun, get things done', 'Make it yours']) expect(within(value).getByRole('heading', { name: t })).toBeInTheDocument();
   });
-  it('the code panel shows the real plugin example with line numbers and switches files', async () => {
+  it('the bot section shows the checked numbers and the real feature areas', () => {
+    wrap('/');
+    const sec = screen.getByRole('region', { name: 'A bot with a lot inside' });
+    expect(within(sec).getByLabelText('The bot in numbers')).toHaveTextContent('322 commands · 13 categories');
+    for (const t of ['Group management', 'Protection', 'Games and fun', 'Tools and lookups', 'Media and downloads', 'AI and auto-replies']) expect(within(sec).getByRole('heading', { name: t })).toBeInTheDocument();
+    expect(within(sec).getByText(/stays off until an admin turns it on/)).toBeInTheDocument();
+  });
+  it('deploy: the real hosting options and the three steps, with pairing as step 2', () => {
+    wrap('/');
+    const sec = screen.getByRole('region', { name: 'Run it your way' });
+    for (const t of ['Termux', 'VPS or Linux server', 'Docker', 'Hosting panels', 'Web-service hosts', 'Windows or Mac']) expect(within(sec).getByRole('heading', { name: t })).toBeInTheDocument();
+    const steps = within(sec).getByRole('list', { name: 'How to start' });
+    expect(within(steps).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(steps).getByText('Link your WhatsApp')).toBeInTheDocument();
+    expect(within(sec).getByRole('link', { name: /link your whatsapp/i })).toHaveAttribute('href', '/pair');
+    expect(within(sec).getByRole('link', { name: /hosting guides/i })).toHaveAttribute('href', expect.stringContaining('#hosting-guides'));
+  });
+  it('the platform map separates what exists from what is coming later', () => {
+    wrap('/');
+    const now = screen.getByRole('list', { name: 'Available now' });
+    expect(within(now).getByRole('link', { name: /Pairing/ })).toHaveAttribute('href', '/pair');
+    expect(within(now).getByRole('link', { name: /Plugin marketplace/ })).toHaveAttribute('href', '/plugins');
+    expect(within(now).getByRole('link', { name: /Developer Centre/ })).toHaveAttribute('href', '/developers');
+    expect(within(now).getByRole('link', { name: /Management/ })).toBeInTheDocument();
+    expect(within(now).queryByText(/Hosting panel/)).toBeNull();
+    const later = screen.getByRole('list', { name: 'Coming later' });
+    expect(within(later).getByText('Coming later: deploy and manage your bots from one panel.')).toBeInTheDocument();
+    expect(within(later).queryByRole('link')).toBeNull();
+  });
+  it('the plugin section has the real code example with line numbers and switches files', async () => {
     const user = userEvent.setup();
     wrap('/');
     const panel = screen.getByRole('tabpanel', { name: 'index.js example' });
@@ -134,11 +161,12 @@ describe('landing page: the new look (Phase A)', () => {
     expect(within(fig).getByText(/--event member\.join/)).toBeInTheDocument();
     expect(screen.getAllByText('Preview').length).toBeGreaterThan(0);
   });
-  it('the mobile menu opens as a full-screen dialog and closes again', async () => {
+  it('the mobile menu opens as a full-screen dialog with the sections and closes again', async () => {
     const user = userEvent.setup();
     wrap('/');
     await user.click(screen.getByRole('button', { name: 'Open menu' }));
     const menu = screen.getByRole('dialog', { name: 'Menu' });
+    expect(within(menu).getByRole('link', { name: 'Bot' })).toHaveAttribute('href', '/#bot');
     expect(within(menu).getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/plugins');
     await user.click(within(menu).getByRole('button', { name: 'Close menu' }));
     expect(screen.queryByRole('dialog')).toBeNull();
