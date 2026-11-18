@@ -452,3 +452,9 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - `render.yaml` still builds with `npm install` only. Changing the build command (add `npm --prefix web install && npm --prefix web run build`) must be announced to the owner first.
 - Verification without a browser: typecheck, eslint, vitest (jsdom), build, `web/scripts/smoke.mjs`. Real browsers cannot run in Termux, so say plainly what was not checked on a real phone.
 - Node on Termux has its own experimental localStorage that hides jsdom's; web/src/test/setup.ts replaces it with an in-memory copy. Do not use localStorage in tests without it.
+
+## New website, stage 1 (site v3.2.0) (2026-11-18)
+- Stage 0 was checked by the owner in Termux (`npm run verify` passed). Stage 1 = app shell, landing page, pairing page in `web/`. Stages 2-5 still wait for his go.
+- Pairing page logic is in `web/src/lib/pairing.ts` (same routes as `public/app.js`: POST /api/pair, GET /api/job/:id, POST /api/cancel/:id; sessionStorage key `tfx-job`; polling 2 s, then 4 s once the WhatsApp copy result is known). Number rules come from `public/countries.js` (loaded as `window.TFX_PHONE`), so the page and server share one table; tests load that same file.
+- Not carried over from the old pairing page: sound button, floating status pill. Ask the owner before adding them.
+- Links to pages not yet migrated are plain `<a href="/plugins">` style links (see `web/src/lib/links.ts`).

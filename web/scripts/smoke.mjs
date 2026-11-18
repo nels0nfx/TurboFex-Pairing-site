@@ -33,7 +33,7 @@ try {
   r = await get('/next/');
   check(r.status === 200 && (r.headers.get('content-type') || '').includes('text/html'), '/next/ serves the app page');
   check((r.headers.get('content-security-policy') || '').includes("script-src 'self'"), 'the app page has the strict security policy');
-  for (const route of ['/next/design', '/next/some/unknown/page']) {
+  for (const route of ['/next/pair', '/next/design', '/next/some/unknown/page']) {
     r = await get(route);
     check(r.status === 200 && (r.headers.get('content-type') || '').includes('text/html'), `${route} falls back to the app page`);
   }
@@ -45,6 +45,10 @@ try {
     const want = a.endsWith('.js') ? 'javascript' : a.endsWith('.css') ? 'css' : '';
     check(r.status === 200 && type.includes(want) && /immutable/.test(r.headers.get('cache-control') || ''), `${a} is served with the right type and long cache`);
   }
+  // the new pairing page reads the country table from the same file the server uses
+  r = await get('/countries.js');
+  check(r.status === 200 && (await r.text()).includes('TFX_PHONE'), '/countries.js (shared country table) is served');
+  check(html.includes('/countries.js'), 'the built page loads /countries.js');
   r = await get('/next/assets/missing-file.js');
   check(r.status === 404, 'a missing built file is a 404, not the app page');
   r = await get('/next/..%2f..%2fserver.js');

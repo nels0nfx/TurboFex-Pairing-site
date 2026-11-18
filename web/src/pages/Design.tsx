@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toast';
 export default function Design() {
   const toast = useToast();
   return (
-    <main className="mx-auto max-w-5xl space-y-10 px-4 py-12">
+    <main id="main" className="mx-auto max-w-5xl space-y-10 px-4 py-12">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Design kit</h1>
         <p className="mt-2 text-mute">The building blocks used by every new page.</p>

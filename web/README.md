@@ -58,6 +58,15 @@ git push
 
 Render only serves the new site when `web/dist` exists on the server. Right now Render's build command is only `npm install`, so the live site does not have a build and `/next/` stays off. That is on purpose. A later stage will change the build command, and it will be announced first.
 
+## What is in the new site so far
+
+- Stage 0: foundation and design kit (`/next/design`)
+- Stage 1: landing page (`/next/`) and the pairing page (`/next/pair`)
+
+The pairing page talks to the same server routes as the current pairing page, so the code, QR, session ID, Try again and refresh behaviour are the same. Pages that are not moved yet (marketplace, developers, docs, playground, community, about, terms, privacy) are normal links to the current pages.
+
+Not carried over on purpose in this stage: the sound button and the floating status pill of the current pairing page.
+
 ## Switch it off quickly
 
 If anything ever goes wrong with the new site, set the environment variable `NEXT_UI=off` and restart. `/next/` is gone and the current site is exactly as before. Deleting `web/dist` does the same.
