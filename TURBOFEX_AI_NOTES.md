@@ -475,3 +475,5 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Facts are in `web/src/lib/platform.ts`, checked against the bot project (bot v1.7.1: 322 member commands, 402 with owner-only, 13 categories; hosting: Termux, VPS with systemd or pm2, Docker, hosting panels, web-service hosts with Procfile and app.json, Windows or Mac). The owner has not tested panels or Docker himself: never write "tested on".
 - Hero pill = "v<bot version> · Open source" linking https://github.com/nels0nfx/TurboFex (owner approved).
 - Phase B was folded into this. Next: pairing page restyle, then store/docs/playground, Developer Centre, admin, support/legal, cutover. Nothing is switched to the live site without his approval.
+
+- v3.5.0 (2026-11-18): the new Pair page uses the v2 look (tf-h2/tf-silver heading, rounded-2xl Card, tf-cards for the safety points). Pairing logic untouched. Owner said "not satisfied, just continue" after v3.4.0 with no details: I continued with the planned next step (pairing restyle); ask him what he is unhappy with if he does not say.

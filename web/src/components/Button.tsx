@@ -15,7 +15,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(({ variant = 'primary
   <button
     ref={ref}
     type={type}
-    className={cn('inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50', styles[variant], className)}
+    className={cn('inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50', styles[variant], className)}
     {...p}
   />
 ));

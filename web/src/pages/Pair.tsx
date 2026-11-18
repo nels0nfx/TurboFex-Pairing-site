@@ -42,20 +42,20 @@ export default function Pair() {
   const step = s.phase === 'number' ? 1 : s.phase === 'wait' ? 2 : 3;
   return (
     <main id="main" className="mx-auto max-w-xl space-y-10 px-4 py-10 sm:py-14">
-      <header className="space-y-3">
-        <p className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-mute"><Lock size={12} />{secure() ? 'Secure connection' : 'Connection not secure'}</p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Connect your <span className="text-accent">WhatsApp</span></h1>
-        <p className="text-mute">Link your account to your TurboFex bot in seconds. You stay in control and can unlink any time.</p>
+      <header className="tf-stack">
+        <p className="tf-eyebrow inline-flex items-center gap-1.5"><Lock size={12} aria-hidden="true" />{secure() ? 'Secure connection' : 'Connection not secure'}</p>
+        <h1 className="tf-h2 tf-silver">Connect your WhatsApp</h1>
+        <p className="tf-lead max-w-md">Link your account to your TurboFex bot in seconds. You stay in control and can unlink any time.</p>
       </header>
 
       <Card className="space-y-6" id="connect">
         <Steps step={step} />
         {s.phase === 'number' && (
           <form onSubmit={onSubmit} noValidate className="space-y-5">
-            <div role="tablist" aria-label="Choose connection method" className="grid grid-cols-2 gap-1 rounded-lg border border-line bg-bg p-1">
+            <div role="tablist" aria-label="Choose connection method" className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-bg p-1">
               {(['code', 'qr'] as Method[]).map((m) => (
                 <button key={m} type="button" role="tab" aria-selected={s.method === m} disabled={s.submitting} onClick={() => setMethod(m)}
-                  className={cn('h-9 rounded-md text-sm transition', s.method === m ? 'bg-panel text-fg shadow' : 'text-mute hover:text-fg')}>{m === 'code' ? 'Pairing code' : 'QR code'}</button>
+                  className={cn('h-10 rounded-lg text-sm transition', s.method === m ? 'border border-white/10 bg-raise text-fg' : 'text-mute hover:text-fg')}>{m === 'code' ? 'Pairing code' : 'QR code'}</button>
               ))}
             </div>
             <p className="text-sm text-mute">{HINT[s.method]}</p>
@@ -71,11 +71,11 @@ export default function Pair() {
         {s.phase === 'done' && <DoneStep s={s} onAgain={reset} />}
       </Card>
 
-      <section aria-label="Why it is safe" className="grid gap-3 sm:grid-cols-3">
+      <ul aria-label="Why it is safe" className="tf-cards tf-cards--3" style={{ marginTop: 0 }}>
         {[['One-time session ID', 'Works once and expires in 5 minutes.'], ['Encrypted', 'Stored encrypted and removed after use.'], ['You can unlink', 'Remove it from Linked devices in WhatsApp.']].map(([t, d]) => (
-          <Card key={t} className="p-4"><p className="text-sm font-medium">{t}</p><p className="mt-1 text-xs text-mute">{d}</p></Card>
+          <li key={t} className="tf-card"><div><h3>{t}</h3><p>{d}</p></div></li>
         ))}
-      </section>
+      </ul>
       <Faq />
     </main>
   );

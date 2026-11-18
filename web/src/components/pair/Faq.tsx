@@ -28,14 +28,14 @@ export function Faq() {
   const g = groups.find((x) => x.id === tab)!;
   return (
     <section aria-labelledby="faq-h" className="space-y-4">
-      <h2 id="faq-h" className="text-xl font-semibold tracking-tight">Quick answers about linking</h2>
+      <h2 id="faq-h" className="tf-h3 tf-silver" style={{ textAlign: 'left' }}>Quick answers about linking</h2>
       <div role="tablist" className="flex gap-1 border-b border-line">
         {groups.map((x) => (
           <button key={x.id} role="tab" aria-selected={tab === x.id} onClick={() => { setTab(x.id); setOpen(null); }}
             className={cn('-mb-px border-b-2 px-4 py-2 text-sm', tab === x.id ? 'border-accent text-fg' : 'border-transparent text-mute hover:text-fg')}>{x.label}</button>
         ))}
       </div>
-      <div role="tabpanel" className="divide-y divide-line rounded-xl border border-line bg-panel">
+      <div role="tabpanel" className="divide-y divide-line rounded-2xl border border-line bg-panel">
         {g.items.map((it) => (
           <details key={it.q} open={open === it.q} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setOpen((cur) => (o ? it.q : cur === it.q ? null : cur)); }} className="group px-4 py-3">
             <summary className="cursor-pointer list-none font-medium marker:hidden">{it.q}</summary>
@@ -43,7 +43,7 @@ export function Faq() {
           </details>
         ))}
       </div>
-      <p className="text-sm text-mute">Still stuck? <a className="text-info underline" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Ask in the Telegram group.</a></p>
+      <p className="text-sm text-mute">Still stuck? <a className="text-info underline underline-offset-2" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Ask in the Telegram group.</a></p>
     </section>
   );
 }
