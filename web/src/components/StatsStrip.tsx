@@ -1,6 +1,8 @@
 import { CheckCircle2, Code2, Package, PauseCircle, Star } from 'lucide-react';
 import { useSiteStatus, useStore } from '@/lib/queries';
 import { IconTile } from './IconTile';
+import { Counter } from './fx/Counter';
+import { Glass } from './fx/Glass';
 import type { Tone } from './Badge';
 import type { LucideIcon } from 'lucide-react';
 
@@ -31,10 +33,10 @@ export function StatsStrip() {
   return (
     <ul aria-label="TurboFex in numbers" className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {tiles.map((t) => (
-        <li key={t.label} className="flex items-center gap-3 rounded-xl border border-line bg-panel p-4">
+        <li key={t.label}><Glass className="flex items-center gap-3 rounded-xl p-4">
           <IconTile icon={t.icon} tone={t.tone} />
-          <div><p className="text-lg font-semibold leading-tight text-fg">{t.value}</p><p className="text-xs text-mute">{t.label}</p></div>
-        </li>
+          <div><p className="text-lg font-semibold leading-tight text-fg">{typeof t.value === 'number' ? <Counter value={t.value} /> : t.value}</p><p className="text-xs text-mute">{t.label}</p></div>
+        </Glass></li>
       ))}
     </ul>
   );

@@ -19,7 +19,7 @@ export function Nav() {
   const [open, setOpen] = useState(false);
   const cls = 'rounded-md px-3 py-2 text-sm text-mute transition hover:text-fg';
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/55 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link to="/" aria-label="TurboFex home" className="flex items-center gap-2 font-semibold tracking-tight" onClick={() => setOpen(false)}>
           <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-gold text-xs font-bold text-bg">T</span>

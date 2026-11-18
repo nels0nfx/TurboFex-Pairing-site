@@ -1,7 +1,7 @@
 import { BadgeCheck, Star } from 'lucide-react';
 import type { StorePlugin } from '@/lib/api';
 import { Badge } from './Badge';
-import { Card } from './Card';
+import { Glass } from './fx/Glass';
 import { LEGACY } from '@/lib/links';
 
 // one plugin from the real store. It opens the plugin in the current marketplace for now.
@@ -9,7 +9,7 @@ export function PluginCard({ p }: { p: StorePlugin }) {
   const href = `${LEGACY.marketplace}#${encodeURIComponent(p.id)}`;
   return (
     <a href={href} aria-label={`${p.name}, version ${p.version}`} className="block h-full">
-      <Card className="h-full space-y-3 p-5 transition hover:border-gold/50">
+      <Glass className="h-full space-y-3 p-5 transition duration-300 hover:-translate-y-1 hover:border-gold/40">
         <div className="flex items-start gap-3">
           <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-gold/12 text-lg font-semibold text-gold">
             {p.docs?.icon ? <img src={`/api/plugin-icon?id=${encodeURIComponent(p.id)}&v=${encodeURIComponent(p.version)}`} alt="" width={48} height={48} loading="lazy" className="h-full w-full object-cover" /> : (p.name || '?').charAt(0).toUpperCase()}
@@ -27,7 +27,7 @@ export function PluginCard({ p }: { p: StorePlugin }) {
           {p.featured && <Badge tone="gold">Featured</Badge>}
           {p.rating && p.rating.count > 0 && <Badge tone="gold"><Star size={11} aria-hidden />{p.rating.avg.toFixed(1)} ({p.rating.count})</Badge>}
         </div>
-      </Card>
+      </Glass>
     </a>
   );
 }

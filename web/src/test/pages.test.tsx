@@ -74,7 +74,9 @@ describe('landing page: real data, nothing made up', () => {
     const strip = await screen.findByRole('list', { name: 'TurboFex in numbers' });
     await waitFor(() => expect(within(strip).getByText('Published plugins')).toBeInTheDocument());
     expect(within(strip).getByText('Online')).toBeInTheDocument();
-    expect(within(strip).getByText('Developers').previousSibling).toHaveTextContent('2');
+    // the numbers count up, so give the animation a moment
+    await waitFor(() => expect(within(strip).getByText('Developers').previousSibling).toHaveTextContent('2'), { timeout: 3000 });
+    await waitFor(() => expect(within(strip).getByText('Published plugins').previousSibling).toHaveTextContent('3'), { timeout: 3000 });
   });
   it('shows the maintenance notice and a dismissable announcement from the admin panel', async () => {
     status = { maintenance: { on: true, message: 'Back in ten minutes.' }, announcement: { id: 'a1', level: 'warning', text: 'New plugins today.' } };
@@ -90,6 +92,23 @@ describe('landing page: real data, nothing made up', () => {
     const logo = screen.getAllByRole('link', { name: 'TurboFex home' })[0];
     expect(logo).toHaveAttribute('href', '/');
     expect(logo.lastElementChild).toHaveTextContent(/^TurboFex$/);
+  });
+});
+
+describe('landing page: the premium look', () => {
+  it('has the example scene, labelled as an example, and the command strip with real commands', () => {
+    wrap('/');
+    expect(screen.getByRole('figure', { name: /Example of a TurboFex bot/ })).toBeInTheDocument();
+    expect(screen.getByText('Example')).toBeInTheDocument();
+    const strip = screen.getByRole('region', { name: 'A few commands in the bot' });
+    expect(within(strip).getAllByText('menu').length).toBeGreaterThan(0);
+    // the second copy of the endless strip is hidden from screen readers
+    expect(strip.querySelectorAll('li[aria-hidden="true"]').length).toBeGreaterThan(0);
+  });
+  it('shows what a plugin can do, with the real capabilities', () => {
+    wrap('/');
+    for (const t of ['Commands', 'Events', 'Pictures and files', 'Group tools', 'Options', 'Private storage']) expect(screen.getByRole('heading', { name: t })).toBeInTheDocument();
+    expect(screen.getByText('member.join')).toBeInTheDocument();
   });
 });
 

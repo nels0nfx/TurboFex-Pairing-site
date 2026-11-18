@@ -73,6 +73,10 @@ Black is the base. Panels are lighter graphite so pages have depth. All text is 
 
 The colours are defined once in `src/index.css`. The Design page (`/next/design`) shows them. Do not use a colour for a different meaning.
 
+## The glass look
+
+The landing page uses frosted-glass panels (`Glass`), a glowing grid backdrop, a 3D tilting card scene, hover lights that follow the finger or mouse, a slow strip of real commands and numbers that count up. They live in `src/components/fx`. On phones the 3D tilt is off and the cards float gently. If the phone is set to reduce motion, all animation stops.
+
 ## What is in the new site so far
 
 - Stage 0: foundation and design kit (`/next/design`)
