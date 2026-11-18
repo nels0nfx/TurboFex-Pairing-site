@@ -8,7 +8,7 @@ import { Tabs } from '@/components/Tabs';
 import { useToast } from '@/components/Toast';
 
 const MEANINGS: { tone: Tone; bg: string; name: string; use: string }[] = [
-  { tone: 'gold', bg: 'bg-gold', name: 'Gold', use: 'TurboFex itself: the logo, the main button of a screen, the current step, featured things.' },
+  { tone: 'accent', bg: 'bg-accent', name: 'Iris', use: 'TurboFex itself: the logo, glows, the current step, featured things. One colour, set in one place.' },
   { tone: 'ok', bg: 'bg-ok', name: 'Green', use: 'Safe, working, verified, finished: online, linked successfully, verified developer, signed.' },
   { tone: 'info', bg: 'bg-info', name: 'Blue', use: 'Learn and build: links, documentation, developer tools, information notices.' },
   { tone: 'warn', bg: 'bg-warn', name: 'Orange', use: 'Be careful: warnings, paused things, powerful permissions.' },
@@ -26,7 +26,7 @@ export default function Design() {
       </div>
       <section aria-labelledby="d-colours" className="space-y-3">
         <h2 id="d-colours" className="text-sm font-medium text-mute">Colour meanings</h2>
-        <p className="max-w-2xl text-sm text-mute">Black is the base. Surfaces are lighter graphite so pages have depth. Every colour below means one thing and keeps that meaning on every page.</p>
+        <p className="max-w-2xl text-sm text-mute">Near-black is the base. Surfaces are lighter graphite so pages have depth. Every colour below means one thing and keeps that meaning on every page.</p>
         <ul className="grid gap-3 sm:grid-cols-2">
           {MEANINGS.map((m) => (
             <li key={m.name}><Card className="flex gap-3 p-4"><span aria-hidden className={`mt-1 h-4 w-4 shrink-0 rounded-full ${m.bg}`} /><div><p className="flex items-center gap-2 font-medium text-fg">{m.name} <Badge tone={m.tone}>{m.name.toLowerCase()}</Badge></p><p className="mt-1 text-sm text-mute">{m.use}</p></div></Card></li>
@@ -48,7 +48,7 @@ export default function Design() {
           <Button disabled>Disabled</Button>
           <Button variant="outline" onClick={() => toast('This is a notice')}><Bell size={16} /> Show a notice</Button>
         </div>
-        <div className="flex flex-wrap gap-2"><Badge>neutral</Badge><Badge tone="gold">gold</Badge><Badge tone="ok">ok</Badge><Badge tone="info">info</Badge><Badge tone="warn">careful</Badge><Badge tone="bad">problem</Badge></div>
+        <div className="flex flex-wrap gap-2"><Badge>neutral</Badge><Badge tone="accent">accent</Badge><Badge tone="ok">ok</Badge><Badge tone="info">info</Badge><Badge tone="warn">careful</Badge><Badge tone="bad">problem</Badge></div>
       </section>
       <section aria-labelledby="d-forms" className="space-y-3">
         <h2 id="d-forms" className="text-sm font-medium text-mute">Input</h2>

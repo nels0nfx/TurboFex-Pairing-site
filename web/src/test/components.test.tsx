@@ -8,8 +8,6 @@ import { Tabs } from '@/components/Tabs';
 import { CodeBlock } from '@/components/CodeBlock';
 import { Input } from '@/components/Input';
 import { StatusPill } from '@/components/StatusPill';
-import { ThemeProvider } from '@/lib/theme';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/cn';
 import { ApiError, getJson } from '@/lib/api';
 import App from '@/App';
@@ -19,7 +17,7 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clea
 const wrap = (ui: React.ReactNode, path = '/') => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}><ThemeProvider><MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter></ThemeProvider></QueryClientProvider>,
+    <QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter></QueryClientProvider>,
   );
 };
 const mockFetch = (impl: () => Promise<Partial<Response>>) => vi.stubGlobal('fetch', vi.fn(impl));
@@ -77,14 +75,6 @@ describe('components', () => {
     await user.click(screen.getByRole('button', { name: 'Copy code' }));
     expect(await screen.findByText('Could not copy')).toBeInTheDocument();
   });
-  it('ThemeToggle switches the theme and remembers it', async () => {
-    render(<ThemeProvider><ThemeToggle /></ThemeProvider>);
-    const before = document.documentElement.getAttribute('data-theme');
-    await userEvent.click(screen.getByRole('button'));
-    const after = document.documentElement.getAttribute('data-theme');
-    expect(after).not.toBe(before);
-    expect(localStorage.getItem('tfx-theme')).toBe(after);
-  });
 });
 
 describe('status and pages', () => {
@@ -102,7 +92,7 @@ describe('status and pages', () => {
   it('the app shows Home, the design kit, and a calm not-found page', async () => {
     mockFetch(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, version: '3.1.0', sessionMinutes: 5 }) }));
     const a = wrap(<App />, '/');
-    expect(screen.getByRole('heading', { level: 1, name: /WhatsApp bot ecosystem/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /WhatsApp bots, built to extend/i })).toBeInTheDocument();
     a.unmount();
     const b = wrap(<App />, '/design');
     expect(screen.getByRole('heading', { name: 'Design kit' })).toBeInTheDocument();

@@ -3,9 +3,9 @@ import { cn } from '@/lib/cn';
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'ghost' | 'danger' };
 
-// primary (gold) = the main action of a screen; outline = other actions; danger (red) = removes or stops something
+// primary (silver-dark with an accent glow) = the main action of a screen; outline = other actions; danger (red) = removes or stops something
 const styles = {
-  primary: 'bg-gold text-bg hover:brightness-110 shadow-glow',
+  primary: 'border border-white/15 bg-gradient-to-b from-[#1b1b20] to-[#111114] text-fg shadow-glow hover:border-accent/60',
   outline: 'border border-line bg-raise/50 text-fg hover:border-mute',
   ghost: 'text-mute hover:text-fg',
   danger: 'border border-bad/50 bg-bad/10 text-bad hover:bg-bad/20',

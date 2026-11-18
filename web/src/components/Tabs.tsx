@@ -25,7 +25,7 @@ export function Tabs({ items }: { items: TabItem[] }) {
             tabIndex={active === t.id ? 0 : -1}
             onClick={() => setActive(t.id)}
             onKeyDown={(e) => onKey(e, i)}
-            className={cn('-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm transition', active === t.id ? 'border-gold text-fg' : 'border-transparent text-mute hover:text-fg')}
+            className={cn('-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm transition', active === t.id ? 'border-accent text-fg' : 'border-transparent text-mute hover:text-fg')}
           >
             {t.label}
           </button>

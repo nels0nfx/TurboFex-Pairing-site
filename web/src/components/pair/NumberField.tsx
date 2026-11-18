@@ -19,7 +19,7 @@ export function NumberField({ value, iso, error, disabled, onChange }: NumberFie
   return (
     <div className="space-y-2">
       <label htmlFor="number" className="text-sm font-medium">WhatsApp number</label>
-      <div className={cn('flex h-12 overflow-hidden rounded-lg border bg-bg', hint.tone === 'bad' || error ? 'border-bad' : hint.tone === 'ok' ? 'border-ok' : 'border-line focus-within:border-gold')}>
+      <div className={cn('flex h-12 overflow-hidden rounded-lg border bg-bg', hint.tone === 'bad' || error ? 'border-bad' : hint.tone === 'ok' ? 'border-ok' : 'border-line focus-within:border-accent')}>
         <button type="button" onClick={() => setOpen(true)} disabled={disabled} aria-haspopup="dialog" aria-expanded={open}
           aria-label={shown ? `Country: ${shown.name} +${shown.dial}. Change` : 'Choose country'}
           className="flex items-center gap-1.5 border-r border-line px-3 text-base disabled:opacity-60">

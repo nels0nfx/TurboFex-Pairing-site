@@ -44,7 +44,7 @@ export function WaitStep({ s, onRetry, onCancel }: { s: PairState; onRetry: () =
 
       {running && (
         <div className="space-y-1.5">
-          <div className="h-1 overflow-hidden rounded bg-line"><div className="h-full bg-gold transition-all" style={{ width: `${Math.min(100, (s.secondsLeft / MAX_SECONDS) * 100)}%` }} /></div>
+          <div className="h-1 overflow-hidden rounded bg-line"><div className="h-full bg-accent transition-all" style={{ width: `${Math.min(100, (s.secondsLeft / MAX_SECONDS) * 100)}%` }} /></div>
           <p className="text-xs text-mute">This attempt expires in {fmt(s.secondsLeft)}</p>
         </div>
       )}

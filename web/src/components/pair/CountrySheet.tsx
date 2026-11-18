@@ -28,14 +28,14 @@ export function CountrySheet({ open, selected, onPick, onClose }: { open: boolea
           <button onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-md text-mute hover:text-fg"><X size={16} /></button>
         </div>
         <div className="p-3">
-          <input ref={search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search country or code" aria-label="Search country or code" className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base focus:border-gold focus:outline-none" />
+          <input ref={search} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search country or code" aria-label="Search country or code" className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base focus:border-accent focus:outline-none" />
         </div>
         <ul role="listbox" aria-label="Countries" className="overflow-y-auto pb-[env(safe-area-inset-bottom)]">
           {list.map((c) => (
             <li key={c.iso} role="option" aria-selected={c.iso === selected} tabIndex={0}
               onClick={() => onPick(c.iso)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(c.iso); } }}
-              className={cn('flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-bg', c.iso === selected && 'bg-bg text-gold')}>
+              className={cn('flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-bg', c.iso === selected && 'bg-bg text-accent')}>
               <span className="text-xl">{flagOf(c.iso)}</span>
               <span className="flex-1">{c.name}</span>
               <span className="font-mono text-sm text-mute">+{c.dial}</span>

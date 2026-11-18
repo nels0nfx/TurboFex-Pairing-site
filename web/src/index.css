@@ -3,35 +3,28 @@
 @tailwind utilities;
 
 /* Colours are variables so the dark and light themes share one set of components. */
-:root, [data-theme='dark'] {
-  /* Black is the foundation. Raised surfaces are lighter graphite so the page has depth. */
-  --bg: 8 8 10; --panel: 19 19 23; --raise: 29 29 35; --line: 44 44 52;
+:root {
+  /* Near-black is the foundation. Raised surfaces are slightly lighter so the page has depth. */
+  --bg: 5 5 6; --panel: 11 11 13; --raise: 18 18 21; --line: 40 40 47;
   /* Silver text: bright for headings, softer for body, dim for small notes */
-  --fg: 236 238 242; --body: 196 199 208; --mute: 144 147 158;
-  /* Colours with one meaning each (see the Design page):
-     gold = TurboFex and the main action, green = safe / working / verified, blue = learn and build,
-     orange = careful, red = problem */
-  --gold: 229 184 74; --ok: 74 222 128; --info: 96 165 250; --warn: 251 146 60; --bad: 248 113 113;
+  --fg: 244 244 246; --body: 185 185 194; --mute: 138 138 149;
+  /* The ONE accent colour (iris violet). To change the colour of the whole site, change this single line (the other place is --tf-accent in ui.css).
+     Colours with one meaning each: accent = TurboFex and the main action, green = safe / working / verified,
+     blue = learn and build, orange = careful, red = problem */
+  --accent: 139 124 255; --ok: 52 211 153; --info: 56 189 248; --warn: 245 166 35; --bad: 248 113 113;
   --glass: 255 255 255; --glass-a: 0.05; --glass-line: 0.1;
   color-scheme: dark;
-}
-[data-theme='light'] {
-  --bg: 246 246 247; --panel: 255 255 255; --raise: 238 238 241; --line: 218 218 224;
-  --fg: 18 18 22; --body: 52 54 62; --mute: 105 108 118;
-  --gold: 168 122 10; --ok: 22 130 70; --info: 37 99 205; --warn: 194 90 10; --bad: 200 50 50;
-  --glass: 0 0 0; --glass-a: 0.04; --glass-line: 0.09;
-  color-scheme: light;
 }
 html { -webkit-text-size-adjust: 100%; }
 body {
   @apply bg-bg text-body font-sans antialiased;
   padding-bottom: env(safe-area-inset-bottom);
-  background-image: radial-gradient(60rem 26rem at 50% -8rem, rgb(var(--gold) / 0.09), transparent 70%), radial-gradient(40rem 24rem at 100% 30rem, rgb(var(--info) / 0.05), transparent 70%);
+  background-image: radial-gradient(60rem 26rem at 50% -10rem, rgb(var(--accent) / 0.07), transparent 70%);
   background-repeat: no-repeat;
 }
 h1, h2, h3, h4 { color: rgb(var(--fg)); }
-::selection { background: rgb(var(--gold) / 0.3); }
-:focus-visible { outline: 2px solid rgb(var(--gold)); outline-offset: 2px; }
+::selection { background: rgb(var(--accent) / 0.3); }
+:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; } }
 
 /* ---------- glass look (landing page) ---------- */
@@ -46,7 +39,7 @@ h1, h2, h3, h4 { color: rgb(var(--fg)); }
 /* a soft light that follows the finger or mouse (the position is set by the Glass component) */
 .spot::before {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .25s;
-  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgb(var(--gold) / 0.18), transparent 70%);
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgb(var(--accent) / 0.18), transparent 70%);
 }
 .spot:hover::before, .spot:active::before { opacity: 1; }
 .bg-grid {
@@ -55,17 +48,7 @@ h1, h2, h3, h4 { color: rgb(var(--fg)); }
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 25%, transparent 78%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 25%, transparent 78%);
 }
-.shimmer {
-  background: linear-gradient(100deg, rgb(var(--gold)) 15%, rgb(var(--fg)) 45%, rgb(var(--gold)) 75%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
-  animation: shimmer 7s ease-in-out infinite;
-}
-.fade-edges { -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-.marquee-track { display: flex; width: max-content; animation: marquee 38s linear infinite; }
-.marquee:hover .marquee-track { animation-play-state: paused; }
 .caret { animation: blink 1.1s steps(1) infinite; }
 .ring { animation: ring 2.4s ease-out infinite; }
-@keyframes shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes marquee { to { transform: translateX(-50%); } }
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes ring { 0% { transform: scale(.6); opacity: .7; } 100% { transform: scale(1.8); opacity: 0; } }

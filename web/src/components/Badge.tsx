@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 // One colour, one meaning, everywhere on the site
 export const TONES = {
   neutral: 'text-mute border-line bg-raise/60',
-  gold: 'text-gold border-gold/40 bg-gold/10',   // TurboFex, featured
+  accent: 'text-accent border-accent/40 bg-accent/10',   // TurboFex, featured
   ok: 'text-ok border-ok/40 bg-ok/10',            // safe, working, verified
   info: 'text-info border-info/40 bg-info/10',    // learn and build
   warn: 'text-warn border-warn/40 bg-warn/10',    // be careful

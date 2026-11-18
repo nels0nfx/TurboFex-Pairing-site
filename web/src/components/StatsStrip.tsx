@@ -18,7 +18,7 @@ export function StatsStrip() {
   if (status.data) tiles.push(paused ? { icon: PauseCircle, tone: 'warn', value: 'Paused', label: 'WhatsApp pairing' } : { icon: CheckCircle2, tone: 'ok', value: 'Online', label: 'WhatsApp pairing' });
   const list = store.data?.paused || !Array.isArray(store.data?.plugins) ? [] : store.data!.plugins;
   if (list.length) {
-    tiles.push({ icon: Package, tone: 'gold', value: list.length, label: list.length === 1 ? 'Published plugin' : 'Published plugins' });
+    tiles.push({ icon: Package, tone: 'accent', value: list.length, label: list.length === 1 ? 'Published plugin' : 'Published plugins' });
     const devs = new Set(list.map((p) => p.dev?.developer).filter(Boolean));
     if (devs.size) tiles.push({ icon: Code2, tone: 'info', value: devs.size, label: devs.size === 1 ? 'Developer' : 'Developers' });
     const installs = list.reduce((n, p) => n + (p.installs || 0), 0);
@@ -26,7 +26,7 @@ export function StatsStrip() {
     else {
       const rated = list.filter((p) => p.rating && p.rating.count);
       const count = rated.reduce((n, p) => n + p.rating!.count, 0);
-      if (count) tiles.push({ icon: Star, tone: 'gold', value: `${(rated.reduce((n, p) => n + p.rating!.avg * p.rating!.count, 0) / count).toFixed(1)} ★`, label: `Average rating (${count})` });
+      if (count) tiles.push({ icon: Star, tone: 'accent', value: `${(rated.reduce((n, p) => n + p.rating!.avg * p.rating!.count, 0) / count).toFixed(1)} ★`, label: `Average rating (${count})` });
     }
   }
   if (!tiles.length) return null;

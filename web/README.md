@@ -60,22 +60,22 @@ Render only serves the new site when `web/dist` exists on the server. Right now 
 
 ## Colours (one colour, one meaning)
 
-Black is the base. Panels are lighter graphite so pages have depth. All text is silver.
+Near-black is the base. Panels are slightly lighter so pages have depth. All text is silver. The site is dark only.
 
 | Colour | Means |
 | --- | --- |
-| Gold | TurboFex itself: logo, the main button of a screen, the current step, featured things |
+| Iris (violet) | TurboFex itself: logo, glows, the current step, featured things |
 | Green | Safe, working, verified, finished (online, linked, verified developer, signed) |
 | Blue | Learn and build (links, docs, developer tools, information notices) |
 | Orange | Be careful (warnings, paused, powerful permissions) |
 | Red | A problem or something that removes (errors, failed, delete) |
 | Silver | All text: bright for headings, softer for reading, dim for small notes |
 
-The colours are defined once in `src/index.css`. The Design page (`/next/design`) shows them. Do not use a colour for a different meaning.
+The accent colour is one value: `--accent` in `src/index.css` and `--tf-accent` in `src/ui.css`. Change those two lines to recolour the whole site. The other colours are defined in `src/index.css`. The Design page (`/next/design`) shows them. Do not use a colour for a different meaning.
 
-## The glass look
+## The look (design system v2)
 
-The landing page uses frosted-glass panels (`Glass`), a glowing grid backdrop, a 3D tilting card scene, hover lights that follow the finger or mouse, a slow strip of real commands and numbers that count up. They live in `src/components/fx`. On phones the 3D tilt is off and the cards float gently. If the phone is set to reduce motion, all animation stops.
+Near-black pages, silver gradient headlines in a serif display font (Instrument Serif), Inter for text, JetBrains Mono for code. All three fonts are installed from npm and served by the site itself (nothing is loaded from other websites). The 3D block in the top section is plain CSS (`src/components/home/Cube.tsx`, styles in `src/ui.css`), no 3D library. The code panel uses a tiny highlighter in `src/lib/highlight.ts`. The page is designed for phones first; the `@media` rules at the end of `src/ui.css` add the wider layouts. If the phone is set to reduce motion, the animation stops. Anything that is only a picture of how something works is marked "Example" or "Preview".
 
 ## What is in the new site so far
 
@@ -94,6 +94,6 @@ If anything ever goes wrong with the new site, set the environment variable `NEX
 
 - `src/pages` one file per page
 - `src/components` the building blocks (buttons, tabs, code boxes, and so on)
-- `src/lib` the API client, theme and helpers
+- `src/lib` the API client, code highlighter and helpers
 - `src/test` the tests
 - `scripts/smoke.mjs` the smoke check

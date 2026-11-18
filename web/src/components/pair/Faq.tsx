@@ -32,7 +32,7 @@ export function Faq() {
       <div role="tablist" className="flex gap-1 border-b border-line">
         {groups.map((x) => (
           <button key={x.id} role="tab" aria-selected={tab === x.id} onClick={() => { setTab(x.id); setOpen(null); }}
-            className={cn('-mb-px border-b-2 px-4 py-2 text-sm', tab === x.id ? 'border-gold text-fg' : 'border-transparent text-mute hover:text-fg')}>{x.label}</button>
+            className={cn('-mb-px border-b-2 px-4 py-2 text-sm', tab === x.id ? 'border-accent text-fg' : 'border-transparent text-mute hover:text-fg')}>{x.label}</button>
         ))}
       </div>
       <div role="tabpanel" className="divide-y divide-line rounded-xl border border-line bg-panel">

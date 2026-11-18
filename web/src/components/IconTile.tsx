@@ -4,7 +4,7 @@ import type { Tone } from './Badge';
 
 const tint: Record<Tone, string> = {
   neutral: 'bg-raise text-body',
-  gold: 'bg-gold/12 text-gold',
+  accent: 'bg-accent/12 text-accent',
   ok: 'bg-ok/12 text-ok',
   info: 'bg-info/12 text-info',
   warn: 'bg-warn/12 text-warn',

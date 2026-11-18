@@ -44,7 +44,7 @@ export default function Pair() {
     <main id="main" className="mx-auto max-w-xl space-y-10 px-4 py-10 sm:py-14">
       <header className="space-y-3">
         <p className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs text-mute"><Lock size={12} />{secure() ? 'Secure connection' : 'Connection not secure'}</p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Connect your <span className="text-gold">WhatsApp</span></h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Connect your <span className="text-accent">WhatsApp</span></h1>
         <p className="text-mute">Link your account to your TurboFex bot in seconds. You stay in control and can unlink any time.</p>
       </header>
 

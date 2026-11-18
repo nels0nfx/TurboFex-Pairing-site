@@ -32,7 +32,7 @@ export function DoneStep({ s, onAgain }: { s: PairState; onAgain: () => void }) 
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Your session ID</p>
-        <div aria-disabled={!id} className={cn('break-all rounded-lg border bg-bg p-4 text-center font-mono text-xl tracking-wide', id ? 'border-gold' : 'border-line text-mute')}>{id || word}</div>
+        <div aria-disabled={!id} className={cn('break-all rounded-lg border bg-bg p-4 text-center font-mono text-xl tracking-wide', id ? 'border-accent' : 'border-line text-mute')}>{id || word}</div>
         <p className={cn('text-sm', s.idState === 'live' ? (left <= 60 ? 'text-bad' : 'text-mute') : s.idState === 'used' ? 'text-ok' : 'text-bad')}>
           {s.idState === 'used' ? 'Used by your bot. It cannot be used again.' : s.idState === 'expired' ? 'This session ID has expired. Link again to get a new one.' : `Expires in ${fmt(left)}`}
         </p>

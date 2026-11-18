@@ -45,6 +45,9 @@ try {
     const want = a.endsWith('.js') ? 'javascript' : a.endsWith('.css') ? 'css' : '';
     check(r.status === 200 && type.includes(want) && /immutable/.test(r.headers.get('cache-control') || ''), `${a} is served with the right type and long cache`);
   }
+  // fonts are served by the site itself (the security policy allows only 'self')
+  const fonts = [...(await Promise.all(assets.filter((a) => a.endsWith('.css')).map(async (a) => (await (await get(a)).text()).match(/url\(([^)]+\.woff2)\)/g) || []))).flat()];
+  check(fonts.length >= 3, `the stylesheet points to ${fonts.length} self-hosted font files (woff2)`);
   // the new pairing page reads the country table from the same file the server uses
   r = await get('/countries.js');
   check(r.status === 200 && (await r.text()).includes('TFX_PHONE'), '/countries.js (shared country table) is served');

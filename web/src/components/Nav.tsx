@@ -1,10 +1,7 @@
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
-import { Button } from './Button';
 import { LEGACY } from '@/lib/links';
-import { cn } from '@/lib/cn';
 
 // Pages already in the new site are router links; the others are the current pages (plain links).
 const outside = [
@@ -15,35 +12,56 @@ const outside = [
   { href: LEGACY.community, label: 'Community' },
 ];
 
+function Mark() {
+  return (
+    <svg className="tf-logomark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="#111114" stroke="rgba(255,255,255,.18)" />
+      <path d="M7 7l5 5-5 5M12.5 7l5 5-5 5" stroke="rgb(var(--tf-accent))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const loc = useLocation();
+  useEffect(() => { setOpen(false); }, [loc.pathname]);
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   const cls = 'rounded-md px-3 py-2 text-sm text-mute transition hover:text-fg';
   return (
-    <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/55 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link to="/" aria-label="TurboFex home" className="flex items-center gap-2 font-semibold tracking-tight" onClick={() => setOpen(false)}>
-          <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-gold text-xs font-bold text-bg">T</span>
-          <span>Turbo<span className="text-gold">Fex</span></span>
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-          {outside.map((l) => <a key={l.href} href={l.href} className={cls}>{l.label}</a>)}
-          <NavLink to="/pair" className={({ isActive }) => cn(cls, isActive && 'text-fg')}>Pair</NavLink>
-          <ThemeToggle />
-          <Link to="/pair"><Button className="ml-2 h-9">Get started</Button></Link>
-        </nav>
-        <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle />
-          <button onClick={() => setOpen((o) => !o)} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} className="grid h-9 w-9 place-items-center rounded-lg border border-line text-mute">
-            {open ? <X size={16} /> : <Menu size={16} />}
-          </button>
+    <>
+      <header className="tf-nav" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="tf-navin">
+          <Link to="/" aria-label="TurboFex home" className="tf-logo"><Mark /><span>TurboFex</span></Link>
+          <nav className="tf-deskLinks" aria-label="Main">
+            {outside.map((l) => <a key={l.href} href={l.href} className={cls}>{l.label}</a>)}
+            <NavLink to="/pair" className={({ isActive }) => `${cls} ${isActive ? 'text-fg' : ''}`}>Pair</NavLink>
+            <Link to="/pair" className="tf-btn" style={{ height: '2.4rem', width: 'auto', padding: '0 1rem', marginLeft: '.6rem', fontSize: '.88rem', borderRadius: '.7rem' }}>Get started</Link>
+          </nav>
+          <button type="button" className="tf-burger" onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} aria-controls="tf-menu"><Menu size={18} /></button>
         </div>
-      </div>
+      </header>
       {open && (
-        <nav className="border-t border-line px-4 py-2 md:hidden" aria-label="Main mobile">
-          {outside.map((l) => <a key={l.href} href={l.href} className={cn(cls, 'block')}>{l.label}</a>)}
-          <NavLink to="/pair" onClick={() => setOpen(false)} className={({ isActive }) => cn(cls, 'block', isActive && 'text-fg')}>Pair WhatsApp</NavLink>
-        </nav>
+        <div className="tf-menu" id="tf-menu" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="tf-navin" style={{ padding: 0, flex: 'none' }}>
+            <Link to="/" aria-label="TurboFex home" className="tf-logo" onClick={() => setOpen(false)}><Mark /><span>TurboFex</span></Link>
+            <button type="button" className="tf-burger" onClick={() => setOpen(false)} aria-label="Close menu"><X size={18} /></button>
+          </div>
+          <nav aria-label="Main mobile" style={{ marginTop: '1rem' }}>
+            <Link to="/pair" className="big" onClick={() => setOpen(false)}>Pair WhatsApp</Link>
+            {outside.map((l) => <a key={l.href} href={l.href} className="big">{l.label}</a>)}
+          </nav>
+          <Link to="/pair" className="tf-btn" style={{ marginTop: 'auto' }} onClick={() => setOpen(false)}>Get started</Link>
+        </div>
       )}
-    </header>
+    </>
   );
 }

@@ -3,12 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, vi } from 'vitest';
-import { ThemeProvider } from '@/lib/theme';
 import App from '@/App';
 
 const wrap = (path: string) => render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <ThemeProvider><MemoryRouter initialEntries={[path]}><App /></MemoryRouter></ThemeProvider>
+    <MemoryRouter initialEntries={[path]}><App /></MemoryRouter>
   </QueryClientProvider>,
 );
 
@@ -33,7 +32,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe('landing page', () => {
   it('has the real headline, the pair button, and normal links to the pages not moved yet', () => {
     wrap('/');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('The ultimate WhatsApp bot ecosystem');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('WhatsApp bots, built to extend');
     expect(screen.getAllByRole('link', { name: /get started/i })[0]).toHaveAttribute('href', '/pair');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/plugins');
@@ -95,20 +94,54 @@ describe('landing page: real data, nothing made up', () => {
   });
 });
 
-describe('landing page: the premium look', () => {
-  it('has the example scene, labelled as an example, and the command strip with real commands', () => {
+describe('landing page: the new look (Phase A)', () => {
+  it('has the 3D hero object, hidden from screen readers, and a full-width main button plus a docs link', () => {
     wrap('/');
-    expect(screen.getByRole('figure', { name: /Example of a TurboFex bot/ })).toBeInTheDocument();
-    expect(screen.getByText('Example')).toBeInTheDocument();
-    const strip = screen.getByRole('region', { name: 'A few commands in the bot' });
-    expect(within(strip).getAllByText('menu').length).toBeGreaterThan(0);
-    // the second copy of the endless strip is hidden from screen readers
-    expect(strip.querySelectorAll('li[aria-hidden="true"]').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('hero-cube')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('link', { name: /browse the plugin marketplace/i })).toHaveAttribute('href', '/plugins');
+    expect(screen.getByRole('link', { name: /documentation/i })).toHaveAttribute('href', '/plugin-guide');
   });
-  it('shows what a plugin can do, with the real capabilities', () => {
+  it('"Works with" lists only the real things, no company logos', () => {
     wrap('/');
-    for (const t of ['Commands', 'Events', 'Pictures and files', 'Group tools', 'Options', 'Private storage']) expect(screen.getByRole('heading', { name: t })).toBeInTheDocument();
-    expect(screen.getByText('member.join')).toBeInTheDocument();
+    const sec = screen.getByRole('region', { name: 'Works with' });
+    for (const n of ['WhatsApp', 'GitHub', 'JavaScript plugins', 'Signed store']) expect(within(sec).getByText(n)).toBeInTheDocument();
+    expect(sec.querySelectorAll('img').length).toBe(0);
+  });
+  it('"Link in a minute" changes with the chosen way to link', async () => {
+    const user = userEvent.setup();
+    wrap('/');
+    expect(screen.getByText(/Link with a pairing code/)).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'QR code' }));
+    expect(screen.getByText(/Link with a QR code/)).toBeInTheDocument();
+  });
+  it('the code panel shows the real plugin example with line numbers and switches files', async () => {
+    const user = userEvent.setup();
+    wrap('/');
+    const panel = screen.getByRole('tabpanel', { name: 'index.js example' });
+    expect(panel).toHaveTextContent("tfx.command('hello'");
+    expect(panel.querySelectorAll('.tf-ln').length).toBe(5);
+    await user.click(screen.getByRole('tab', { name: /turbofex-plugin\.json/ }));
+    expect(screen.getByRole('tabpanel', { name: 'turbofex-plugin.json example' })).toHaveTextContent('"id": "hello-plugin"');
+  });
+  it('test mode is clearly labelled as an example and links to the real Playground', async () => {
+    const user = userEvent.setup();
+    wrap('/');
+    const fig = screen.getByRole('figure', { name: /Example output of the plugin test tool/ });
+    expect(within(fig).getByText('Example')).toBeInTheDocument();
+    expect(within(fig).getByText('not a live run')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open the playground/i })).toHaveAttribute('href', '/playground');
+    await user.click(screen.getByRole('tab', { name: 'Member joins' }));
+    expect(within(fig).getByText(/--event member\.join/)).toBeInTheDocument();
+    expect(screen.getAllByText('Preview').length).toBeGreaterThan(0);
+  });
+  it('the mobile menu opens as a full-screen dialog and closes again', async () => {
+    const user = userEvent.setup();
+    wrap('/');
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+    const menu = screen.getByRole('dialog', { name: 'Menu' });
+    expect(within(menu).getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/plugins');
+    await user.click(within(menu).getByRole('button', { name: 'Close menu' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

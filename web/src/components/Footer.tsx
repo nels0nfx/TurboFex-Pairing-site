@@ -15,7 +15,7 @@ export function Footer() {
     <footer className="mt-24 border-t border-line">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 md:grid-cols-5">
         <div className="md:col-span-1">
-          <p className="font-semibold text-fg">Turbo<span className="text-gold">Fex</span></p>
+          <p className="font-semibold text-fg">Turbo<span className="text-accent">Fex</span></p>
           <p className="mt-2 text-sm text-mute">The WhatsApp bot ecosystem: pairing, plugins and a developer community.</p>
         </div>
         {cols.map((c) => (
