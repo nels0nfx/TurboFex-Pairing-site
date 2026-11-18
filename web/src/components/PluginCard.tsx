@@ -11,7 +11,7 @@ export function PluginCard({ p }: { p: StorePlugin }) {
     <a href={href} aria-label={`${p.name}, version ${p.version}`} className="block h-full">
       <Glass className="h-full space-y-3 p-5 transition duration-300 hover:-translate-y-1 hover:border-accent/40">
         <div className="flex items-start gap-3">
-          <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-accent/12 text-lg font-semibold text-accent">
+          <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-accent/[0.12] text-lg font-semibold text-accent">
             {p.docs?.icon ? <img src={`/api/plugin-icon?id=${encodeURIComponent(p.id)}&v=${encodeURIComponent(p.version)}`} alt="" width={48} height={48} loading="lazy" className="h-full w-full object-cover" /> : (p.name || '?').charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0">

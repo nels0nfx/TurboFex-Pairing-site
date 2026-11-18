@@ -4,11 +4,11 @@ import type { Tone } from './Badge';
 
 const tint: Record<Tone, string> = {
   neutral: 'bg-raise text-body',
-  accent: 'bg-accent/12 text-accent',
-  ok: 'bg-ok/12 text-ok',
-  info: 'bg-info/12 text-info',
-  warn: 'bg-warn/12 text-warn',
-  bad: 'bg-bad/12 text-bad',
+  accent: 'bg-accent/[0.12] text-accent',
+  ok: 'bg-ok/[0.12] text-ok',
+  info: 'bg-info/[0.12] text-info',
+  warn: 'bg-warn/[0.12] text-warn',
+  bad: 'bg-bad/[0.12] text-bad',
 };
 
 // a small tinted square with an icon; the colour tells what kind of thing it is

@@ -25,7 +25,7 @@ function Featured() {
   else if (isError) body = <Glass className="p-5">The plugin list cannot be loaded right now.</Glass>;
   else if (data?.paused) body = <Glass className="p-5">The store is paused for a moment. Please check back soon.</Glass>;
   else if (!list.length) body = <Glass className="p-5">No plugins are published yet. Approved plugins appear here.</Glass>;
-  else body = <><div className="grid gap-3 md:grid-cols-3">{list.map((p) => <PluginCard key={p.id} p={p} />)}</div>{!anyFeatured && <p className="mt-3 text-sm text-mute">Showing the latest published plugins.</p>}</>;
+  else body = <><div className="grid gap-3 md:grid-cols-3">{list.map((p) => <PluginCard key={p.id} p={p} />)}</div>{!anyFeatured && <p className="mt-4 text-center text-sm text-mute">Showing the latest published plugins.</p>}</>;
   return (
     <section aria-labelledby="featured-h" className="tf-wrap tf-section">
       <div className="tf-stack mb-8">
