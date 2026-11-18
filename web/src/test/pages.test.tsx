@@ -12,12 +12,17 @@ const wrap = (path: string) => render(
   </QueryClientProvider>,
 );
 
+let plugins: unknown = { total: 0, plugins: [] };
+let status: unknown = { maintenance: { on: false, message: '' }, announcement: null };
 let job: Record<string, unknown> = { state: 'code', code: 'ABCD-EFGH', secondsLeft: 200 };
 beforeEach(() => {
   job = { state: 'code', code: 'ABCD-EFGH', secondsLeft: 200 };
+  plugins = { total: 0, plugins: [] }; status = { maintenance: { on: false, message: '' }, announcement: null };
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response;
     if (url === '/health') return ok({ ok: true, version: '3.2.0', sessionMinutes: 5 });
+    if (url === '/api/plugins') return ok(plugins);
+    if (url === '/api/status') return ok(status);
     if (url === '/api/pair') return ok({ job: 'job-1234' });
     if (url.startsWith('/api/job/')) return ok(job);
     return ok({ ok: true });
@@ -45,6 +50,46 @@ describe('landing page', () => {
   it('the status badge shows the real version', async () => {
     wrap('/');
     expect(await screen.findByText(/online · v3\.2\.0/)).toBeInTheDocument();
+  });
+});
+
+describe('landing page: real data, nothing made up', () => {
+  const store = (n: number, extra: Record<string, unknown> = {}) => ({ total: n, plugins: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `Plugin ${i}`, version: '1.0.0', description: `Does thing ${i}`, dev: { developer: i % 2 ? 'ada' : 'bola', verified: i === 0 }, ...extra })) });
+  it('shows up to three plugins from the store, featured first, linking to the marketplace', async () => {
+    plugins = { total: 4, plugins: [...store(3).plugins, { id: 'star', name: 'Star Plugin', version: '2.0.0', description: 'Shiny', featured: true, rating: { avg: 4.5, count: 2 } }] };
+    wrap('/');
+    const card = await screen.findByRole('link', { name: 'Star Plugin, version 2.0.0' });
+    expect(card).toHaveAttribute('href', '/plugins#star');
+    expect(within(card).getByText('Featured')).toBeInTheDocument();
+    expect(within(card).getByText(/4\.5 \(2\)/)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /version/ })).toHaveLength(3);
+  });
+  it('says so when there are no plugins, when the store is paused, and when it cannot load', async () => {
+    wrap('/');
+    expect(await screen.findByText(/No plugins are published yet/)).toBeInTheDocument();
+  });
+  it('the numbers come from the server: online, plugin count, developer count', async () => {
+    plugins = store(3);
+    wrap('/');
+    const strip = await screen.findByRole('list', { name: 'TurboFex in numbers' });
+    await waitFor(() => expect(within(strip).getByText('Published plugins')).toBeInTheDocument());
+    expect(within(strip).getByText('Online')).toBeInTheDocument();
+    expect(within(strip).getByText('Developers').previousSibling).toHaveTextContent('2');
+  });
+  it('shows the maintenance notice and a dismissable announcement from the admin panel', async () => {
+    status = { maintenance: { on: true, message: 'Back in ten minutes.' }, announcement: { id: 'a1', level: 'warning', text: 'New plugins today.' } };
+    wrap('/');
+    expect(await screen.findByText('Back in ten minutes.')).toBeInTheDocument();
+    expect(await screen.findByText('New plugins today.')).toBeInTheDocument();
+    expect(screen.getByText('Paused')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText('New plugins today.')).toBeNull();
+  });
+  it('the logo is one word, TurboFex, and the link has a clear name', () => {
+    wrap('/');
+    const logo = screen.getAllByRole('link', { name: 'TurboFex home' })[0];
+    expect(logo).toHaveAttribute('href', '/');
+    expect(logo.lastElementChild).toHaveTextContent(/^TurboFex$/);
   });
 });
 

@@ -28,6 +28,23 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+export interface SiteStatus {
+  maintenance: { on: boolean; message: string };
+  announcement: { id: string; level: 'info' | 'warning' | 'critical' | string; text: string } | null;
+}
+
+// the fields of a store plugin that the new pages use (the server sends more)
+export interface StorePlugin {
+  id: string; name: string; version: string; description: string;
+  featured?: boolean; installs?: number;
+  docs?: { icon?: boolean } | null;
+  dev?: { developer?: string; verified?: boolean } | null;
+  rating?: { avg: number; count: number } | null;
+}
+export interface StoreList { paused?: boolean; total?: number; plugins: StorePlugin[] }
+
 export const api = {
   health: () => getJson<Health>('/health'),
+  status: () => getJson<SiteStatus>('/api/status', { cache: 'no-store' }),
+  plugins: () => getJson<StoreList>('/api/plugins'),
 };

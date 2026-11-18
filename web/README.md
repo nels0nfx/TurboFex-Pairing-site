@@ -58,10 +58,25 @@ git push
 
 Render only serves the new site when `web/dist` exists on the server. Right now Render's build command is only `npm install`, so the live site does not have a build and `/next/` stays off. That is on purpose. A later stage will change the build command, and it will be announced first.
 
+## Colours (one colour, one meaning)
+
+Black is the base. Panels are lighter graphite so pages have depth. All text is silver.
+
+| Colour | Means |
+| --- | --- |
+| Gold | TurboFex itself: logo, the main button of a screen, the current step, featured things |
+| Green | Safe, working, verified, finished (online, linked, verified developer, signed) |
+| Blue | Learn and build (links, docs, developer tools, information notices) |
+| Orange | Be careful (warnings, paused, powerful permissions) |
+| Red | A problem or something that removes (errors, failed, delete) |
+| Silver | All text: bright for headings, softer for reading, dim for small notes |
+
+The colours are defined once in `src/index.css`. The Design page (`/next/design`) shows them. Do not use a colour for a different meaning.
+
 ## What is in the new site so far
 
 - Stage 0: foundation and design kit (`/next/design`)
-- Stage 1: landing page (`/next/`) and the pairing page (`/next/pair`)
+- Stage 1: landing page (`/next/`) and the pairing page (`/next/pair`). The landing page shows real data only: featured plugins and the numbers come from the same server routes as the current landing page, and the admin announcement and maintenance notice show on every page.
 
 The pairing page talks to the same server routes as the current pairing page, so the code, QR, session ID, Try again and refresh behaviour are the same. Pages that are not moved yet (marketplace, developers, docs, playground, community, about, terms, privacy) are normal links to the current pages.
 

@@ -21,9 +21,9 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight" onClick={() => setOpen(false)}>
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-gold text-xs font-bold text-bg">T</span>
-          Turbo<span className="text-gold">Fex</span>
+        <Link to="/" aria-label="TurboFex home" className="flex items-center gap-2 font-semibold tracking-tight" onClick={() => setOpen(false)}>
+          <span aria-hidden className="grid h-6 w-6 place-items-center rounded-md bg-gold text-xs font-bold text-bg">T</span>
+          <span>Turbo<span className="text-gold">Fex</span></span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
           {outside.map((l) => <a key={l.href} href={l.href} className={cls}>{l.label}</a>)}

@@ -43,7 +43,7 @@ export function Faq() {
           </details>
         ))}
       </div>
-      <p className="text-sm text-mute">Still stuck? <a className="text-gold underline" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Ask in the Telegram group.</a></p>
+      <p className="text-sm text-mute">Still stuck? <a className="text-info underline" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer">Ask in the Telegram group.</a></p>
     </section>
   );
 }
