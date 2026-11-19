@@ -1,0 +1,19 @@
+/* Status page only (v3.8.0). Loaded after tf2.css. */
+.srow { display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 62px; }
+.srow + .srow { border-top: 1px solid var(--line); }
+.srow .tx { flex: 1; min-width: 0; }
+.srow b { display: block; color: var(--t); font-weight: 500; }
+.srow .d { display: block; color: var(--m); font-size: 13px; line-height: 1.4; margin-top: 1px; }
+.srow .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--d); }
+.srow .val { flex: none; font-family: var(--mono); font-size: 12px; color: var(--b); text-align: right; }
+.srow[data-state="ok"] .dot { background: rgb(var(--ok)); } .srow[data-state="ok"] .val { color: rgb(var(--ok)); }
+.srow[data-state="paused"] .dot { background: rgb(var(--warn)); } .srow[data-state="paused"] .val { color: rgb(var(--warn)); }
+.srow[data-state="down"] .dot { background: rgb(var(--bad)); } .srow[data-state="down"] .val { color: rgb(var(--bad)); }
+.srow.plain { min-height: 52px; }
+.notice-card { margin-top: 12px; padding: 12px 14px; border: 1px solid rgb(var(--acc) / .35); border-radius: var(--rc); background: rgb(var(--acc) / .08); font-size: 14px; color: var(--t); }
+.notice-card.maint { border-color: rgb(var(--warn) / .4); background: rgb(var(--warn) / .08); }
+.sbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.sbar .d { font-size: 13px; color: var(--m); }
+.sbar .btn { width: auto; height: 40px; padding: 0 16px; font-size: 14px; flex: none; }
+code.k { font-family: var(--mono); font-size: 12px; color: var(--b); }
+a.tl { color: var(--t); text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 3px; }

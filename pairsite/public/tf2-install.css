@@ -1,0 +1,30 @@
+/* Install page only (v3.8.0): warning, steps, run-it-here tabs and code. Loaded after tf2.css. */
+.warnbox { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--r); border: 1px solid rgb(var(--warn) / .4); background: rgb(var(--warn) / .07); }
+.warnbox svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: rgb(var(--warn)); }
+.warnbox b { display: block; color: var(--t); font-weight: 500; }
+.warnbox p { font-size: 14px; margin-top: 3px; }
+.steps li { display: flex; gap: 14px; padding: 15px 16px; }
+.steps li + li { border-top: 1px solid var(--line); }
+.num { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgb(var(--acc) / .5); color: rgb(var(--acc)); font-family: var(--mono); font-size: 12px; display: grid; place-items: center; margin-top: 1px; }
+.steps .tx { flex: 1; min-width: 0; }
+.steps b { color: var(--t); font-weight: 500; display: block; }
+.steps p { font-size: 14px; color: var(--m); margin-top: 2px; }
+.steps .btns { margin-top: 12px; }
+.steps .btns { flex-wrap: wrap; }
+.steps .btn { height: 42px; font-size: 14px; flex: 1 1 auto; white-space: nowrap; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tabs button { height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--m); cursor: pointer; font-size: 14px; }
+.tabs button[aria-selected="true"] { background: rgba(255, 255, 255, .07); color: var(--t); border-color: var(--line2); }
+.code { margin-top: 12px; border: 1px solid var(--line2); border-radius: var(--r); background: #08080a; overflow: hidden; }
+.code[hidden] { display: none; }
+.code .bar2 { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--m); }
+.code .cb { display: inline-flex; gap: 6px; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--b); font-size: 12px; cursor: pointer; }
+.code .cb svg { width: 14px; height: 14px; }
+.code pre { margin: 0; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; line-height: 1.8; color: #d4d4dc; }
+.code pre .ln::before { content: "$ "; color: var(--d); user-select: none; }
+.code pre.plain .ln::before { content: none; }
+.code .cap { padding: 0 16px 14px; font-size: 13px; color: var(--m); }
+.olist { padding: 14px 16px 4px; }
+.olist li { display: flex; gap: 10px; margin-bottom: 10px; font-size: 14px; color: var(--b); }
+.olist li i { font-style: normal; color: var(--d); font-family: var(--mono); font-size: 12px; margin-top: 2px; }
+

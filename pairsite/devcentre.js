@@ -90,6 +90,25 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     if (cloud && cloud.pushKv) cloud.pushKv('dc:collections', rec);
     return { status: 200, ok: true, collections };
   }
+  // preinstalled plugins: the owner marks a published plugin so every bot gets it by itself. Two modes: 'activate' (installed and switched on)
+  // or 'install' (installed, listed in the bot, the bot owner switches it on). A plugin that is not in this list is never pushed to bots.
+  const PRE_MODES = ['install', 'activate'];
+  const cleanPre = (o) => { const out = {}; for (const [k, v] of Object.entries(o && typeof o === 'object' ? o : {})) if (reCid.test(k) && PRE_MODES.includes(v)) out[k] = v; return out; };
+  let preinstall = {};
+  try { preinstall = cleanPre(JSON.parse(fs.readFileSync(path.join(dir, 'preinstall.json'), 'utf8')).map); } catch (err) { /* none yet */ }
+  const isPublished = (id) => [...subs.values()].some((s) => s.status === 'published' && s.manifest && s.manifest.id === id);
+  function setPreinstall(id, mode) {
+    id = String(id || '').trim().toLowerCase(); mode = String(mode || '');
+    if (!reCid.test(id)) return { status: 400, error: 'Bad plugin id.' };
+    if (mode !== 'off' && !PRE_MODES.includes(mode)) return { status: 400, error: 'Choose off, install only, or install and activate.' };
+    if (mode !== 'off' && !isPublished(id)) return { status: 400, error: 'Only a published plugin can be preinstalled.' };
+    const next = { ...preinstall }; if (mode === 'off') delete next[id]; else next[id] = mode;
+    if (Object.keys(next).length > 30) return { status: 400, error: 'Up to 30 preinstalled plugins.' };
+    preinstall = cleanPre(next); const rec = { map: preinstall, at: now() }, f = path.join(dir, 'preinstall.json'), tmp = f + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 }); fs.renameSync(tmp, f);
+    if (cloud && cloud.pushKv) cloud.pushKv('dc:preinstall', rec);
+    return { status: 200, ok: true, preinstall };
+  }
   // invite-only beta: while on, only the GitHub usernames on the list can send plugins (everyone can still sign in, rate and report)
   let invites = { on: false, logins: [] };
   try { const f = JSON.parse(fs.readFileSync(path.join(dir, 'invites.json'), 'utf8')); invites = { on: f.on === true, logins: (Array.isArray(f.logins) ? f.logins : []).filter((x) => /^[a-z0-9-]{1,39}$/.test(x)).slice(0, 200) }; } catch (err) { /* open to everyone */ }
@@ -317,7 +336,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
   const adminRow = (s) => { const d = devs.get(String(s.githubId)); return { id: s.id, pluginId: s.manifest.id, version: s.manifest.version, name: s.manifest.name, status: s.status, updateOf: updateOf(s), risk: s.risk, flags: s.flags.length, login: s.login, verified: !!(d && d.verified), createdAt: s.createdAt, permissions: s.manifest.permissions, revoke: s.revoke ? { reason: s.revoke.reason, at: s.revoke.at, done: !!s.revoke.done } : null }; };
   const order = { pending: 0, changes: 1, approved: 2, published: 3, revoked: 4, rejected: 5, withdrawn: 6 };
-  const adminList = () => ({ paused, invites, collections, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, autoOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
+  const adminList = () => ({ paused, invites, collections, preinstall, submissions: [...subs.values()].sort((a, b) => (order[a.status] - order[b.status]) || (b.createdAt - a.createdAt)).slice(0, 300).map(adminRow), configured, pullOn, autoOn, counts: Object.fromEntries(Object.keys(order).map((k) => [k, [...subs.values()].filter((s) => s.status === k).length])) });
   // what changed since the last version the owner accepted (line by line, with 2 lines of context); never fails the page
   function lineDiff(a, b) {
     const x = a.split('\n'), y = b.split('\n');
@@ -339,12 +358,25 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     const pp = prev.manifest.permissions || [], cp = s.manifest.permissions || [], pd = (prev.manifest.network && prev.manifest.network.domains) || prev.manifest.domains || [], cd = (s.manifest.network && s.manifest.network.domains) || s.manifest.domains || [];
     return { version: prev.manifest.version, status: prev.status, permsAdded: cp.filter((x) => !pp.includes(x)), permsRemoved: pp.filter((x) => !cp.includes(x)), domainsAdded: cd.filter((x) => !pd.includes(x)), code: lineDiff(String(prev.entrySource || ''), String(s.entrySource || '')), manifest: lineDiff(String(prev.manifestRaw || ''), String(s.manifestRaw || '')) };
   }
+  // what this plugin shares with the plugins that are already live: the same command name (the bot refuses the second one) and the same event
+  function overlapsOf(s) {
+    const live = [...subs.values()].filter((o) => o.manifest.id !== s.manifest.id && ['approved', 'published'].includes(o.status));
+    const seen = new Set(); const out = [];
+    const mineCmds = new Set(((s.manifest && s.manifest.commands) || []).map((c) => c.name));
+    for (const o of live.sort((a, b) => b.createdAt - a.createdAt)) {
+      if (seen.has(o.manifest.id)) continue; seen.add(o.manifest.id);
+      const same = ((o.manifest.commands) || []).map((c) => c.name).filter((n) => mineCmds.has(n));
+      if (same.length) out.push({ kind: 'command', plugin: o.manifest.name, text: 'uses the same command name' + (same.length > 1 ? 's' : '') + ': ' + same.map((n) => '.' + n).join(', ') + '. The bot refuses to install both on one bot.' });
+      for (const e of (s.manifest.events || [])) if ((o.manifest.events || []).includes(e)) out.push({ kind: 'event', plugin: o.manifest.name, text: 'also reacts to "' + e + '", so both may answer at once.' });
+    }
+    return out;
+  }
   function adminGet(id) {
     const s = subs.get(String(id)); if (!s) return null;
     const d = devs.get(String(s.githubId));
-    return { ...adminRow(s), autoOn, icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })) };
+    return { ...adminRow(s), autoOn, icon: s.icon ? 'data:image/png;base64,' + s.icon : undefined, shots: (s.shots || []).map((x) => 'data:image/png;base64,' + x), replies: (s.replies || []).map((r) => ({ text: r.text, at: r.at })), featured: featured.has(s.pluginId), repo: s.repo, tag: s.tag, folder: s.folder, manifest: s.manifest, manifestRaw: s.manifestRaw, entrySource: s.entrySource, readme: s.readme || '', changelog: s.changelog || '', manifestSha: s.manifestSha, entrySha: s.entrySha, flagList: s.flags, note: s.note, reviewedBy: s.reviewedBy, reviewedAt: s.reviewedAt || 0, dev: d ? { githubId: d.githubId, login: d.login, verified: !!d.verified, blocked: !!d.blocked, firstSeen: d.firstSeen } : null, changes: (() => { try { return changesSince(s); } catch (err) { return null; } })(), otherVersions: [...subs.values()].filter((x) => x.manifest.id === s.manifest.id && x.id !== s.id).map((x) => ({ id: x.id, version: x.manifest.version, status: x.status })), overlaps: overlapsOf(s), checked: s.checked || null };
   }
-  function adminReview(id, decision, note, by) {
+  function adminReview(id, decision, note, by, checks) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
     note = String(note || '').trim().slice(0, 400);
     if (decision === 'approve') {
@@ -352,6 +384,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
       const c = checkPlugin(s.manifestRaw, s.entrySource);   // the stored copy is checked again, so nothing changes between sending and approving
       if (!c.ok || c.entrySha !== s.entrySha || c.manifestSha !== s.manifestSha) return { status: 400, error: 'The stored plugin no longer passes the check.' };
       for (const o of subs.values()) if (o.id !== s.id && o.manifest.id === s.manifest.id && o.githubId !== s.githubId && ['approved', 'published', 'revoked'].includes(o.status)) return { status: 409, error: 'Another developer already owns this plugin id.' };
+      if (Array.isArray(checks) && checks.length) s.checked = { list: checks.slice(0, 10).map((x) => String(x).slice(0, 20)), at: now(), by: String(by || '').slice(0, 40) };   // what the owner ticked before approving
       s.status = 'approved';
       if (autoOn) { s.status = 'published'; s.publishedAt = now(); }   // the site signs the store itself
     } else if (decision === 'reject') {
@@ -366,7 +399,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     s.note = note; s.reviewedBy = String(by || '').slice(0, 40); s.reviewedAt = now(); s.updatedAt = now(); save('sub', s);
     return { status: 200, ok: true };
   }
-  // withdraw a published plugin: the site hides it at once and the phone command signs the withdrawal (bots switch it off after that)
+  // withdraw a published plugin: the site hides it at once and the phone command signs the withdrawal (bots remove it after that)
   function adminRevoke(id, reason, by) {
     const s = subs.get(String(id)); if (!s) return { status: 404, error: 'Not found.' };
     reason = String(reason || '').trim().slice(0, 200);
@@ -480,7 +513,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
   }
 
   // everything this module keeps, as one file the owner can save (the free Supabase plan has no backups). No passwords or tokens exist in these records.
-  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], collections, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
+  const exportAll = () => ({ format: 'turbofex-devcentre-backup-1', at: now(), paused, invites, featured: [...featured], collections, preinstall, developers: [...devs.values()], submissions: [...subs.values()], ratings: [...ratings.values()], reports: [...reports.values()] });
 
   // what the public Plugins page may show about a published plugin: who sent it, whether you verified them, and where the code is
   function publicInfo(pluginId, version) {
@@ -508,11 +541,11 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
 
   // ---------- the signed store, made and signed here (only when REGISTRY_SIGNING_KEY is set) ----------
   let regCache = null;
-  const regPrint = () => JSON.stringify([[...subs.values()].filter((s) => s.status === 'published' || s.status === 'revoked').map((s) => [s.id, s.status, s.manifestSha, s.entrySha, s.revoke ? s.revoke.at : 0]), collections]);
+  const regPrint = () => JSON.stringify([[...subs.values()].filter((s) => s.status === 'published' || s.status === 'revoked').map((s) => [s.id, s.status, s.manifestSha, s.entrySha, s.revoke ? s.revoke.at : 0]), collections, preinstall]);
   function registryNow() {
     if (!autoOn) return null;
     const fp = regPrint();
-    if (!regCache || regCache.fp !== fp) { try { regCache = { fp, ...require('./signer').build([...subs.values()], collections, signKey) }; } catch (e) { return regCache; } }
+    if (!regCache || regCache.fp !== fp) { try { regCache = { fp, ...require('./signer').build([...subs.values()], collections, signKey, preinstall) }; } catch (e) { return regCache; } }
     return regCache;
   }
   const registryFile = (rel) => { const r = registryNow(); return r && r.files.get(rel) ? r.files.get(rel) : null; };
@@ -617,7 +650,7 @@ function createDevCentre({ env = process.env, dataDir, secret, cloud = null, fet
     return false;
   }
 
-  return { configured, pullOn, autoOn, signingPublicKey: signKey ? signKey.publicPem : '', registryFile, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
+  return { configured, pullOn, autoOn, signingPublicKey: signKey ? signKey.publicPem : '', registryFile, exportAll, isPaused: () => paused, setPaused, setInvites, setCollections, getCollections: () => collections, setPreinstall, getPreinstall: () => preinstall, setFeatured, isFeatured: (id) => featured.has(id), handle, adminList, adminGet, adminReview, adminDev, adminDevs, adminRevoke, hidden, publicInfo, ratingOf, adminReviews, adminHide, adminReports, adminReportSet, openReports, _subs: subs, _devs: devs };
 }
 
 module.exports = { createDevCentre };

@@ -90,3 +90,23 @@ test('signer: a key written with typed-out \\n or as base64 is accepted, a wrong
   assert.strictEqual(signer.loadKey(crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' })), null);
   assert.strictEqual(signer.loadKey(''), null);
 });
+
+test('v3.0.9 preinstall: the signed store lists chosen plugins with their mode; switching off or withdrawing removes them from the list', () => {
+  const { dc, add } = make({ REGISTRY_SIGNING_KEY: KEY });
+  const idx = () => JSON.parse(verified(dc, 'index.json').toString());
+  assert.deepStrictEqual(idx().preinstall, [], 'the list is always there, even when empty');
+  assert.strictEqual(dc.setPreinstall('mention-master', 'activate').status, 400, 'an unpublished plugin cannot be preinstalled');
+  const a = add('1.0.0'); dc.adminReview(a.id, 'approve', '', 'own');
+  assert.strictEqual(dc.setPreinstall('mention-master', 'bogus').status, 400);
+  assert.strictEqual(dc.setPreinstall('mention-master', 'install').status, 200);
+  assert.deepStrictEqual(idx().preinstall, [{ id: 'mention-master', mode: 'install' }]);
+  assert.strictEqual(dc.adminList().preinstall['mention-master'], 'install');
+  dc.setPreinstall('mention-master', 'activate');
+  assert.deepStrictEqual(idx().preinstall, [{ id: 'mention-master', mode: 'activate' }]);
+  dc.setPreinstall('mention-master', 'off');
+  assert.deepStrictEqual(idx().preinstall, []);
+  assert.ok(idx().plugins['mention-master'], 'still in the store for manual install');
+  dc.setPreinstall('mention-master', 'activate');
+  dc.adminRevoke(a.id, 'broken', 'own');
+  assert.deepStrictEqual(idx().preinstall, [], 'a withdrawn plugin is not preinstalled');
+});

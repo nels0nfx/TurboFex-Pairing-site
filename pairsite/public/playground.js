@@ -75,7 +75,7 @@
       var settings = {}; (m.settings || []).forEach(function (s) { settings[s.key] = s.default; });
       var ctx = { args: kind === 'command' ? words : [], rest: kind === 'command' ? words.join(' ') : '', prefix: '.', chat: kind === 'schedule' ? null : { id: 'chat-1', isGroup: true, name: 'Test group' }, settings: settings, mentions: [], sender: kind === 'schedule' ? null : { id: 'person-1', name: 'Sam', isAdmin: who !== 'member', isOwner: who === 'owner' } };
       if (kind === 'command') { ctx.quoted = { text: 'a quoted message', sender: 'person-2', media: null }; ctx.hasMedia = null; }
-      if (kind === 'event') { ctx.event = name; ctx.text = words.join(' ') || 'hello'; ctx.members = name === 'message' ? [] : ['person-2']; }
+      if (kind === 'event') { ctx.event = name; ctx.text = words.join(' ') || 'hello'; ctx.members = name === 'message' ? [] : ['person-2']; ctx.mentionsOwner = name === 'message' && /@owner\b/i.test(ctx.text); }
       var pretendPng = function () { return TFXBuffer.from('iVBORw0KGgo=', 'base64'); };
       var env = {
         storage: storage, log: function (t) { say('log: ', t); },

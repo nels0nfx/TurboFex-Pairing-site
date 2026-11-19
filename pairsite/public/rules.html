@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer rules — TurboFex Pair</title>
+<meta name="description" content="The rules every TurboFex plugin must follow, and what the owner checks before a plugin is published.">
+<meta name="theme-color" content="#070707">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tfx.css">
+<link rel="stylesheet" href="/docs.css">
+<script src="/theme.js"></script>
+</head>
+<body class="tfx has-tabbar">
+<!--tfx:sprite-->
+<!--tfx:head-->
+<main id="main" class="tfx-wrap dc">
+  <header class="dchero">
+    <p class="t-eyebrow">Developers</p>
+    <h1>Developer <span class="gold">rules</span></h1>
+    <p class="t-lead">Plugins run on other people's bots and in their groups, so the rules are strict and simple. Every plugin is read by the owner before it is published.</p>
+    <div class="dmeta"><a href="/plugin-guide"><svg><use href="#i-arrow"/></svg>Plugin guide</a><a href="/playground"><svg><use href="#i-play"/></svg>Playground</a></div>
+  </header>
+  <div class="dclay has-toc">
+    <aside class="toc" aria-label="Contents"><h4>On this page</h4><div id="toc"></div></aside>
+    <article class="prose">
+  <section class="docsec">
+    <h2>1. What a good plugin is</h2>
+    <ul>
+      <li>It does what its name and description say, nothing more.</li>
+      <li>It asks only for the permissions it really uses.</li>
+      <li>It is useful: it adds something TurboFex does not already do.</li>
+      <li>It is yours, or you have the right to share it. Say so in the README if it builds on someone else's work.</li>
+    </ul>
+  </section>
+  <section class="docsec">
+    <h2>2. What is not allowed</h2>
+    <ul>
+      <li><b>Spam:</b> flooding groups, sending messages nobody asked for, or advertising.</li>
+      <li><b>Scams and tricks:</b> phishing, fake giveaways, fake "verification", or anything that tries to get money, passwords or codes from people.</li>
+      <li><b>Harmful or illegal content:</b> adult content, hate, threats, harassment, or anything illegal.</li>
+      <li><b>Hidden behaviour:</b> scrambled or hidden code, or doing something the description does not say. Code must be readable.</li>
+      <li><b>Collecting people's data:</b> numbers, messages or names sent to another website without a clear reason that is written in the description.</li>
+      <li><b>Pretending:</b> using the TurboFex or WhatsApp name or logo as if the plugin were official.</li>
+      <li><b>Misusing group tools:</b> removing members or changing a group in ways the group's admins would not expect.</li>
+      <li><b>Wasting the bot's power:</b> endless loops or heavy work. The bot stops a plugin that runs too long.</li>
+      <li><b>Copying:</b> publishing another developer's plugin as your own, or an almost identical copy of one already in the store.</li>
+    </ul>
+  </section>
+  <section class="docsec">
+    <h2>3. What the owner checks</h2>
+    <ul>
+      <li>Every permission fits what the plugin says it does. The more powerful the permission, the closer the look.</li>
+      <li>The automatic checks and a test run of every command and event, in a pretend chat.</li>
+      <li>The plugin was tried on a real bot.</li>
+      <li>The description is honest, and the plugin does not clash with another plugin or with a TurboFex command.</li>
+    </ul>
+    <p>Use the <a href="/playground">Playground</a> before you send a plugin. If it fails there, it will fail the review.</p>
+  </section>
+  <section class="docsec">
+    <h2>4. Decisions</h2>
+    <ul>
+      <li><b>Approved:</b> the plugin goes live in the store.</li>
+      <li><b>Changes asked:</b> you get a short note on what to fix. Fix it and send it again.</li>
+      <li><b>Rejected:</b> you get the reason. You can send a corrected plugin as a new version.</li>
+    </ul>
+  </section>
+  <section class="docsec">
+    <h2>5. After it is published</h2>
+    <ul>
+      <li><b>Updates are reviewed too.</b> A new version that asks for more permissions or more websites is looked at again before it goes live.</li>
+      <li><b>Withdrawn plugins disappear fast.</b> If a plugin breaks these rules, or turns out to be unsafe, the owner can withdraw it at any time. Bots remove a withdrawn plugin by themselves, usually within minutes, and tell their owners.</li>
+      <li><b>Keep it working.</b> Plugins that keep failing are switched off by the bot. Fix problems quickly.</li>
+      <li><b>Questions or disagreement?</b> Write to us through the <a href="/support">Support</a> page.</li>
+    </ul>
+  </section>
+    </article>
+  </div>
+</main>
+<!--tfx:tabbar-->
+<script src="/notice.js"></script>
+<script src="/shell.js"></script>
+<script src="/doc.js"></script>
+</body>
+</html>

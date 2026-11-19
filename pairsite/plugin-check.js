@@ -12,6 +12,7 @@ const reKey = /^[a-z][a-z0-9]{1,19}$/, SETTING_TYPES = ['text', 'number', 'toggl
 const reId = /^[a-z0-9-]{3,32}$/, reCmd = /^[a-z0-9]{2,20}$/, reSemver = /^\d+\.\d+\.\d+$/;
 const reHost = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const MAX_ENTRY = 1024 * 1024;
+const CATEGORIES = ['general', 'group', 'autoreply', 'status', 'watch', 'tools', 'fun', 'games', 'ai', 'budget', 'download', 'effect', 'media', 'audio', 'video', 'editor', 'security', 'lookup', 'other']; // keep in step with the bot's core/plugins/manifest.js
 const RANK = { low: 1, medium: 2, high: 3 };
 
 function checkPlugin(manifestRaw, entrySource) {
@@ -82,6 +83,7 @@ function checkPlugin(manifestRaw, entrySource) {
   if (!cmds.length && !sched.length && !(events && events.length)) bad('the plugin needs at least one command, schedule or event');
   const entry = typeof m.entry === 'string' ? m.entry : 'index.js';
   if (!/^[\w.-]{1,80}$/.test(entry) || entry.includes('..')) bad('entry must be a file name in the plugin folder');
+  if (m.category !== undefined && !CATEGORIES.includes(m.category)) bad('category must be one of: ' + CATEGORIES.join(', '));
   if (typeof entrySource !== 'string' || !entrySource.length) bad('the plugin file ' + entry + ' is missing');
   else if (Buffer.byteLength(entrySource) > MAX_ENTRY) bad('the plugin file is bigger than 1 MB');
   if (errors.length) return { ok: false, errors: errors.slice(0, 8) };
@@ -94,7 +96,7 @@ function checkPlugin(manifestRaw, entrySource) {
   if (/\\x[0-9a-f]{2}(?:\\x[0-9a-f]{2}){20,}|\\u[0-9a-f]{4}(?:\\u[0-9a-f]{4}){20,}/i.test(src)) flags.push('Contains long escaped text, which can hide what the code does.');
   if ((src.match(/\n/g) || []).length < 3 && src.length > 4000) flags.push('Almost all the code is on a few lines (minified or hidden).');
   const risk = (perms || []).reduce((r, p) => (RANK[(PERMS[p] || ['medium'])[0]] > RANK[r] ? PERMS[p][0] : r), 'low');
-  const manifest = { id: m.id, version: m.version, name: m.name.trim(), description: m.description.trim(), author: m.author.name.trim(), permissions: perms || [], events: events || [], domains, commands: cmds.map((c) => c.name), entry };
+  const manifest = { id: m.id, version: m.version, name: m.name.trim(), description: m.description.trim(), author: m.author.name.trim(), category: m.category || null, permissions: perms || [], events: events || [], domains, commands: cmds.map((c) => c.name), entry };
   return { ok: true, errors: [], manifest, flags, risk, manifestSha: crypto.createHash('sha256').update(manifestRaw).digest('hex'), entrySha: crypto.createHash('sha256').update(entrySource).digest('hex') };
 }
-module.exports = { checkPlugin, MAX_ENTRY };
+module.exports = { CATEGORIES, checkPlugin, MAX_ENTRY };

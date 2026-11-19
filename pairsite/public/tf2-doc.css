@@ -1,0 +1,102 @@
+/* Text pages: About, Terms, Privacy, Rules, Community, Support. Uses the tokens from tf2.css. */
+.meta { margin-top: 12px; font-size: 13px; color: var(--m); }
+
+/* contents list: a row of links that scrolls sideways inside itself */
+.toc { margin-bottom: 8px; }
+.toc nav { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+.toc nav::-webkit-scrollbar { display: none; }
+.toc a { flex: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line2); color: var(--b); font-size: 13px; white-space: nowrap; }
+.toc a[aria-current="true"] { color: var(--t); border-color: rgb(var(--acc) / .6); background: rgb(var(--acc) / .1); }
+.dclay:not(.has-toc) .toc { display: none; }
+
+/* reading text */
+.prose section { scroll-margin-top: 76px; }
+.prose .docsec, .prose .faqgroup { margin-top: 36px; }
+.prose > .docsec:first-child, .prose > .faqgroup:first-child, .dclay .prose > section:first-child { margin-top: 8px; }
+.prose h2 { font-size: 20px; margin-bottom: 12px; }
+.prose p { color: var(--b); margin-top: 10px; }
+.prose p:first-child { margin-top: 0; }
+.prose b { color: var(--t); font-weight: 500; }
+.prose a:not(.link2) { color: var(--t); text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 3px; }
+.prose code { font-family: var(--mono); font-size: 12.5px; color: var(--t); background: var(--s2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.prose ul, .prose ol { display: grid; gap: 10px; }
+.prose li { position: relative; padding-left: 18px; color: var(--b); }
+.prose ul > li::before { content: ""; position: absolute; left: 3px; top: .7em; width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--acc)); }
+.prose ol { counter-reset: n; }
+.prose ol > li { padding-left: 30px; counter-increment: n; }
+.prose ol > li::before { content: counter(n); position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line2); color: var(--t); font-size: 11px; display: grid; place-items: center; }
+.prose .more { font-size: 14px; color: var(--m); }
+
+/* link buttons at the end of a section */
+.prose .cl { display: flex; flex-wrap: wrap; gap: 10px; }
+.prose .link2 { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--rc); border: 1px solid var(--line2); color: var(--t); font-size: 14px; }
+.prose .link2:hover { background: rgba(255, 255, 255, .05); }
+
+/* Support: questions */
+.qsearch { margin-top: 12px; }
+.qsearch input { width: 100%; height: 48px; padding: 0 14px; border-radius: var(--rc); border: 1px solid var(--line2); background: var(--s1); color: var(--t); font: inherit; }
+.qsearch input::placeholder { color: var(--d); }
+.sbox { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.sbox small { font-size: 13px; color: var(--m); }
+.sbox b { color: var(--t); font-weight: 500; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+.sbox b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--d); }
+.sbox.ok b::before { background: rgb(var(--ok)); }
+.sbox.bad b::before { background: rgb(var(--warn)); }
+.qlist { border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); overflow: hidden; }
+.qlist details + details { border-top: 1px solid var(--line); }
+.qlist summary { list-style: none; cursor: pointer; padding: 14px 16px; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--t); font-weight: 500; }
+.qlist summary::-webkit-details-marker { display: none; }
+.qlist summary::after { content: "+"; flex: none; color: var(--m); font-size: 20px; line-height: 1; }
+.qlist details[open] summary::after { content: "\2212"; }
+.qlist .ans { padding: 0 16px 16px; }
+.qlist .ans p { margin-top: 0; }
+.prose .empty { margin-top: 24px; color: var(--m); }
+
+/* Docs (plugin guide) */
+.prose pre { margin: 12px 0 0; padding: 14px 16px; border-radius: var(--rc); border: 1px solid var(--line); background: var(--s1); font: 12.5px/1.6 var(--mono); color: var(--t); white-space: pre-wrap; overflow-wrap: anywhere; }
+.prose pre code { background: none; border: 0; padding: 0; font: inherit; }
+.prose ul.drules > li, .prose ul.pcards > li { padding-left: 18px; }
+.prose ul.pcards { gap: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); overflow: hidden; margin-top: 10px; }
+.prose ul.pcards > li { padding: 12px 16px; }
+.prose ul.pcards > li + li { border-top: 1px solid var(--line); }
+.prose ul.pcards > li::before { display: none; }
+.pc .pn { display: inline-block; margin-bottom: 4px; }
+.pc .pw { display: block; font-size: 14px; color: var(--b); }
+.pgroups { display: grid; gap: 28px; }
+.pgrp header { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; }
+.pgrp header b { color: var(--t); font-weight: 500; font-size: 16px; }
+.pgrp header small { grid-column: 1; color: var(--m); font-size: 13px; }
+.pgrp header em { grid-row: 1; grid-column: 2; font-style: normal; color: var(--m); font-size: 13px; }
+.pgrp header .rk { grid-column: 1 / -1; justify-self: start; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line2); margin-bottom: 6px; }
+.rk.low { color: rgb(var(--ok)); border-color: rgb(var(--ok) / .4); }
+.rk.medium { color: rgb(var(--warn)); border-color: rgb(var(--warn) / .4); }
+.rk.high { color: rgb(var(--bad)); border-color: rgb(var(--bad) / .4); }
+/* call table: each row becomes a small card on phones, so nothing scrolls sideways */
+.gtable { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.gtable thead { display: none; }
+.gtable tr { display: block; border: 1px solid var(--line); border-radius: var(--rc); background: var(--s1); padding: 12px 14px; margin-top: 10px; }
+.gtable td { display: block; padding: 3px 0; color: var(--b); font-size: 14px; }
+.gtable td::before { content: attr(data-label); display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--d); margin-top: 6px; }
+.gtable td:first-child::before { display: none; }
+@media (min-width: 720px) {
+  .gtable thead { display: table-header-group; }
+  .gtable tr { display: table-row; border: 0; background: none; padding: 0; margin: 0; }
+  .gtable th { text-align: left; font-weight: 500; color: var(--m); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--line2); }
+  .gtable td { display: table-cell; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .gtable td::before { display: none; }
+}
+
+/* Playground */
+.prose label { display: block; margin: 16px 0 6px; font-size: 13px; color: var(--m); }
+.pgrow { display: grid; gap: 4px; margin: 4px 0; }
+.pgrow label { margin-top: 12px; }
+.pgin, .pgcode { width: 100%; min-height: 48px; padding: 12px 14px; border-radius: var(--rc); border: 1px solid var(--line2); background: var(--s1); color: var(--t); font: inherit; font-size: 16px; }
+.pgcode { font: 13px/1.55 var(--mono); min-height: 160px; resize: vertical; tab-size: 2; }
+.pgin:focus-visible, .pgcode:focus-visible { outline: 2px solid rgb(var(--acc)); outline-offset: 1px; }
+.pgout { margin: 12px 0 0; min-height: 90px; padding: 14px; border-radius: var(--rc); border: 1px solid var(--line); background: var(--s1); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 var(--mono); color: var(--t); }
+.pgrow:has(.dbtn) { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.dbtn { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 18px; border-radius: var(--rc); border: 1px solid #f4f4f6; background: #f4f4f6; color: #0a0a0c; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer; flex: 1 1 auto; }
+.dbtn.ghost { background: transparent; color: var(--t); border-color: var(--line2); }
+.dbtn:disabled { opacity: .55; cursor: progress; }
+.dmuted { color: var(--m); font-size: 14px; }
+.prose code { white-space: pre-wrap; overflow-wrap: anywhere; -webkit-box-decoration-break: clone; box-decoration-break: clone; }

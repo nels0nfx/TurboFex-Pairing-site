@@ -296,7 +296,8 @@ test('redesign: new sections exist, status comes from the real /health, nothing 
     for (const word of ['Linked devices', 'Link a device', 'Never share your pairing code']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
     const own = ['https://whatsapp.com/channel/0029VbDpuKM8qIzkoQscOE2w', 'https://t.me/+7PwU2Vo9czE1NTRk'];
-    for (const u of own) assert.ok(html.includes(`href="${u}"`), 'community link ' + u);
+    // the footer (and the WhatsApp channel link in it) left the pairing page in v3.0.5; the help link to the Telegram group stays
+    assert.ok(html.includes(`href="${own[1]}"`), 'Telegram help link');
     const links = [...html.matchAll(/href="(https?:[^"]+)"/g)].map(m => m[1]);
     assert.deepEqual(links.filter(u => !own.includes(u)), [], 'only the two community links go off-site');
     assert.ok(!/12,482|v0\.9\.0|100% Secure|discord|twitter|x\.com/i.test(html), 'no made-up figures or other social links');

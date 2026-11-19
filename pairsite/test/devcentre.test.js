@@ -64,6 +64,9 @@ async function boot(envExtra = {}, dataDir, extra = {}) {
 const send = (t, c, body) => t.req('POST', '/api/dev/submit', { ...t.dev(c), body });
 const GOOD = { repo: 'https://github.com/alice/hello', tag: 'v1.0.0' };
 
+// the owner must tick every review step before an approval is accepted (the server rule in admin.js)
+const CHECKS = ['perms', 'flags', 'tested', 'mine', 'fits'];
+
 test('without the GitHub settings the Developer Centre says so and nothing can be done', async () => {
   const t = await boot({ GITHUB_CLIENT_ID: '', REGISTRY_PULL_TOKEN: '' });
   try {
@@ -181,10 +184,10 @@ test('the review screen: only the owner, a note is needed to reject, approval is
     assert.strictEqual(list.json.counts.pending, 1); assert.strictEqual(list.json.configured, true); assert.strictEqual(list.json.pullOn, true);
     const one = await t.req('GET', '/admin/api/plugins/submission?id=' + sub.id, A);
     assert.strictEqual(one.json.entrySource, CODE); assert.strictEqual(one.json.login, 'alice'); assert.strictEqual(one.json.risk, 'low');
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, body: { id: sub.id, decision: 'approve' } })).status, 403, 'a change needs the CSRF token');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, body: { id: sub.id, decision: 'approve', checks: CHECKS } })).status, 403, 'a change needs the CSRF token');
     assert.match((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'reject', note: ' ' } })).json.error, /reason/);
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve', note: 'looks fine' } })).status, 200);
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve' } })).status, 400, 'only a waiting one');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve', checks: CHECKS, note: 'looks fine' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve', checks: CHECKS } })).status, 400, 'only a waiting one');
     assert.strictEqual((await t.req('POST', '/admin/api/plugins/dev', { ...A, body: { githubId: 42, verified: true } })).status, 200);
     assert.strictEqual((await t.req('GET', '/admin/api/plugins/devs', A)).json.developers[0].verified, true);
     const audit = (await t.req('GET', '/admin/api/audit', A)).json.entries.map((e) => e.action);
@@ -215,7 +218,7 @@ test('the phone command: only with the token, only approved plugins, and "publis
     assert.strictEqual((await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + 'b'.repeat(40) } })).status, 401);
     assert.deepStrictEqual((await t.req('GET', '/api/registry/approved', { headers: H })).json.plugins, [], 'a waiting plugin is not handed out');
     const o = await t.admin('own');
-    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve', checks: CHECKS } });
     const got = (await t.req('GET', '/api/registry/approved', { headers: H })).json.plugins;
     assert.strictEqual(got.length, 1); assert.strictEqual(got[0].id, 'hello-plugin'); assert.strictEqual(got[0].entrySource, CODE); assert.strictEqual(got[0].submission, sub.id);
     assert.match(got[0].manifestSha, /^[a-f0-9]{64}$/); assert.strictEqual(got[0].developer, 'alice');
@@ -257,7 +260,7 @@ test('the Plugins page shows the developer, the verified mark, the source link a
     let plugins = (await t.req('GET', '/api/plugins')).json.plugins;
     assert.ok(!plugins[0].dev, 'a plugin that is only waiting or approved shows nothing');
     const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
-    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve', checks: CHECKS } });
     await t.req('POST', '/api/registry/published', { headers: { authorization: 'Bearer ' + TOKEN }, body: { ids: [sub.id] } });
     plugins = (await t.req('GET', '/api/plugins')).json.plugins;
     assert.deepStrictEqual(plugins[0].dev, { developer: 'alice', verified: false, source: 'https://github.com/alice/hello/tree/v1.0.0' });
@@ -278,7 +281,7 @@ test('withdrawing a published plugin: hidden at once, handed to the phone comman
     const sub = (await send(t, c, GOOD)).json.submission; const H = { authorization: 'Bearer ' + TOKEN };
     const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
     assert.match((await t.req('POST', '/admin/api/plugins/revoke', { ...A, body: { id: sub.id, reason: 'bad' } })).json.error, /published/, 'a waiting plugin cannot be withdrawn');
-    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: sub.id, decision: 'approve', checks: CHECKS } });
     await t.req('POST', '/api/registry/published', { headers: H, body: { ids: [sub.id] } });
     assert.strictEqual((await t.req('GET', '/api/plugins')).json.plugins.length, 1);
     const m = await t.admin('mod'); assert.strictEqual((await t.req('POST', '/admin/api/plugins/revoke', { cookie: m.cookie, csrf: m.csrf, body: { id: sub.id, reason: 'Found a problem' } })).status, 403);
@@ -428,7 +431,7 @@ test('ask for changes: sent back with a note, the developer can fix and resend t
     const c = await t.signIn('good'); const o = await t.admin('own'); const A = { cookie: o.cookie, csrf: o.csrf };
     t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
     const s1 = (await send(t, c, GOOD)).json.submission;
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s1.id, decision: 'approve' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s1.id, decision: 'approve', checks: CHECKS } })).status, 200);
     assert.strictEqual((await t.req('GET', '/admin/api/plugins/submission?id=' + s1.id, A)).json.changes, null, 'first version: nothing to compare');
     // version 1.1.0 asks for more and changes code
     const CODE2 = CODE.replace('hi', 'hello there') + "turbofex.command('more', async (ctx) => { await ctx.reply('x'); });\n";
@@ -445,14 +448,14 @@ test('ask for changes: sent back with a note, the developer can fix and resend t
     assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'changes', note: 'Please drop the storage permission' } })).status, 200);
     const me = (await t.req('GET', '/api/dev/me', { cookie: c })).json.submissions.find((x) => x.id === s2.id);
     assert.strictEqual(me.status, 'changes'); assert.strictEqual(me.note, 'Please drop the storage permission');
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'approve' } })).status, 400, 'cannot approve while changes are open');
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: s2.id, decision: 'approve', checks: CHECKS } })).status, 400, 'cannot approve while changes are open');
     assert.ok((await t.req('GET', '/admin/api/audit', A)).json.entries.some((e) => e.action === 'plugin.changes'));
     // the developer fixes it and sends the SAME version again
     t.put('alice', 'hello', 'v1.1.0', '', manifest({ version: '1.1.0' }), CODE2);
     const again = await send(t, c, { ...GOOD, tag: 'v1.1.0' }); assert.strictEqual(again.status, 200, again.text);
     const g2 = (await t.req('GET', '/admin/api/plugins/submission?id=' + again.json.submission.id, A)).json;
     assert.deepStrictEqual(g2.changes.permsAdded, []);
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: again.json.submission.id, decision: 'approve' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: again.json.submission.id, decision: 'approve', checks: CHECKS } })).status, 200);
   } finally { t.close(); }
 });
 
@@ -494,14 +497,14 @@ test('README and CHANGELOG next to the plugin: fetched at the tag, limits enforc
     r = await send(t, c, GOOD); assert.strictEqual(r.status, 200, r.text);
     const id = r.json.submission.id;
     const g = (await t.req('GET', '/admin/api/plugins/submission?id=' + id, A)).json; assert.match(g.readme, /Greets people/); assert.strictEqual(g.changelog, '1.0.0 first\n');
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id, decision: 'approve' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id, decision: 'approve', checks: CHECKS } })).status, 200);
     const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json.plugins[0];
     const sha = (x) => require('crypto').createHash('sha256').update(Buffer.from(x)).digest('hex');
     assert.strictEqual(pull.readmeSha, sha(pull.readme)); assert.strictEqual(pull.changelogSha, sha(pull.changelog)); assert.strictEqual(pull.changelog, '1.0.0 first\n');
     // a plugin without documents still works and the fields are simply absent
     t.put('alice', 'hello', 'v1.1.0', '', manifest({ version: '1.1.0' }), CODE);
     const r2 = await send(t, c, { ...GOOD, tag: 'v1.1.0' }); assert.strictEqual(r2.status, 200);
-    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: r2.json.submission.id, decision: 'approve' } })).status, 200);
+    assert.strictEqual((await t.req('POST', '/admin/api/plugins/review', { ...A, body: { id: r2.json.submission.id, decision: 'approve', checks: CHECKS } })).status, 200);
     const list = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json.plugins;
     assert.strictEqual(list.find((x) => x.version === '1.1.0').readme, undefined);
   } finally { t.close(); }
@@ -592,7 +595,7 @@ test('developer replies: only the owner of a waiting/sent-back/rejected version,
     assert.strictEqual(g.json.replies[0].text, 'I added the missing network domain.');
     for (let i = 0; i < 9; i++) assert.strictEqual((await rep(c, sub.id, 'message ' + i)).status, 200);
     assert.strictEqual((await rep(c, sub.id, 'one more')).status, 429);
-    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve', checks: CHECKS } });
     assert.strictEqual((await rep(c, sub.id, 'too late')).status, 400, 'approved: nothing to discuss');
   } finally { t.close(); }
 });
@@ -616,7 +619,7 @@ test('developer page insights: rating, latest reviews and only the NUMBER of rep
     const alice = await t.signIn(); t.put('alice', 'hello', 'v1.0.0', '', manifest(), CODE);
     const sub = (await send(t, alice, GOOD)).json.submission;
     const o = await t.admin('own');
-    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: sub.id, decision: 'approve', checks: CHECKS } });
     await t.req('POST', '/api/registry/published', { headers: { authorization: 'Bearer ' + TOKEN }, body: { ids: [sub.id] } });
     assert.strictEqual((await t.req('GET', '/api/dev/me', t.dev(alice))).json.insights, undefined, 'nothing yet');
     const bob = await t.signIn('bob');
@@ -693,7 +696,7 @@ test('plugin logo: icon.png must be a small square PNG; it reaches the admin and
     const o = await t.admin('own');
     const g = await t.req('GET', '/admin/api/plugins/submission?id=' + ok.json.submission.id, { cookie: o.cookie });
     assert.match(g.json.icon, /^data:image\/png;base64,/);
-    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve', checks: CHECKS } });
     const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json;
     const item = (pull.plugins || pull.items || pull)[0]; assert.match(item.iconSha, /^[a-f0-9]{64}$/); assert.ok(item.icon.length > 40);
   } finally { t.close(); }
@@ -712,7 +715,7 @@ test('screenshots: up to 3 PNGs, in order, 200-2000 px, 200 KB; shown to the adm
     const o = await t.admin('own');
     const g = await t.req('GET', '/admin/api/plugins/submission?id=' + ok.json.submission.id, { cookie: o.cookie });
     assert.strictEqual(g.json.shots.length, 2); assert.match(g.json.shots[0], /^data:image\/png;base64,/);
-    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve' } });
+    await t.req('POST', '/admin/api/plugins/review', { cookie: o.cookie, csrf: o.csrf, body: { id: ok.json.submission.id, decision: 'approve', checks: CHECKS } });
     const pull = (await t.req('GET', '/api/registry/approved', { headers: { authorization: 'Bearer ' + TOKEN } })).json;
     const item = (pull.plugins || pull.items || pull)[0]; assert.strictEqual(item.shots.length, 2); assert.strictEqual(item.shotShas.length, 2);
   } finally { t.close(); }

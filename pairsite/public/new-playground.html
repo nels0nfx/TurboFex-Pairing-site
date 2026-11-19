@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurboFex | Playground</title>
+<meta name="description" content="Try a TurboFex plugin in your browser, in the same kind of sandbox the bot uses, with a pretend chat. Nothing is sent anywhere.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tf2.css">
+<link rel="stylesheet" href="/tf2-doc.css">
+</head>
+<body>
+<!--tfx:head2-->
+<main id="main">
+<section class="wrap ph"><div class="col">
+  <p class="eyebrow">Developer tools</p>
+  <h1 class="page">Plugin Playground</h1>
+  <p class="lead">Try your plugin here before you send it. It runs in your browser inside the same kind of sandbox the bot uses, with a pretend chat. Nothing is sent to WhatsApp, to us or to any website, and nothing is saved. The answers from websites are pretend. For an exact test, use the test tool of the bot (Plugin Guide, section 5d).</p>
+  <p class="meta">Runs in your browser · Nothing is sent or saved</p>
+</div></section>
+<section class="wrap sec"><div class="col">
+<div class="dclay has-toc">
+<aside class="toc" aria-label="Contents"><div id="toc"></div></aside>
+<article class="prose">
+  <section class="docsec">
+    <div class="pgrow"><label for="pg-ex">Start from an example</label>
+      <select id="pg-ex" class="pgin"></select></div>
+    <label for="pg-man">turbofex-plugin.json</label>
+    <textarea id="pg-man" class="pgcode" rows="12" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    <label for="pg-code">index.js</label>
+    <textarea id="pg-code" class="pgcode" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="pgrow">
+      <label for="pg-what">Run</label><select id="pg-what" class="pgin"></select>
+      <label for="pg-args">Words after the command</label><input id="pg-args" class="pgin" type="text" maxlength="200" placeholder="for example: Sam (for a message event, write @owner to pretend the owner was tagged)">
+      <label for="pg-as">Who uses it</label><select id="pg-as" class="pgin"><option value="member">an everyday member</option><option value="admin">a group admin</option><option value="owner">the bot owner</option></select>
+    </div>
+    <div class="pgrow"><button id="pg-run" class="dbtn" type="button">Run</button> <button id="pg-reset" class="dbtn ghost" type="button">Forget saved notes</button></div>
+    <p id="pg-status" class="dmuted" role="status" aria-live="polite"></p>
+    <pre id="pg-out" class="pgout" tabindex="0" aria-label="Result"></pre>
+  </section>
+</article>
+</div>
+</div></section>
+</main>
+<!--tfx:foot2-->
+<script src="/doc.js"></script>
+<script src="/playground-broker.js"></script>
+<script src="/playground.js"></script>
+</body>
+</html>

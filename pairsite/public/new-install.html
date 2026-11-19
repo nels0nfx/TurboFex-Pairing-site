@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurboFex | Install</title>
+<meta name="description" content="Install TurboFex: get the bot, link your WhatsApp and start it on Termux, a server, Docker, a panel or a web host.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tf2.css">
+<link rel="stylesheet" href="/tf2-install.css">
+</head>
+<body>
+<!--tfx:head2-->
+<main id="main">
+<section class="wrap ph"><div class="col">
+  <p class="eyebrow">Install</p>
+  <h1 class="page">Install TurboFex</h1>
+  <p class="lead">Get the bot, link your WhatsApp, start it.</p>
+</div></section>
+
+<section class="wrap mt"><div class="col">
+  <div class="warnbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg><div><b>Before you start</b><p>TurboFex uses an unofficial WhatsApp Web connection, not the official WhatsApp Business Platform. WhatsApp may restrict or ban numbers that use it. Use a spare number and consider the risk to the account.</p></div></div>
+</div></section>
+
+<section class="wrap sec"><div class="col">
+  <h2>Three steps</h2>
+  <ol class="panel steps mt">
+    <li><span class="num">1</span><div class="tx"><b>Get the bot</b><p>Download the hosting ZIP from Releases. Not the green Code button.</p><div class="btns"><a class="btn p" href="https://github.com/nels0nfx/TurboFex/releases/latest" target="_blank" rel="noopener noreferrer">Releases</a><a class="btn" href="https://github.com/nels0nfx/TurboFex#hosting-guides" target="_blank" rel="noopener noreferrer">Hosting guides</a></div></div></li>
+    <li><span class="num">2</span><div class="tx"><b>Link your WhatsApp</b><p>Pair on this site and get a session ID. It works once and expires after 5 minutes.</p><div class="btns"><a class="btn" href="/new/pair">Open Pair</a></div></div></li>
+    <li><span class="num">3</span><div class="tx"><b>Paste it and start</b><p>Put the ID after SESSION_ID= in session_id.txt, start the bot, then send .ping in WhatsApp.</p></div></li>
+  </ol>
+</div></section>
+
+<section class="wrap sec"><div class="col">
+  <h2>Where to run it</h2>
+  <p class="sub">Needs Node.js 20 or newer. Pick one.</p>
+  <div class="tabs mt" role="tablist" aria-label="Where to run it"><button type="button" role="tab" data-t="0" data-key="termux" aria-selected="true">Termux</button><button type="button" role="tab" data-t="1" data-key="vps" aria-selected="false">VPS</button><button type="button" role="tab" data-t="2" data-key="docker" aria-selected="false">Docker</button><button type="button" role="tab" data-t="3" data-key="panel" aria-selected="false">Panel</button><button type="button" role="tab" data-t="4" data-key="web" aria-selected="false">Web host</button><button type="button" role="tab" data-t="5" data-key="windows" aria-selected="false">Windows / Mac</button></div>
+    <div class="code" data-p="0"><div class="bar2"><span>Termux</span><button type="button" class="cb" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button></div><pre><span class="ln">pkg update &amp;&amp; pkg upgrade</span>
+<span class="ln">pkg install nodejs-lts git ffmpeg unzip nano</span>
+<span class="ln">termux-setup-storage</span>
+<span class="ln">unzip ~/storage/downloads/TurboFex-hosting-*.zip -d ~/TurboFex</span>
+<span class="ln">cd ~/TurboFex</span>
+<span class="ln">npm install</span>
+<span class="ln">nano session_id.txt</span>
+<span class="ln">npm start</span>
+</pre><p class="cap">Install Termux from F-Droid, not the Play Store. Paste your session ID after SESSION_ID= in session_id.txt.</p></div>
+    <div class="code" data-p="1"><div class="bar2"><span>VPS</span><button type="button" class="cb" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button></div><pre><span class="ln">sudo apt update &amp;&amp; sudo apt install -y git ffmpeg unzip curl</span>
+<span class="ln">curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -</span>
+<span class="ln">sudo apt install -y nodejs</span>
+<span class="ln">unzip TurboFex-hosting-*.zip -d ~/TurboFex &amp;&amp; cd ~/TurboFex &amp;&amp; npm install</span>
+<span class="ln">nano session_id.txt</span>
+<span class="ln">npm start</span>
+</pre><p class="cap">Keep it running with pm2 or systemd. Both are in the hosting guides.</p></div>
+    <div class="code" data-p="2"><div class="bar2"><span>Docker</span><button type="button" class="cb" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button></div><pre><span class="ln">cd TurboFex</span>
+<span class="ln">echo &quot;SESSION_ID=TFX-XXXX-XXXX-XXXX&quot; &gt; .env</span>
+<span class="ln">docker compose up -d --build</span>
+<span class="ln">docker compose logs -f</span>
+</pre><p class="cap">Run these in the folder you unpacked the hosting ZIP into. Login and settings are saved in the data, session and accounts folders.</p></div>
+    <div class="code" data-p="3"><div class="bar2"><span>Panel</span></div><ol class="olist"><li><i>1</i><span>Create a server with a Node.js 20 or newer egg.</span></li><li><i>2</i><span>Upload the hosting ZIP and unzip it so index.js is in the main folder.</span></li><li><i>3</i><span>Set the startup command to npm start.</span></li><li><i>4</i><span>Put the session ID in session_id.txt, or in the SESSION_ID variable, and start the server.</span></li></ol></div>
+    <div class="code" data-p="4"><div class="bar2"><span>Web host</span><button type="button" class="cb" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button></div><pre class="plain"><span class="ln">Build command:  npm install</span>
+<span class="ln">Start command:  npm start</span>
+<span class="ln">Variable:       SESSION_ID = your session ID</span>
+</pre><p class="cap">Use a plan with a persistent disk for the data and session folders. Many web hosts wipe the disk on restart, and the bot then needs a new session ID.</p></div>
+    <div class="code" data-p="5"><div class="bar2"><span>Windows / Mac</span><button type="button" class="cb" data-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button></div><pre><span class="ln">npm install</span>
+<span class="ln">npm start</span>
+</pre><p class="cap">Install Node.js (LTS) and Git first, unpack the hosting ZIP and open a terminal in its folder. Paste the session ID in session_id.txt before you start.</p></div>
+</div></section>
+</main>
+<!--tfx:foot2-->
+</body>
+</html>

@@ -15,6 +15,9 @@ Where this file lives: inside the pairing site project (the repo root of `nels0n
 - Deliver work as **ready-to-use ZIPs**, with **push instructions** every time (see section 4).
 - Every zip must have a **higher version number in its file name** than the last one, and the reply must say: **delete the older zips from Downloads** so the wrong one is not pushed.
 - Put changelog lines at the TOP of `changelog.txt`, under the heading `CHANGED IN THE NEXT VERSION`, as `- NEW (...)`, `- FIXED (...)`, `- CHANGED (...)` bullets. (Never append at the bottom.)
+- Long unbroken text (codes, links, IDs) must wrap inside its card on every page; a global rule in `tfx.css` and `admin3.css` does this (site v3.0.3). Never let a page scroll sideways.
+- The footer (links, community, legal) appears ONLY on the landing page (`home.html`). Do not add it back to other pages; Terms and Privacy stay in the top menu. (2026-11-16)
+- Plugin review (2026-11-17): the owner is not a coder. The review page has a 5-step checklist that locks Approve (also enforced in admin.js), an automatic test run (public/smoketest.html + smoketest.js, runs in a hidden same-origin frame with the wasm CSP) and an overlap warning. A withdrawn plugin is removed by bots within about 10 minutes. Rules for developers are at /rules.
 - Use the owner's own words for things ("session ID", "pairing code", "the island").
 
 ## 2. The projects
@@ -433,6 +436,74 @@ Render log signature: `custom code refused 400 bad-request` then `code refused 4
 ## 65. Plugin API 1.1 (site v2.68.1 + bot v1.6.1)
 He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote/mention/typing/poll/dm, ctx.quoted/hasMedia, tfx.group.members/describe/inviteLink, tfx.media.download, tfx.net.post, tfx.storage.chat.*, tfx.util.hash/fromBase64, events member.promote/demote; new permissions user.dm, group.members, media.read, group.invite. Site: registry.js PERMS + plugin-check.js EVENTS know them, plugin guide has section 4b quick reference, Playground rebuilt from the bot broker (tools/build-playground.js) with pretend versions (sha256 only). broker.js must stay free of require() (it runs in the browser).
 
-## 66. Site signs the store (v2.69.0 + bot v1.6.2)
+## 66. Site signs the store (v3.0.1 + bot v1.6.4)
 - `signer.js` builds and signs index.json from published/revoked submissions; `devcentre.js` serves it at `/registry/...` when `REGISTRY_SIGNING_KEY` is set (own key, public part in the bot's `registry-key.json` backupKeys). Approve = published at once, withdraw = revoked at once. No key = old phone flow (`pull`).
 - The Plugins page reads the store in-process when the key is set. Developer cards are grouped per plugin (`public/developers.js`).
+
+## Preinstalled plugins (site v3.0.9, bot v1.7.0) (2026-11-17)
+- The owner picks published plugins in the admin "Preinstalled" tab: Off, Install only, or Install and activate. Stored in `devcentre/preinstall.json` and signed into `index.json` as `preinstall: [{id, mode}]` (always present, even empty).
+- Bots read it every ~10 minutes. A plugin on the list is installed without confirm and cannot be removed by the bot owner. Off removes it from every bot. A store index without the `preinstall` field changes nothing on bots.
+- The owner's rule: plugins are always on in the bot (no `.plugin on/off`), per-plugin `enable`/`disable` stays.
+
+## New website migration (site v3.1.0, stage 0; v3.1.1 test fix) (2026-11-18)
+- The owner wants the whole site redone (resend.com-like, mobile first) in React, TypeScript, Vite, Tailwind 3.4, Framer Motion, Lucide, React Router, TanStack Query. Done in stages; do not start the next stage until the owner has run `npm run verify` in `web/` and says go. The owner works only from Termux + GitHub: NO GitHub Actions, workflows or Codespaces may be required or added.
+- Plan: stage 1 shell + landing + pairing page, 2 plugin store/detail/guide/docs/playground, 3 developer centre + sign-in, 4 admin, 5 support/community/about/legal + cutover. Old pages stay until the owner signs off.
+- `web/` is a separate npm project (own package.json) so the backend install stays small. Built into `web/dist`, served by `nextui.js` under `/next/` only when `dist/index.html` exists. `NEXT_UI=off` disables it. Vite base comes from `WEB_BASE` (`/next/` now, `/` at the final switch).
+- `render.yaml` still builds with `npm install` only. Changing the build command (add `npm --prefix web install && npm --prefix web run build`) must be announced to the owner first.
+- Verification without a browser: typecheck, eslint, vitest (jsdom), build, `web/scripts/smoke.mjs`. Real browsers cannot run in Termux, so say plainly what was not checked on a real phone.
+- Node on Termux has its own experimental localStorage that hides jsdom's; web/src/test/setup.ts replaces it with an in-memory copy. Do not use localStorage in tests without it.
+
+## New website, stage 1 (site v3.2.0) (2026-11-18)
+- Stage 0 was checked by the owner in Termux (`npm run verify` passed). Stage 1 = app shell, landing page, pairing page in `web/`. Stages 2-5 still wait for his go.
+- Pairing page logic is in `web/src/lib/pairing.ts` (same routes as `public/app.js`: POST /api/pair, GET /api/job/:id, POST /api/cancel/:id; sessionStorage key `tfx-job`; polling 2 s, then 4 s once the WhatsApp copy result is known). Number rules come from `public/countries.js` (loaded as `window.TFX_PHONE`), so the page and server share one table; tests load that same file.
+- Not carried over from the old pairing page: sound button, floating status pill. Ask the owner before adding them.
+- Links to pages not yet migrated are plain `<a href="/plugins">` style links (see `web/src/lib/links.ts`).
+- Colour rules (owner's wish, 2026-11-18): black is the foundation but not on every element (panel/raised graphite surfaces), text is silver, and each colour keeps ONE meaning on the whole site: gold = TurboFex/main action/current/featured, green = safe/working/verified/done, blue = learn and build/links/info, orange = careful, red = problem/removes. Tokens are in `web/src/index.css`; the Design page lists them. Do not use a colour for another meaning.
+- v3.2.3 finished the Stage 1 gaps: featured plugins, real numbers, announcement/maintenance notice, example chat in the hero.
+- v3.2.5: landing page restyled glass/3D after the owner said it looked plain and old (`web/src/components/fx`: Glass, Backdrop, Tilt, HeroScene, Bento, Marquee, Counter). Keep it this way on the other pages; colours keep their meanings.
+
+## New website, Phase A (site v3.3.0) (2026-11-18)
+- Owner sent a Resend mobile reference and a full reconstruction brief. He approved the plan but said: NO gold or gold accents. New identity = near-black, silver gradients, serif display headline, one violet accent (`--accent` in web/src/index.css and `--tf-accent` in web/src/ui.css). Dark only (theme toggle and light theme removed).
+- Phase A = design system v2 (`web/src/ui.css`, fonts from @fontsource packages) + landing sections: hero with CSS 3D block, Works with (real things only, no company logos), Link in a minute, code panel (real plugin-guide examples), Test mode + event timeline (labelled Example/Preview, links to the real Playground), minimal nav with full-screen mobile menu.
+- Rules he set: mobile-first (not a scaled-down desktop), only genuine integrations, honest demos, same quality on every page later, keep the rollback (`NEXT_UI=off`), STOP after Phase A for his review. Phase B (v3.4.0) = developer experience, previews, plugin building, infrastructure/security, community, closing headline, new footer with status pill. Then pairing restyle, store/docs/playground, Developer Centre, admin, support/legal, cutover.
+- Phase A keeps only the real-data blocks (status, numbers, featured plugins) and the old footer below the new sections until Phase B. Old glass sections (quick links, bento, marquee, steps) were removed.
+
+## Landing page direction change (site v3.4.0) (2026-11-18)
+- Owner: TurboFex is a COMPLETE WhatsApp bot platform, not mainly pairing and plugins. The homepage must explain the bot first, then deployment, then pairing (one capability), plugins/marketplace/Developer Centre/docs/playground, management, and a PLANNED hosting panel ("Coming later: deploy and manage your bots from one panel."). Planned must always be visibly separate from available.
+- Information architecture reference: the owner's white CYPHER-X screenshots (intro, repo, deploy options, install guide, pairing, status). Adapted to the dark TurboFex look. Do not copy their wording or numbers.
+- Keep it clean, simple and premium: few effects, short text, no duplicated content. Do not classify TurboFex's own features (signed store, plugins) as outside integrations ("Built on" = WhatsApp, Node.js, GitHub only). No invented features, stats, customers or deploy options. No GitHub star or fork counts.
+- Facts are in `web/src/lib/platform.ts`, checked against the bot project (bot v1.7.1: 322 member commands, 402 with owner-only, 13 categories; hosting: Termux, VPS with systemd or pm2, Docker, hosting panels, web-service hosts with Procfile and app.json, Windows or Mac). The owner has not tested panels or Docker himself: never write "tested on".
+- Hero pill = "v<bot version> · Open source" linking https://github.com/nels0nfx/TurboFex (owner approved).
+- Phase B was folded into this. Next: pairing page restyle, then store/docs/playground, Developer Centre, admin, support/legal, cutover. Nothing is switched to the live site without his approval.
+
+- v3.5.0 (2026-11-18): the new Pair page uses the v2 look (tf-h2/tf-silver heading, rounded-2xl Card, tf-cards for the safety points). Pairing logic untouched. Owner said "not satisfied, just continue" after v3.4.0 with no details: I continued with the planned next step (pairing restyle); ask him what he is unhappy with if he does not say.
+
+## New website, restructure (site v3.6.0) (2026-11-19)
+- Owner approved the page-by-page restructure and the three mobile mockups (Home, Bot, Install). Rules he set: keep the existing HTML, CSS, vanilla JS and Node.js setup (NO React or other framework; `web/` is frozen but kept, `NEXT_UI=off` stays); each page has ONE purpose (Home = intro hub, Bot = features, Install = install and hosting, Pair = WhatsApp linking); same width, margins, type scale, card style, spacing, buttons and nav everywhere; footer on EVERY redesigned public page; not every component an identical card (same tokens, layout fits purpose); concise text, nothing repeated across pages; command counts verified against the real bot code; test at 360 and 390 px (no clipped content, sideways scroll or overlap); existing site stays live and rollback kept; never deploy or switch the live site without his approval; stop for review after each version.
+- WhatsApp warning wording (use it everywhere): TurboFex uses an unofficial WhatsApp Web connection, not the official WhatsApp Business Platform; WhatsApp may restrict or ban numbers that use it; use a spare number and consider the account risk.
+- Status rule: never write "All systems online" unless the server says so. The footer pill reads /health and /api/status (Server online / Paused for maintenance / Status unavailable). Status page later = live state only, no invented pairing statistics.
+- Built so far: `public/tf2.css`, `tf2.js`, `partials/head2.html`, `foot2.html`, `public/new-home.html` served at `/new` (preview, `<meta robots noindex>`; `NEW_SITE=off` hides it). Page markers `<!--tfx:head2-->`, `<!--tfx:foot2-->`, and `<!--tfx:n:commands|categories|version-->` (numbers from `public/commands.json`). No inline style or script is allowed (site CSP), so the 3D block is plain classed elements.
+- `tools/refresh-commands.js <bot folder>` rebuilds `public/commands.json` from the real bot source and validates before replacing. Run it in Termux after every bot release that adds or removes commands, then push the site.
+- Fonts: system font stacks only (no font files). Instrument Serif is not installed, the headline uses a serif fallback.
+- Plan: v3.7.0 Bot + Install pages (then point the menu and Home links to /bot and /install), v3.8.0 Pair restyle + Status, then Plugins, Docs, Playground, Developers, admin, support/legal, then cutover (point `/` at the new Home). Old pages still use tfx.css (gold, light and dark) until their turn.
+- Test note: in the AI workspace the older site tests (plugins 2, devcentre 10) fail the same way on v3.5.0 because packages are missing there; run the full `npm test` in Termux. New tests: `test/newsite.test.js`.
+
+- v3.6.1 (2026-11-19): fixed two stale tests (plugins.test.js no longer expects id="yr" on /plugins; site.test.js no longer expects the WhatsApp channel link on /pair). Both were out of date since the v3.0.5 footer removal. When `npm test` fails, the push command stops, so fix tests before handing over a push block.
+
+- v3.6.2 (2026-11-19): real Termux test run showed 12 stale tests. Devcentre tests now send the review checklist (CHECKS in test/devcentre.test.js, same keys as NEED in admin.js); plugins.test.js checks the header only on text pages; admin health shows at least 1 CPU core (Termux reports 0). The AI workspace cannot run test/site.test.js (it hangs there), so the owner's Termux run is the real check: always ask him to paste failures.
+
+- v3.7.0 (2026-11-19): Bot and Install previews at /new/bot and /new/install (new-bot.html, new-install.html). The category list is drawn by the server from public/commands.json via the marker <!--tfx:cats--> (renderCats in server.js; CAT_EXAMPLES are hand-picked example names, only shown if the name exists in the list, otherwise the first commands are used). Install commands were checked against the bot README (v1.7.1): Termux, VPS, Docker, panel, web host, Windows/Mac. Tabs and Copy are in tf2.js; without JavaScript every guide stays visible. Never write "tested on" for panels or Docker (the owner has not tested them). Internal links use /new/... until the cutover; at cutover change them (partials, Home, pages) to /bot and /install.
+- Next: v3.8.0 Pair restyle (flow unchanged) + Status page (live state only), then Plugins, Docs, Playground, Developers, admin, support/legal, cutover. Owner approves each version before the next starts.
+
+- v3.8.0 (2026-11-19): /new/pair (new-pair.html + tf2-pair.css) reuses the live pairing scripts unchanged. app.js needs old-header controls, so the page carries a hidden stub block (#theme, #menu, #menupanel, #m-code, #m-qr, #m-sound, #m-sound-t) and the island (#island). The new header uses #tmenu/#tmenupanel and the footer pill #sitestatus, because app.js also uses #menu, #menupanel and #status. sound.js, notice.js, theme.js and shell.js are NOT loaded there (notice and status are in tf2.js). A test checks every `$('id')` in app.js exists on the page. If app.js gets a new id, the page must get it too.
+- /new/status (new-status.html, tf2-status.js, tf2-status.css): reads /health, /api/status and /api/plugins when opened and on "Check again" (and every 60 seconds while the tab is visible). Live state only, no stored history. The Plugin store row shows Unavailable when no registry is configured. Do not add uptime, counts or pairing activity (owner said never invent them).
+- Next (needs owner approval first): the remaining pages (Plugins, Docs, Playground, Developers, admin, Support, About, Terms, Privacy, Rules, Community) in the new look, then the cutover. At cutover: `/` serves the new Home, /bot /install /pair /status become the real addresses (replace /new/... links), and old pages stay reachable only until removed. Keep NEXT_UI and NEW_SITE switches until the owner says they can go.
+
+## v3.9.0 - text pages (preview)
+- /new/about, terms, privacy, rules, community, support = new-*.html, styled by tf2.css + tf2-doc.css, reuse doc.js (contents row) and support.js unchanged. Wording is copied from the live pages; test/newsite.test.js compares it, so edit BOTH when legal text changes until cutover.
+- Links inside these pages point to /new/... (to be swapped to real addresses at cutover). Hidden by NEW_SITE=off.
+- Still to do: Plugins, Docs (plugin-guide), Playground, Developers, admin, then cutover (needs owner approval).
+
+## v3.10.0 - Docs and Playground (preview)
+- /new/docs (from plugin-guide.html) and /new/playground (from playground.html) = new-docs.html, new-playground.html, styled by tf2.css + tf2-doc.css. Same doc.js, playground-broker.js, playground.js. new-playground.html gets the same WebAssembly CSP as playground.html (server.js). Wording copied from the live pages; a test compares it, so edit BOTH until cutover.
+- Still to do: Plugins store (script-built markup, own version v3.11.0), Developers, admin, then cutover (needs owner approval).

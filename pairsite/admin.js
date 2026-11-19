@@ -185,7 +185,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     try { const s = fs.statfsSync(dataDir); disk = { total: Number(s.blocks) * Number(s.bsize), free: Number(s.bavail) * Number(s.bsize) }; } catch (err) { /* not available here */ }
     const last = samples[samples.length - 1];
     return {
-      version, node: process.version, platform: process.platform + ' ' + os.arch(), cores: os.cpus().length,
+      version, node: process.version, platform: process.platform + ' ' + os.arch(), cores: Math.max(1, os.cpus().length), // some phones (Termux) report no cores; show at least 1
       uptimeSec: Math.round(process.uptime()), startedAt: now() - Math.round(process.uptime()) * 1000,
       cpu: { process: last.proc, system: last.sys, load: os.loadavg().map((x) => Math.round(x * 100) / 100) },
       memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, heapLimit, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },
@@ -460,7 +460,10 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       }
       if (post && route === 'plugins/review') {
         const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
-        const r = devcentre.adminReview(b.id, b.decision, b.note, sess.user);
+        // approving needs every step of the review checklist ticked (the page also locks the button; this is the real rule)
+        const NEED = ['perms', 'flags', 'tested', 'mine', 'fits'];
+        if (b.decision === 'approve' && !(Array.isArray(b.checks) && NEED.every((k) => b.checks.includes(k)))) { json(res, 400, { error: 'Tick every step of the review checklist first.' }); return true; }
+        const r = devcentre.adminReview(b.id, b.decision, b.note, sess.user, b.checks);
         if (r.error) { json(res, r.status, { error: r.error }); return true; }
         const one = devcentre.adminGet(b.id); act('plugin.' + (b.decision === 'approve' ? 'approve' : b.decision === 'changes' ? 'changes' : 'reject'), String(b.id).slice(0, 12), `${one.pluginId}@${one.version} by ${one.login}` + (b.note ? ': ' + String(b.note).slice(0, 120) : ''));
         json(res, 200, { ok: true }); return true;
@@ -495,6 +498,11 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
         const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
         const r = devcentre.setCollections(b); if (r.error) { json(res, r.status, { error: r.error }); return true; }
         act(b.remove !== undefined ? 'plugin.collection.remove' : 'plugin.collection.save', 'collection', String(b.remove !== undefined ? b.remove : (b.save && b.save.id) || '')); json(res, 200, r); return true;
+      }
+      if (post && route === 'plugins/preinstall') {
+        const b = await body(); if (!b) { json(res, 400, { error: 'Bad request.' }); return true; }
+        const r = devcentre.setPreinstall(b.id, b.mode); if (r.error) { json(res, r.status, { error: r.error }); return true; }
+        act('plugin.preinstall', String(b.id).slice(0, 32), String(b.mode).slice(0, 10)); json(res, 200, r); return true;
       }
       if (post && route === 'plugins/feature') {
         const b = await body(); if (!b || typeof b.on !== 'boolean') { json(res, 400, { error: 'Bad request.' }); return true; }

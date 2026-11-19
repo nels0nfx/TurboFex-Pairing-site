@@ -448,18 +448,7 @@
 
   // ---------- Plugins (submissions from the Developer Centre) ----------
   var PSTAT = { revoked: ['Withdrawn', 'bad'], pending: ['Waiting', 'warn'], approved: ['Approved', 'ok'], published: ['Published', 'ok'], rejected: ['Rejected', 'bad'], changes: ['Changes asked', 'warn'], withdrawn: ['Withdrawn', ''] };
-  function pstat(st, updateOf) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: st === 'published' && updateOf ? 'Updated' : x[0] }); }
-  // Keep one live card per plugin: once a newer version is published, older published
-  // submissions remain available in the version history but do not clutter the queue.
-  function visiblePluginSubmissions(items) {
-    var latest = Object.create(null);
-    items.forEach(function (x) {
-      if (x.status !== 'published') return;
-      var old = latest[x.pluginId];
-      if (!old || String(x.version).localeCompare(String(old.version), undefined, { numeric: true }) > 0) latest[x.pluginId] = x;
-    });
-    return items.filter(function (x) { return x.status !== 'published' || latest[x.pluginId] === x; });
-  }
+  function pstat(st) { var x = PSTAT[st] || [st, '']; return h('span', { class: 'tag ' + x[1], text: x[0] }); }
   function vPlugins() { return state.plug.open ? vPluginOne(state.plug.open) : vPluginList(); }
   function colDlg(c) {
     dlg({ title: c ? 'Edit collection' : 'New collection', text: 'A ready-made set of 2 to 8 published plugins. Bot owners install the whole set with one command.', fields: [
@@ -496,27 +485,39 @@
   function vPluginList() {
     return api('GET', 'plugins/submissions').then(function (j) {
       var P = state.plug, n = h('div'), iv = j.invites || { on: false, logins: [] }, cols = j.collections || [];
-      n.appendChild(head('Plugins and reviews', j.autoOn ? 'Plugins that developers sent in. Approving publishes a plugin straight away, and withdrawing switches it off for bots: nothing to run on your phone.' : 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' })));
+      n.appendChild(head('Plugins and reviews', j.autoOn ? 'Plugins that developers sent in. Approving publishes a plugin straight away, and withdrawing removes it from bots within about 10 minutes: nothing to run on your phone.' : 'Plugins that developers sent in. Nothing is published from here: approved plugins wait for your phone command.', h('span', { class: 'tag ' + (j.paused ? 'bad' : 'ok'), text: j.paused ? 'Store paused' : 'Store open' })));
       if (!j.configured) n.appendChild(h('p', { class: 'note warn', text: 'GitHub sign-in is not set up yet (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SITE_URL are missing on the server), so developers cannot send plugins.' }));
       if (j.autoOn) n.appendChild(h('p', { class: 'note', text: 'Automatic publishing is ON (the site signs the store itself).' }));
       else if (!j.pullOn) n.appendChild(h('p', { class: 'note warn', text: 'Automatic publishing is off (REGISTRY_SIGNING_KEY is not set) and the phone command is not set up yet (REGISTRY_PULL_TOKEN is missing or shorter than 24 characters), so approved plugins cannot be collected.' }));
       n.appendChild(h('div', { class: 'grid' }, stat('Waiting', String(j.counts.pending), 'for your review', j.counts.pending ? 'warn' : ''), stat('Approved', String(j.counts.approved), j.autoOn ? 'published at once' : 'wait for the phone command', j.counts.approved ? 'good' : ''), stat('Published', String(j.counts.published), 'in the registry', ''), stat('Rejected', String(j.counts.rejected), '', '')));
       var body = h('div', { class: 'tabbody' });
-      n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
+      n.appendChild(tabs([['queue', 'Review queue', j.counts.pending, true], ['devs', 'Developers'], ['reviews', 'Ratings'], ['reports', 'Reports'], ['collections', 'Collections', cols.length], ['preinstall', 'Preinstalled', Object.keys(j.preinstall || {}).length], ['store', 'Store and access']], P.tab, function (t) { P.tab = t; P.q = ''; P.f = 'all'; load(true); }));
       n.appendChild(body);
       if (P.tab === 'queue') {
-        var list = h('div', { class: 'pgrid' }), displaySubmissions = visiblePluginSubmissions(j.submissions);
-        var chips = [['all', 'All', displaySubmissions.length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], displaySubmissions.filter(function (x) { return c[0] === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === c[0]; }).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
+        var list = h('div', { class: 'pgrid' });
+        var matchF = function (x, f) { return f === 'all' || (f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === f); };
+        var plugOf = function (rows) { var seen = {}; return rows.filter(function (x) { if (seen[x.pluginId]) return false; seen[x.pluginId] = 1; return true; }); };
+        var chips = [['all', 'All', plugOf(j.submissions).length]].concat([['pending', 'Waiting'], ['approved', 'Approved'], ['published', 'Published'], ['rejected', 'Rejected'], ['other', 'Other']].map(function (c) { return [c[0], c[1], plugOf(j.submissions.filter(function (x) { return matchF(x, c[0]); })).length]; })).filter(function (c) { return c[0] === 'all' || c[2]; });
         var drawList = function () {
           clear(list);
-          var rows = displaySubmissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
+          var rows = j.submissions.filter(function (x) { return (P.f === 'all' || (P.f === 'other' ? ['pending', 'approved', 'published', 'rejected'].indexOf(x.status) < 0 : x.status === P.f)) && hit(x.name + ' ' + x.pluginId + ' ' + x.login, P.q); });
           if (!j.submissions.length) { list.appendChild(h('p', { class: 'empty', text: 'Nobody has sent a plugin yet.' })); return; }
           if (!rows.length) { list.appendChild(h('p', { class: 'empty', text: 'Nothing matches. Clear the search or pick another filter.' })); return; }
-          rows.forEach(function (x) {
-            list.appendChild(h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
+          // one card per plugin: its newest version on top, older versions folded under it
+          function vn(v) { var q = String(v).split('.').map(Number); return (q[0] || 0) * 1e8 + (q[1] || 0) * 1e4 + (q[2] || 0); }
+          var groups = {}, order = [];
+          rows.forEach(function (x) { if (!groups[x.pluginId]) { groups[x.pluginId] = []; order.push(x.pluginId); } groups[x.pluginId].push(x); });
+          order.forEach(function (pid) {
+            var all = groups[pid].slice().sort(function (a, b) { return vn(b.version) - vn(a.version) || b.createdAt - a.createdAt; });
+            var x = all[0], older = all.slice(1);
+            var card = h('button', { type: 'button', class: 'pcard2 ' + x.status, onclick: function () { P.open = x.id; load(true); } },
               h('span', { class: 'pav', 'aria-hidden': 'true', text: initial(x.name) }),
               h('span', { class: 'pmain' }, h('b', { text: x.name }), h('small', { text: x.pluginId + ' · v' + x.version }), h('span', { class: 'pmeta' }, 'by ' + x.login + (x.verified ? ' ✓' : '') + ' · ' + agoShort(x.createdAt))),
-              h('span', { class: 'ptags' }, pstat(x.status, x.updateOf), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') }))));
+              h('span', { class: 'ptags' }, pstat(x.status), x.updateOf ? h('span', { class: 'tag ok', text: 'Update of v' + x.updateOf }) : null, h('span', { class: 'tag ' + x.risk, text: x.risk + (x.flags ? ' · ' + x.flags + ' flag' + (x.flags > 1 ? 's' : '') : '') })));
+            if (!older.length) { list.appendChild(card); return; }
+            var det = h('details', { class: 'polder' }, h('summary', { text: 'Earlier versions (' + older.length + ')' }));
+            older.forEach(function (o) { det.appendChild(h('button', { type: 'button', class: 'polder-row', onclick: function () { P.open = o.id; load(true); } }, 'v' + o.version + ' · ' + o.status + ' · ' + agoShort(o.createdAt))); });
+            list.appendChild(h('div', { class: 'pgroup' }, card, det));
           });
         };
         body.appendChild(toolbar({ placeholder: 'Search plugin or developer', q: P.q, onQ: function (v) { P.q = v; drawList(); }, chips: chips, chip: P.f, onChip: function (c) { P.f = c; drawList(); } }));
@@ -531,6 +532,19 @@
               h('button', { class: 'btn sm danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Delete the collection ' + c.name + '?', text: j.autoOn ? 'It disappears from bots and the Plugins page within a few minutes.' : 'It disappears from bots and the Plugins page after your next phone command (pull, push the registry).', ok: 'Delete', danger: true }, function () { act(b, function () { return api('POST', 'plugins/collections', { remove: c.id }); }, 'Collection deleted', function () { load(false); }); }); } }, 'Delete')));
         })) : h('p', { class: 'empty', text: 'No collections yet.' }));
         body.appendChild(h('p', { class: 'note', text: j.autoOn ? 'Changes to collections reach bots by themselves within a few minutes.' : 'Changes to collections reach bots after you run the phone command (pull) and push the registry, like plugins.' }));
+        return n;
+      }
+      if (P.tab === 'preinstall') {
+        var pre = j.preinstall || {}, seenP = {}, pubs = j.submissions.filter(function (x) { if (x.status !== 'published' || seenP[x.pluginId]) return false; seenP[x.pluginId] = 1; return true; });
+        body.appendChild(h('p', { class: 'muted', text: 'Pick published plugins that every bot gets by itself: new bots at once, existing bots the next time they check (about 10 minutes). Bot owners cannot remove them. Setting a plugin back to Off removes it from every bot and stops sending it; it stays in the store for manual install.' }));
+        body.appendChild(pubs.length ? h('div', { class: 'clist' }, pubs.map(function (x) {
+          var sel = h('select', { class: 'sel', 'aria-label': 'Preinstall mode for ' + x.name, onchange: function (e) {
+            var el = e.currentTarget, mode = el.value, go = function () { act(el, function () { return api('POST', 'plugins/preinstall', { id: x.pluginId, mode: mode }); }, mode === 'off' ? 'Removed from every bot' : 'Saved', function () { load(false); }); };
+            if (mode === 'off' && pre[x.pluginId]) { el.value = pre[x.pluginId]; dlg({ title: 'Remove ' + x.name + ' from every bot?', text: 'Every bot that has it as a preinstalled plugin will remove it within about 10 minutes, and new bots will not get it. People can still install it from the store.', ok: 'Remove from all bots', danger: true }, function () { el.value = 'off'; go(); }); } else go();
+          } }, [['off', 'Off'], ['install', 'Install only (owner switches it on)'], ['activate', 'Install and activate']].map(function (o) { var op = h('option', { value: o[0], text: o[1] }); if ((pre[x.pluginId] || 'off') === o[0]) op.selected = true; return op; }));
+          return h('div', { class: 'citem' }, h('div', { class: 'cinfo' }, h('b', { text: x.name }), h('span', { class: 'muted', text: ' ' + x.pluginId + ' · v' + x.version }), h('div', { class: 'cchips' }, (x.permissions || []).map(function (p2) { return h('span', { class: 'cchip', text: p2 }); }))), h('div', { class: 'cact' }, sel));
+        })) : h('p', { class: 'empty', text: 'No published plugins yet.' }));
+        body.appendChild(h('p', { class: 'note', text: j.autoOn ? 'Preinstalled plugins get their permissions without the owner pressing confirm, so only choose plugins you fully trust.' : 'Preinstalling needs automatic publishing (REGISTRY_SIGNING_KEY). Without it, nothing is sent to bots.' }));
         return n;
       }
       if (P.tab === 'store') {
@@ -555,7 +569,7 @@
       n.appendChild(head(s.name, s.pluginId + ' · version ' + s.version, back));
       var m = s.manifest;
       n.appendChild(panel('Overview', null,
-        h('p', null, h('b', { text: 'Status: ' }), pstat(s.status, s.updateOf)),
+        h('p', null, h('b', { text: 'Status: ' }), pstat(s.status)),
         h('p', null, h('b', { text: 'Developer: ' }), s.login + (s.verified ? ' (verified)' : '') + ' · GitHub #' + (s.dev ? s.dev.githubId : '?')),
         h('p', { text: m.description }),
         h('p', { class: 'muted', text: 'Repository: ' + s.repo + ' · tag ' + s.tag + (s.folder ? ' · folder ' + s.folder : '') }),
@@ -566,6 +580,8 @@
         m.domains.length ? h('p', { text: 'Websites: ' + m.domains.join(', ') }) : null,
         h('p', { class: 'muted', text: 'Commands: ' + (m.commands.join(', ') || 'none') + (m.events.length ? ' · Events: ' + m.events.join(', ') : '') })));
       n.appendChild(panel('Automatic checks', s.flagList.length ? String(s.flagList.length) + ' to look at' : 'none', s.flagList.length ? h('ul', { class: 'alist' }, s.flagList.map(function (x) { return h('li', { text: x }); })) : h('p', { class: 'muted', text: 'Nothing unusual found. This never means safe: read the code.' })));
+      if (s.overlaps && s.overlaps.length) n.appendChild(panel('Overlap with other plugins', String(s.overlaps.length), s.overlaps.map(function (o) { return h('p', { class: 'note warn', text: o.plugin + ' ' + o.text }); })));
+      n.appendChild(testPanel(s));
       if (s.replies && s.replies.length) n.appendChild(panel.apply(null, ['Messages from the developer', String(s.replies.length)].concat(s.replies.map(function (r) { return h('p', { class: 'muted', text: when(r.at) + ': ' + r.text }); }))));
       if (s.changes) {
         var c = s.changes, cl = [];
@@ -583,8 +599,15 @@
       if (Array.isArray(s.shots) && s.shots.length) n.appendChild(panel('Screenshots', String(s.shots.length), h('div', { class: 'avr' }, s.shots.filter(function (x) { return /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(x); }).map(function (x) { return h('img', { src: x, width: 160, alt: 'screenshot' }); }))));
       [['README.md', s.readme], ['CHANGELOG.md', s.changelog]].forEach(function (d) { if (d[1]) n.appendChild(panel(d[0], String(d[1].split('\n').length) + ' lines (shown on the Plugins page as plain text)', h('pre', { class: 'apre tall', tabindex: '0', text: d[1] }))); });
       var bar = h('div', { class: 'abar' });
+      var ticks = {}, apprBtn = null;
       if (s.status === 'pending') {
-        bar.appendChild(h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Approve ' + s.name + ' ' + s.version + '?', text: s.autoOn ? 'It is published to the store right away, and bots can install it. You read the code above, and this approves exactly that code.' : 'It then waits for your phone command (node tools/registry.js pull). Nothing is published yet. You read the code above, and this approves exactly that code.', fields: [{ name: 'note', label: 'Private note (optional)' }], ok: 'Approve' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'approve', note: v.note }); }, 'Approved', function () { load(false); }); }); } }, 'Approve'));
+        bar.appendChild(h('div', { class: 'ckl' }, h('b', { text: 'Before you approve' }), NEEDS.map(function (x) {
+          return h('label', { class: 'ck' }, h('input', { type: 'checkbox', onchange: function (e) { ticks[x[0]] = e.currentTarget.checked; var all = NEEDS.every(function (k) { return ticks[k[0]]; }); if (apprBtn) { apprBtn.disabled = !all; apprBtn.title = all ? '' : 'Tick every step of the checklist first'; } } }), h('span', { text: x[1] }));
+        }), h('small', { class: 'muted', text: 'The Approve button unlocks when every step is ticked. What you ticked is saved with the approval.' })));
+      }
+      if (s.status === 'pending') {
+        apprBtn = h('button', { class: 'btn solid', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Approve ' + s.name + ' ' + s.version + '?', text: s.autoOn ? 'It is published to the store right away, and bots can install it. You read the code above, and this approves exactly that code.' : 'It then waits for your phone command (node tools/registry.js pull). Nothing is published yet. You read the code above, and this approves exactly that code.', fields: [{ name: 'note', label: 'Private note (optional)' }], ok: 'Approve' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'approve', note: v.note, checks: Object.keys(ticks).filter(function (k) { return ticks[k]; }) }); }, 'Approved', function () { load(false); }); }); } }, 'Approve');
+        apprBtn.disabled = true; apprBtn.title = 'Tick every step of the checklist first'; bar.appendChild(apprBtn);
       }
       if (s.status === 'pending') {
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Ask for changes to ' + s.name + ' ' + s.version + '?', text: 'The developer sees this note, fixes the plugin and sends it again (the same version number is fine). Use this instead of Reject when it can be fixed.', fields: [{ name: 'note', label: 'What should change' }], ok: 'Ask for changes' }, function (v) { act(b, function () { return api('POST', 'plugins/review', { id: s.id, decision: 'changes', note: v.note }); }, 'Sent back to the developer', function () { load(false); }); }); } }, 'Ask for changes'));
@@ -594,14 +617,46 @@
       }
       if (s.status === 'published' && !s.revoke) {
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/feature', { id: s.pluginId, on: !s.featured }); }, s.featured ? 'Removed from featured' : 'Featured', function () { load(false); }); } }, s.featured ? 'Remove from featured' : 'Feature this plugin'));
-        bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Withdraw ' + s.name + ' ' + s.version + ' from the store?', text: s.autoOn ? 'The Plugins page hides it at once and bots switch it off the next time they check the store (within a few hours).' : 'The Plugins page hides it at once. Bots switch it off only after you run the phone command (node tools/registry.js pull) and push the registry.', fields: [{ name: 'reason', label: 'Reason (bots show it to their owners)' }], ok: 'Withdraw', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/revoke', { id: s.id, reason: v.reason }); }, s.autoOn ? 'Withdrawn' : 'Marked for withdrawal', function () { load(false); }); } ); } }, 'Withdraw from the store'));
+        bar.appendChild(h('button', { class: 'btn danger', type: 'button', onclick: function (e) { var b = e.currentTarget; dlg({ title: 'Withdraw ' + s.name + ' ' + s.version + ' from the store?', text: s.autoOn ? 'The Plugins page hides it at once and bots REMOVE it by themselves, usually within about 10 minutes (a bot that is offline does it when it is back online) and tell their owners.' : 'The Plugins page hides it at once. Bots switch it off only after you run the phone command (node tools/registry.js pull) and push the registry.', fields: [{ name: 'reason', label: 'Reason (bots show it to their owners)' }], ok: 'Withdraw', danger: true }, function (v) { act(b, function () { return api('POST', 'plugins/revoke', { id: s.id, reason: v.reason }); }, s.autoOn ? 'Withdrawn' : 'Marked for withdrawal', function () { load(false); }); } ); } }, 'Withdraw from the store'));
       }
-      if (s.revoke) bar.appendChild(h('p', { class: 'note warn', text: s.revoke.done ? 'Withdrawn and signed: bots switch it off. Reason: ' + s.revoke.reason : 'Withdrawal waiting for the phone command (pull, then push the registry, then published). Reason: ' + s.revoke.reason }));
+      if (s.revoke) bar.appendChild(h('p', { class: 'note warn', text: s.revoke.done ? 'Withdrawn and signed: bots remove it. Reason: ' + s.revoke.reason : 'Withdrawal waiting for the phone command (pull, then push the registry, then published). Reason: ' + s.revoke.reason }));
       if (s.dev) {
         bar.appendChild(h('button', { class: 'btn', type: 'button', onclick: function (e) { var b = e.currentTarget; act(b, function () { return api('POST', 'plugins/dev', { githubId: s.dev.githubId, verified: !s.dev.verified }); }, s.dev.verified ? 'Verified mark removed' : 'Developer verified', function () { load(false); }); } }, s.dev.verified ? 'Remove verified mark' : 'Mark developer as verified'));
       }
       return reviewLayout(n, bar, s);
     });
+  }
+  // the owner's checklist (the server needs all of these before it approves)
+  var NEEDS = [['perms', 'I read "What it asks for" and every permission fits what the plugin says it does'], ['flags', 'I looked at "Automatic checks" and any overlap warning'], ['tested', 'The test run passed (or I understand why a step failed)'], ['mine', 'I tried it on my own bot or in the Playground'], ['fits', 'It does what its description says and is not a copy, spam or a trick']];
+  // the automatic test run: the plugin runs in a hidden frame (same sandbox as the bot's) with a pretend chat
+  function testPanel(s) {
+    var out = h('div', { class: 'trun' }), btn = h('button', { class: 'btn', type: 'button' }, 'Run the test'), frame = null, timer = null;
+    var status = h('p', { class: 'muted', text: 'Runs every command, event and schedule once or twice in the same kind of sandbox the bot uses, with a pretend chat. Nothing is sent anywhere.' });
+    function done() { clearTimeout(timer); if (frame) { frame.remove(); frame = null; } btn.disabled = false; }
+    function show(r) {
+      clear(out);
+      if (r.error) { out.appendChild(h('p', { class: 'note bad', text: 'The test could not run: ' + r.error })); return; }
+      if (!r.results.length) { out.appendChild(h('p', { class: 'muted', text: r.note || 'Nothing to run.' })); return; }
+      var bad = r.results.filter(function (x) { return !x.ok; }).length, quiet = r.results.filter(function (x) { return x.quiet; }).length;
+      out.appendChild(h('p', { class: 'note ' + (bad ? 'bad' : quiet ? 'warn' : ''), text: bad ? bad + ' of ' + r.results.length + ' steps FAILED. Do not approve until the developer fixes it.' : 'All ' + r.results.length + ' steps ran without a problem.' + (quiet ? ' ' + quiet + ' of them said nothing, check that this is meant.' : '') }));
+      out.appendChild(h('ul', { class: 'alist trl' }, r.results.map(function (x) {
+        return h('li', { class: x.ok ? (x.quiet ? 'q' : 'g') : 'x' }, h('b', { text: (x.ok ? (x.quiet ? '⚠️ ' : '✅ ') : '❌ ') + x.label }), x.error ? h('span', { class: 'muted', text: ' — ' + x.error }) : null, x.said.length ? h('small', { class: 'muted mono', text: x.said.slice(0, 2).join(' · ').slice(0, 220) }) : null);
+      })));
+    }
+    btn.addEventListener('click', function () {
+      btn.disabled = true; clear(out); status.textContent = 'Starting the test…';
+      frame = h('iframe', { src: '/smoketest.html', title: 'test run', 'aria-hidden': 'true', hidden: true });
+      var onmsg = function (ev) {
+        if (ev.origin !== location.origin || !frame || ev.source !== frame.contentWindow) return; var d = ev.data || {};
+        if (d.t === 'ready') frame.contentWindow.postMessage({ t: 'run', manifest: s.manifestRaw, source: s.entrySource }, location.origin);
+        else if (d.t === 'progress') status.textContent = 'Running step ' + (d.i + 1) + ' of ' + d.n + '…';
+        else if (d.t === 'result') { window.removeEventListener('message', onmsg); status.textContent = 'Test finished.'; show(d.r); done(); }
+      };
+      window.addEventListener('message', onmsg);
+      timer = setTimeout(function () { window.removeEventListener('message', onmsg); status.textContent = ''; show({ error: 'it took too long or the browser blocked it. Try again, or use the Playground.' }); done(); }, 120000);
+      document.body.appendChild(frame);
+    });
+    return panel('Test run', 'automatic', status, btn, out);
   }
   // the review page: tabs for the long parts on the left, the decision always in view on the right
   function reviewLayout(n, bar, s) {
