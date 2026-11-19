@@ -5,7 +5,7 @@
   var d = document;
 
   // menu
-  var btn = d.getElementById('menu'), panel = d.getElementById('menupanel');
+  var btn = d.getElementById('tmenu'), panel = d.getElementById('tmenupanel');
   function setMenu(on) {
     if (!btn || !panel) return;
     panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
@@ -46,8 +46,12 @@
   });
 
   // live status: only what the server really says. /health must answer ok, and /api/status says whether the site is paused.
-  var pill = d.getElementById('status'), label = pill && pill.querySelector('span');
+  var pill = d.getElementById('sitestatus'), label = pill && pill.querySelector('span');
   function setStatus(state, text) { if (!pill) return; pill.setAttribute('data-state', state); if (label) label.textContent = text; }
+
+  // Pair page: a small card with the real state of the pairing service
+  var pl = d.getElementById('pairlive');
+  function pairLive(state, text) { if (!pl) return; pl.setAttribute('data-state', state); pl.querySelector('span').textContent = text; }
   function notice(kind, text, id, closable) {
     var box = d.createElement('div'); box.className = 'notice ' + kind; box.setAttribute('role', kind === 'maint' ? 'alert' : 'status');
     var p = d.createElement('p'); p.textContent = text; box.appendChild(p);
@@ -62,11 +66,13 @@
   function get(url) { return fetch(url, { cache: 'no-store', credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); }); }
   Promise.all([get('/health'), get('/api/status')]).then(function (res) {
     var health = res[0], st = res[1];
-    if (!health || health.ok !== true) { setStatus('down', 'Status unavailable'); return; }
+    if (!health || health.ok !== true) { setStatus('down', 'Status unavailable'); pairLive('down', 'The pairing service cannot be reached right now.'); return; }
     var maint = st && st.maintenance && st.maintenance.on;
     setStatus(maint ? 'paused' : 'ok', maint ? 'Paused for maintenance' : 'Server online');
+    var mins = health.sessionMinutes ? ' Session IDs last ' + health.sessionMinutes + ' minutes.' : '';
+    pairLive(maint ? 'paused' : 'ok', maint ? 'Pairing is paused for maintenance.' : 'Pairing is available.' + mins);
     if (maint) notice('maint', String(st.maintenance.message || ''), 'm', false);
     var a = st && st.announcement;
     if (a && a.text && !seen(a.id)) notice('info', String(a.text), a.id, true);
-  }).catch(function () { setStatus('down', 'Status unavailable'); });
+  }).catch(function () { setStatus('down', 'Status unavailable'); pairLive('down', 'The pairing service cannot be reached right now.'); });
 })();

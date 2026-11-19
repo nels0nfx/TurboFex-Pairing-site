@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurboFex | Status</title>
+<meta name="description" content="Live status of the TurboFex website, pairing and plugin store.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tf2.css">
+<link rel="stylesheet" href="/tf2-status.css">
+</head>
+<body>
+<!--tfx:head2-->
+<main id="main">
+<section class="wrap ph"><div class="col">
+  <p class="eyebrow">Status</p>
+  <h1 class="page">Service status</h1>
+  <p class="lead">Live from the TurboFex server. Nothing here is made up.</p>
+</div></section>
+
+<section class="wrap mt"><div class="col">
+  <div class="panel" id="statuslist" aria-live="polite">
+    <div class="srow" data-k="site" data-state="checking"><i class="dot"></i><span class="tx"><b>Website</b><span class="d">The pages you are looking at</span></span><span class="val" data-val>Checking</span></div>
+    <div class="srow" data-k="pair" data-state="checking"><i class="dot"></i><span class="tx"><b>Pairing</b><span class="d">Linking WhatsApp and making session IDs</span></span><span class="val" data-val>Checking</span></div>
+    <div class="srow" data-k="store" data-state="checking"><i class="dot"></i><span class="tx"><b>Plugin store</b><span class="d">The list of plugins in the marketplace</span></span><span class="val" data-val>Checking</span></div>
+  </div>
+  <div class="notice-card" id="statusnote" hidden></div>
+  <div class="sbar"><span class="d" id="checked">Not checked yet</span><button type="button" class="btn" id="refresh">Check again</button></div>
+</div></section>
+
+<section class="wrap sec"><div class="col">
+  <h2>This server</h2>
+  <div class="panel mt">
+    <div class="srow plain"><span class="tx"><b>Site version</b></span><span class="val" id="v-site">-</span></div>
+    <div class="srow plain"><span class="tx"><b>Session ID lifetime</b></span><span class="val" id="v-ttl">-</span></div>
+  </div>
+</div></section>
+
+<section class="wrap sec"><div class="col">
+  <h2>Your own bot</h2>
+  <p class="sub">Every bot runs on its own host, so its status is not shown here. If your bot is quiet, check its host and send <code class="k">.ping</code> in WhatsApp. The <a class="tl" href="/new/install">Install page</a> has the hosting steps.</p>
+</div></section>
+</main>
+<!--tfx:foot2-->
+<script src="/tf2-status.js"></script>
+</body>
+</html>
