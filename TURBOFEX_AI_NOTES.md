@@ -507,3 +507,15 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## v3.10.0 - Docs and Playground (preview)
 - /new/docs (from plugin-guide.html) and /new/playground (from playground.html) = new-docs.html, new-playground.html, styled by tf2.css + tf2-doc.css. Same doc.js, playground-broker.js, playground.js. new-playground.html gets the same WebAssembly CSP as playground.html (server.js). Wording copied from the live pages; a test compares it, so edit BOTH until cutover.
 - Still to do: Plugins store (script-built markup, own version v3.11.0), Developers, admin, then cutover (needs owner approval).
+
+## v3.11.0 - colours and Plugins store (preview)
+- Owner-approved colour system (tf2.css tokens): surfaces s1/s2/s3, line/line2, main button violet (--btn), four buttons (.btn.p main, .btn secondary, .btn.q quiet, .btn.d danger). Green/amber/red = status only. Identity colours vio/sky/cyan/pink/fuc ONLY for command categories (CAT_TONE in server.js, class tone-*) and the "start here" icons on Home. Most icons stay neutral. Do not make every icon a coloured square.
+- Icons: the old sprite.html is injected once through head2 (nested marker handled in server.js). Use <svg><use href="#i-name"/></svg>.
+- /new/plugins = new-plugins.html + tf2-plugins.css, same plugins.js (hash links #plugin-id). Detail order is done with CSS only (display: contents + order). Sign-in link from the store still returns to the old /plugins until cutover.
+- Owner said: Admin must NOT share the public design system; visual changes only, no change to permissions/actions/backend. Planned order: v3.12.0 Developer Centre, v3.13.0 Admin, then cutover (needs approval). Owner wants simple words, not a copy of the old site.
+- Push block for the owner's phone: repo folder is ~/TurboFex-Pairing-site and its top level IS the site; the ZIP holds changelog.txt + pairsite/, so unzip to a temp folder and copy pairsite/. into the repo (see delivery message).
+
+## v3.12.0 - Developer Centre (preview)
+- /new/developers = new-developers.html + tf2-dev.css, same developers.js (unchanged; it builds the nav, cards, tiles and forms, so tf2-dev.css styles every class it creates). Signed-out and signed-in views are both in the one page. Status tags: ok green, wait amber, bad red. btn-gold = main, btn-ghost = secondary, btn-soft = danger.
+- GitHub sign-in (/auth/github) still returns to the old /developers until cutover.
+- Still to do: Admin (own look, visual changes only, v3.13.0), then cutover (needs owner approval).

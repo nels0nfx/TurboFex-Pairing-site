@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurboFex | Plugins</title>
+<meta name="description" content="Add features to your TurboFex bot. Every plugin is reviewed and signed before it is published.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/tf2.css">
+<link rel="stylesheet" href="/tf2-plugins.css">
+</head>
+<body>
+<!--tfx:head2-->
+<main id="main" class="pl">
+
+  <div id="pbrowse">
+    <section class="wrap ph"><div class="col">
+      <p class="eyebrow">Plugins</p>
+      <h1 class="page">Add features to your bot</h1>
+      <p class="lead">Every plugin is reviewed and signed. Your bot checks the signature again before it installs one.</p>
+      <ul class="trust"><li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-key"/></svg>Signed</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>Reviewed</li><li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-box"/></svg>Sandboxed</li></ul>
+    </div></section>
+
+    <section class="wrap mt"><div class="col">
+      <div class="pfind">
+        <label class="sr" for="psearch">Search plugins</label>
+        <svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="psearch" type="search" placeholder="Search plugins" autocomplete="off" maxlength="40" disabled>
+      </div>
+      <div class="pfilters" id="pfilters" role="group" aria-label="Filter plugins"></div>
+      <div class="pbar">
+        <p class="pcount" id="pcount" aria-live="polite">Loading the plugin list…</p>
+        <label class="psort"><span class="sr">Sort plugins</span><select id="psort"><option value="feat">Featured first</option><option value="new">Newest</option><option value="name">Name A to Z</option><option value="rate">Top rated</option></select></label>
+      </div>
+    </div></section>
+
+    <div class="wrap"><div class="col">
+      <section id="pfeat" class="psec" hidden><div class="shead"><h2>Featured</h2></div><div id="pfeatlist" class="plist"></div></section>
+      <section class="psec"><div class="shead" id="pallhead" hidden><h2>All plugins</h2></div><div id="plist" class="plist" aria-live="polite"><div class="skel pk"></div><div class="skel pk"></div><div class="skel pk"></div></div></section>
+      <p class="pempty" id="pempty" hidden></p>
+      <section id="pcols" class="psec" hidden></section>
+    </div></div>
+
+    <section class="wrap sec"><div class="col">
+      <h2>How to install</h2>
+      <ol class="panel hows mt">
+        <li><span class="num">1</span><div><b>Install</b><p>Send <code>.plugin install</code> and the plugin name. The bot downloads it, checks it and shows what it asks for.</p></div></li>
+        <li><span class="num">2</span><div><b>Confirm</b><p>Read the list. Then send <code>.plugin confirm</code> with the code the bot gives you.</p></div></li>
+      </ol>
+      <p class="fine">Only the bot owner can install or remove plugins. Some plugins come with the bot and cannot be removed. Switch a plugin off with <code>.plugin disable</code> and its name. If you changed the command symbol, use yours.</p>
+    </div></section>
+  </div>
+
+  <div id="pdetail" hidden></div>
+</main>
+<!--tfx:foot2-->
+<script src="/plugins.js"></script>
+</body>
+</html>

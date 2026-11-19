@@ -107,7 +107,7 @@
     link.appendChild(ch); if (cl.childNodes.length) link.appendChild(cl); a.appendChild(link);
     var foot = el('div', 'pfoot'); foot.appendChild(el('span', 'pver', 'v' + p.version));
     if (p.rating) { var r = el('span', 'prate'); r.appendChild(ico('i-star')); r.appendChild(d.createTextNode(p.rating.avg.toFixed(1) + ' (' + p.rating.count + ')')); foot.appendChild(r); }
-    foot.appendChild(copyBtn('.plugin install ' + p.id, 'Copy install command')); a.appendChild(foot);
+    foot.appendChild(copyBtn('.plugin install ' + p.id, 'Copy command')); a.appendChild(foot);
     return a;
   }
   var FILTERS = [
@@ -130,7 +130,7 @@
   function drawCols() {
     var box = d.getElementById('pcols'); if (!box) return; box.textContent = '';
     if (!cols.length) { box.hidden = true; return; }
-    box.hidden = false; var h = el('div', 'shead'); h.appendChild(el('h2', null, 'Collections')); box.appendChild(h);
+    box.hidden = false; var h = el('div', 'shead'); h.appendChild(el('h2', null, 'Sets')); box.appendChild(h);
     var row = el('div', 'pcolrow');
     cols.forEach(function (c) {
       var x = el('div', 'pcol'); x.appendChild(el('b', null, c.name)); if (c.description) x.appendChild(el('p', 'pdesc', c.description));

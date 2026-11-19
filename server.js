@@ -48,6 +48,8 @@ function snapshotNumbers() {
 const CAT_EXAMPLES = { group: ['welcome', 'warn', 'kick'], tools: ['calc', 'remind', 'timer'], lookup: ['weather', 'define', 'currency'], fun: ['joke', '8ball', 'truth'], games: ['hangman', 'connect4', 'bingo'], effect: ['bass', 'echo', 'nightcore'], media: ['sticker', 'pdf', 'removebg'], ai: ['ai', 'explain', 'summarize'], download: ['play', 'tiktok', 'ig'], general: ['menu', 'help', 'ping'], budget: ['budget', 'expense', 'income'], video: ['compress', 'gif', 'trim'], autoreply: ['filter', 'filters', 'stop'] };
 const escHtml = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const shortText = (x) => { const t = String(x || '').split(/ \(|: |, /)[0].trim(); return t.length > 60 ? t.slice(0, 57).trimEnd() + '...' : t; };
+// one colour family per group of command categories (same colours everywhere a category is shown)
+const CAT_TONE = { group: 'vio', autoreply: 'vio', tools: 'sky', lookup: 'sky', general: 'sky', media: 'cyan', video: 'cyan', download: 'cyan', effect: 'cyan', fun: 'pink', games: 'pink', budget: 'pink', ai: 'fuc' };
 function renderCats() {
   let j; try { j = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'commands.json'), 'utf8')); } catch (e) { return '<p class="note">The command list is not available right now.</p>'; }
   const max = Math.max(...j.categories.map((c) => c.count), 1);
@@ -59,7 +61,7 @@ function renderCats() {
     const shown = pick.slice(0, 6), three = shown.slice(0, 3).map((x) => x.name).join(' \u00b7 ');
     const pct = Math.max(5, Math.min(100, Math.ceil((c.count / max) * 20) * 5));
     const more = c.count - shown.length;
-    return '<details class="cat"' + (c.key === 'games' ? ' open' : '') + '><summary><b>' + escHtml(c.title) + '</b><span class="n">' + c.count + '</span><span class="ex">' + escHtml(three) + '</span><span class="bar"><i class="w' + pct + '"></i></span>' + plus + '</summary><ul>'
+    return '<details class="cat tone-' + (CAT_TONE[c.key] || 'vio') + '"' + (c.key === 'games' ? ' open' : '') + '><summary><b>' + escHtml(c.title) + '</b><span class="n">' + c.count + '</span><span class="ex">' + escHtml(three) + '</span><span class="bar"><i class="w' + pct + '"></i></span>' + plus + '</summary><ul>'
       + shown.map((x) => '<li><code>' + escHtml(x.name) + '</code><span>' + escHtml(shortText(x.description)) + '</span></li>').join('') + '</ul>'
       + (more > 0 ? '<p class="more">+ ' + more + ' more. Send .menu in WhatsApp.</p>' : '') + '</details>';
   }).join('');
@@ -71,7 +73,7 @@ function shellify(buf) {
   return Buffer.from(html.replace(/<!--tfx:(?:(sprite|head|foot|tabbar|head2|foot2)|n:(commands|categories|version)|(cats))-->/g, (m, k, n, c) => {
     if (c) return renderCats();
     if (n) { nums = nums || snapshotNumbers(); return nums[n].replace(/[^0-9A-Za-z.\-]/g, ''); }
-    if (PARTIALS[k] === undefined) { try { PARTIALS[k] = fs.readFileSync(path.join(__dirname, 'partials', k + '.html'), 'utf8'); } catch (e) { PARTIALS[k] = ''; } }
+    if (PARTIALS[k] === undefined) { try { PARTIALS[k] = fs.readFileSync(path.join(__dirname, 'partials', k + '.html'), 'utf8'); if (k === 'head2') PARTIALS[k] = PARTIALS[k].replace('<!--tfx:sprite-->', () => fs.readFileSync(path.join(__dirname, 'partials', 'sprite.html'), 'utf8')); } catch (e) { PARTIALS[k] = ''; } }
     return PARTIALS[k];
   }), 'utf8');
 }
@@ -410,7 +412,7 @@ function createApp(opts = {}) {
       const PAGES = { '/pair': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
       // the redesigned pages (preview): shown at /new while the old pages stay at their normal addresses. NEW_SITE=off hides them again.
       const newSiteOff = String(env.NEW_SITE || '') === 'off';
-      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; PAGES['/new/bot'] = 'new-bot.html'; PAGES['/new/bot/'] = 'new-bot.html'; PAGES['/new/install'] = 'new-install.html'; PAGES['/new/install/'] = 'new-install.html'; PAGES['/new/pair'] = 'new-pair.html'; PAGES['/new/pair/'] = 'new-pair.html'; PAGES['/new/status'] = 'new-status.html'; PAGES['/new/status/'] = 'new-status.html'; for (const n of ['about','terms','privacy','rules','community','support','docs','playground']) { PAGES['/new/' + n] = 'new-' + n + '.html'; PAGES['/new/' + n + '/'] = 'new-' + n + '.html'; } }
+      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; PAGES['/new/bot'] = 'new-bot.html'; PAGES['/new/bot/'] = 'new-bot.html'; PAGES['/new/install'] = 'new-install.html'; PAGES['/new/install/'] = 'new-install.html'; PAGES['/new/pair'] = 'new-pair.html'; PAGES['/new/pair/'] = 'new-pair.html'; PAGES['/new/status'] = 'new-status.html'; PAGES['/new/status/'] = 'new-status.html'; for (const n of ['about','terms','privacy','rules','community','support','docs','playground','plugins','developers']) { PAGES['/new/' + n] = 'new-' + n + '.html'; PAGES['/new/' + n + '/'] = 'new-' + n + '.html'; } }
       const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html' && !(newSiteOff && /^new-/.test(name))) {
         try {

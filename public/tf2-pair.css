@@ -52,15 +52,15 @@ input, button { font: inherit; color: inherit; }
 .err.box { margin-top: 14px; padding: 11px 13px; border: 1px solid rgb(var(--bad) / .5); border-radius: var(--rc); background: rgb(var(--bad) / .08); color: var(--t); }
 
 /* buttons used by the script */
-button.cta { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 52px; margin-top: 16px; padding: 0 18px; border: 1px solid #f4f4f6; border-radius: var(--rc); background: #f4f4f6; color: #0a0a0c; font-size: 16px; font-weight: 500; cursor: pointer; }
-button.cta:hover:not(:disabled) { background: #fff; } button.cta:disabled { opacity: .75; cursor: progress; }
+button.cta { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 52px; margin-top: 16px; padding: 0 18px; border: 1px solid var(--btn); border-radius: var(--rc); background: var(--btn); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); font-size: 16px; font-weight: 500; cursor: pointer; }
+button.cta:hover:not(:disabled) { background: var(--btn2); } button.cta:disabled { opacity: .75; cursor: progress; }
 button.cta .arrow { width: 20px; height: 20px; }
-button.cta .spin { display: none; border-color: rgba(10, 10, 12, .25); border-top-color: #0a0a0c; } button.cta.busy .spin { display: block; } button.cta.busy .arrow { display: none; }
+button.cta .spin { display: none; border-color: rgba(255, 255, 255, .3); border-top-color: #fff; } button.cta.busy .spin { display: block; } button.cta.busy .arrow { display: none; }
 button.cta.done { background: rgb(var(--ok)); border-color: rgb(var(--ok)); } button.cta.fail { background: rgb(var(--bad)); border-color: rgb(var(--bad)); color: #fff; }
-.ghost { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 46px; margin-top: 12px; padding: 0 16px; border: 1px solid var(--line2); border-radius: var(--rc); background: transparent; color: var(--t); font-size: 15px; cursor: pointer; }
+.ghost { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 46px; margin-top: 12px; padding: 0 16px; border: 1px solid var(--line2); border-radius: var(--rc); background: var(--s2); color: var(--t); font-size: 15px; cursor: pointer; }
 .ghost svg { width: 18px; height: 18px; color: var(--b); } .ghost:hover:not(:disabled) { background: rgba(255, 255, 255, .05); }
 .ghost:disabled { opacity: .5; cursor: default; } .ghost.done { border-color: rgb(var(--ok)); color: rgb(var(--ok)); } .ghost.fail { border-color: rgb(var(--bad)); color: rgb(var(--bad)); }
-.ghost.main { background: #f4f4f6; color: #0a0a0c; border-color: #f4f4f6; } .ghost.main svg { color: inherit; }
+.ghost.main { background: var(--btn); color: #fff; border-color: var(--btn); } .ghost.main svg { color: inherit; }
 .link { display: block; margin: 14px auto 0; padding: 10px 14px; border: 0; background: none; color: var(--b); font-size: 14px; text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 4px; cursor: pointer; }
 .shake { animation: sh .4s both; }
 @keyframes sh { 20%, 80% { transform: translateX(2px); } 40%, 60% { transform: translateX(-3px); } }

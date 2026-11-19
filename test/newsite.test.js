@@ -95,7 +95,7 @@ test('Bot page: numbers, every category and its count, examples and protection n
     const h = await r.text();
     assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
     assert.ok(h.includes(`${snap.bot.commands} commands in ${snap.bot.categories} categories`));
-    const rows = h.match(/<details class="cat"/g) || [];
+    const rows = h.match(/<details class="cat tone-[a-z]+"/g) || [];
     assert.strictEqual(rows.length, snap.categories.length, 'one compact row per category');
     for (const c of snap.categories) assert.ok(h.includes(`<b>${c.title}</b><span class="n">${c.count}</span>`), c.title + ' with its real count');
     const all = new Set(snap.categories.flatMap((c) => c.commands.map((x) => x.name)));
@@ -158,7 +158,7 @@ test('Status page: only real server answers, no made-up numbers', async () => {
     const h = await r.text();
     assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
     assert.ok(h.includes('data-k="site"') && h.includes('data-k="pair"') && h.includes('data-k="store"'));
-    assert.ok(!/uptime|\d+(\.\d+)?%|all systems|incident|users|linked today/i.test(h), 'no invented stats or fixed claims');
+    assert.ok(!/uptime|\d+(\.\d+)?%|all systems|incident|users|linked today/i.test(h.replace(/<svg[^>]*class="sr"[\s\S]*?<\/svg>/, '').replace(/#i-[a-z]+/g, '')), 'no invented stats or fixed claims');
     const js = fs.readFileSync(path.join(root, 'public', 'tf2-status.js'), 'utf8');
     assert.ok(js.includes("'/health'") && js.includes("'/api/status'") && js.includes("'/api/plugins'") && !/innerHTML/.test(js), 'reads real endpoints, writes text only');
     assert.strictEqual((await fetch(t.base + '/tf2-status.js')).status, 200);
@@ -218,4 +218,58 @@ test('Docs and Playground previews: same wording, same ids and scripts, Playgrou
 test('NEW_SITE=off hides the text page previews', async () => {
   const t = await boot({ NEW_SITE: 'off' });
   try { for (const n of ['about', 'terms', 'privacy', 'rules', 'community', 'support', 'docs', 'playground']) for (const p of ['/new/' + n, '/new-' + n + '.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
+});
+
+test('colour system: every category has a colour family, one family per category everywhere, four button looks, icons come from the sprite', async () => {
+  const t = await boot();
+  try {
+    const snap = JSON.parse(fs.readFileSync(path.join(root, 'public', 'commands.json'), 'utf8'));
+    const bot = await (await fetch(t.base + '/new/bot')).text();
+    for (const c of snap.categories) assert.ok(new RegExp('class="cat tone-(vio|sky|cyan|pink|fuc)"[^>]*>\\s*<summary><b>' + c.title + '<').test(bot), c.key + ' has a colour');
+    const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'tf2-bot.css'), 'utf8');
+    for (const f of ['vio', 'sky', 'cyan', 'pink', 'fuc']) assert.ok(css.includes('.tone-' + f), f + ' is styled');
+    for (const b of ['.btn.p', '.btn.q', '.btn.d']) assert.ok(css.includes(b + ' {') || css.includes(b + ','), b + ' exists');
+    assert.ok(!/\.btn\.p \{[^}]*#f4f4f6/.test(css), 'the main button is violet, not white');
+    for (const n of ['', '/bot', '/install', '/pair', '/status', '/about', '/plugins', '/docs']) {
+      const h = await (await fetch(t.base + '/new' + n)).text();
+      assert.ok(h.includes('symbol id="i-key"'), n + ' has the icon sprite');
+      const ids = [...h.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+      assert.strictEqual(ids.length, new Set(ids).size, n + ' has no repeated ids');
+    }
+  } finally { t.close(); }
+});
+
+test('Plugins preview: same script and ids as the live store, simple layout, stays hidden when NEW_SITE=off', async () => {
+  const t = await boot();
+  try {
+    const r = await fetch(t.base + '/new/plugins'); assert.strictEqual(r.status, 200);
+    const h = await r.text();
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-plugins.css') && !h.includes('tfx.css') && h.includes('noindex'));
+    const js = fs.readFileSync(path.join(root, 'public', 'plugins.js'), 'utf8');
+    for (const id of new Set([...js.matchAll(/getElementById\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'store needs #' + id);
+    assert.ok(h.includes('src="/plugins.js"') && !h.includes('src="/shell.js"'));
+    assert.strictEqual((await fetch(t.base + '/new/plugins/')).status, 200);
+    assert.strictEqual((await fetch(t.base + '/plugins')).status, 200);
+  } finally { t.close(); }
+  const off = await boot({ NEW_SITE: 'off' });
+  try { for (const p of ['/new/plugins', '/new-plugins.html']) assert.strictEqual((await fetch(off.base + p)).status, 404, p); } finally { off.close(); }
+});
+
+test('Developer Centre preview: same script, every id it needs, every view, hidden when NEW_SITE=off', async () => {
+  const t = await boot();
+  try {
+    const r = await fetch(t.base + '/new/developers'); assert.strictEqual(r.status, 200);
+    const h = await r.text();
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-dev.css') && !h.includes('tfx.css') && h.includes('noindex'));
+    const js = fs.readFileSync(path.join(root, 'public', 'developers.js'), 'utf8');
+    for (const id of new Set([...js.matchAll(/getElementById\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'Developer Centre needs #' + id);
+    for (const v of ['dashboard', 'plugins', 'send', 'tools', 'analytics', 'support', 'community', 'settings']) assert.ok(h.includes('id="v-' + v + '"'), 'view ' + v);
+    assert.ok(h.includes('src="/developers.js"') && !h.includes('src="/shell.js"'));
+    const ids = [...h.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]); assert.strictEqual(ids.length, new Set(ids).size, 'no repeated ids');
+    const live = await (await fetch(t.base + '/developers')).text();
+    for (const f of ['drepo', 'dtag', 'dfolder', 'dhrepo', 'dhfolder']) assert.ok(live.includes('id="' + f + '"') && h.includes('id="' + f + '"'), f);
+    assert.strictEqual((await fetch(t.base + '/new/developers/')).status, 200);
+  } finally { t.close(); }
+  const off = await boot({ NEW_SITE: 'off' });
+  try { for (const p of ['/new/developers', '/new-developers.html']) assert.strictEqual((await fetch(off.base + p)).status, 404, p); } finally { off.close(); }
 });

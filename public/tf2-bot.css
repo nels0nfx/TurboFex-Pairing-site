@@ -7,7 +7,11 @@
 .cat summary svg { grid-area: icon; }
 .cat .ex { grid-area: ex; font-family: var(--mono); font-size: 12px; color: var(--m); font-weight: 400; }
 .cat .bar { grid-area: bar; display: block; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .07); margin-top: 6px; overflow: hidden; }
-.cat .bar i { display: block; height: 100%; border-radius: 3px; background: rgb(var(--acc) / .75); }
+.cat { --c: var(--vio); }
+.cat summary b { position: relative; padding-left: 14px; }
+.cat summary b::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 4px; border-radius: 2px; background: rgb(var(--c)); }
+.cat .bar i { display: block; height: 100%; border-radius: 3px; background: rgb(var(--c) / .85); }
+
 .bar .w5 { width: 5%; } .bar .w10 { width: 10%; } .bar .w15 { width: 15%; } .bar .w20 { width: 20%; } .bar .w25 { width: 25%; } .bar .w30 { width: 30%; } .bar .w35 { width: 35%; } .bar .w40 { width: 40%; } .bar .w45 { width: 45%; } .bar .w50 { width: 50%; } .bar .w55 { width: 55%; } .bar .w60 { width: 60%; } .bar .w65 { width: 65%; } .bar .w70 { width: 70%; } .bar .w75 { width: 75%; } .bar .w80 { width: 80%; } .bar .w85 { width: 85%; } .bar .w90 { width: 90%; } .bar .w95 { width: 95%; } .bar .w100 { width: 100%; } 
 .cat ul { border-top: 1px solid var(--line); background: rgba(255, 255, 255, .02); }
 .cat li { display: flex; gap: 12px; align-items: baseline; padding: 9px 16px; font-size: 13px; }
@@ -21,3 +25,7 @@
 code.k { font-family: var(--mono); font-size: 12px; color: var(--b); }
 .cta { margin-top: var(--gap); }
 
+
+/* category identities: the same five colours wherever a command category is shown */
+.cat.tone-vio { --c: var(--vio); } .cat.tone-sky { --c: var(--sky); } .cat.tone-cyan { --c: var(--cyan); } .cat.tone-pink { --c: var(--pink); } .cat.tone-fuc { --c: var(--fuc); }
+.cat li code { color: rgb(var(--c)); }
