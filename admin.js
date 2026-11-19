@@ -185,7 +185,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     try { const s = fs.statfsSync(dataDir); disk = { total: Number(s.blocks) * Number(s.bsize), free: Number(s.bavail) * Number(s.bsize) }; } catch (err) { /* not available here */ }
     const last = samples[samples.length - 1];
     return {
-      version, node: process.version, platform: process.platform + ' ' + os.arch(), cores: os.cpus().length,
+      version, node: process.version, platform: process.platform + ' ' + os.arch(), cores: Math.max(1, os.cpus().length), // some phones (Termux) report no cores; show at least 1
       uptimeSec: Math.round(process.uptime()), startedAt: now() - Math.round(process.uptime()) * 1000,
       cpu: { process: last.proc, system: last.sys, load: os.loadavg().map((x) => Math.round(x * 100) / 100) },
       memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, heapLimit, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },

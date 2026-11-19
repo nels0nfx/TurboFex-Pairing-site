@@ -17,7 +17,7 @@ const { createNextUi } = require('./nextui');
 
 const PUBLIC = path.join(__dirname, 'public');
 const VERSION = require('./package.json').version;
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 const JOB_TTL = 10 * 60 * 1000; // a finished or failed job stays readable this long
 const JOB_MAX = 4 * 60 * 1000; // a pairing attempt lasts at most 4 minutes
 
@@ -35,10 +35,20 @@ const dmMessages = (id) => [{ text: communityText(), previewOf: LINKS.whatsapp }
 
 // Shared page pieces (icons, header, footer, phone tab bar) are written once in /partials and placed into any page that has the matching <!--tfx:...--> marker.
 const PARTIALS = {};
+// The bot's command numbers for the redesigned pages come from public/commands.json (made by tools/refresh-commands.js from the real bot source).
+// If that file is missing or broken the page shows a dash instead of a wrong number.
+function snapshotNumbers() {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'commands.json'), 'utf8'));
+    return { commands: String(j.bot.commands), categories: String(j.bot.categories), version: String(j.bot.version) };
+  } catch (e) { return { commands: '-', categories: '-', version: '-' }; }
+}
 function shellify(buf) {
   const html = buf.toString('utf8');
   if (!html.includes('<!--tfx:')) return buf;
-  return Buffer.from(html.replace(/<!--tfx:(sprite|head|foot|tabbar)-->/g, (m, k) => {
+  let nums = null;
+  return Buffer.from(html.replace(/<!--tfx:(?:(sprite|head|foot|tabbar|head2|foot2)|n:(commands|categories|version))-->/g, (m, k, n) => {
+    if (n) { nums = nums || snapshotNumbers(); return nums[n].replace(/[^0-9A-Za-z.\-]/g, ''); }
     if (PARTIALS[k] === undefined) { try { PARTIALS[k] = fs.readFileSync(path.join(__dirname, 'partials', k + '.html'), 'utf8'); } catch (e) { PARTIALS[k] = ''; } }
     return PARTIALS[k];
   }), 'utf8');
@@ -376,8 +386,11 @@ function createApp(opts = {}) {
     // static page
     if (req.method === 'GET') {
       const PAGES = { '/pair': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
+      // the redesigned pages (preview): shown at /new while the old pages stay at their normal addresses. NEW_SITE=off hides them again.
+      const newSiteOff = String(env.NEW_SITE || '') === 'off';
+      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; }
       const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
-      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html') {
+      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html' && !(newSiteOff && /^new-/.test(name))) {
         try {
           let body = fs.readFileSync(path.join(PUBLIC, name));
           if (path.extname(name) === '.html') body = shellify(body);

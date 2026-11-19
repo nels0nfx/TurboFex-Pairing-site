@@ -196,7 +196,7 @@ test('redesign: every public page loads the shared interface layer; the files ar
       const r = await fetch(t.base + p), h = await r.text();
       assert.strictEqual(r.status, 200, p); assert.ok(h.includes('href="/tfx.css"') && h.includes('href="/docs.css"') && h.includes('src="/shell.js"'), p + ' loads the shared design system');
       assert.ok(!h.includes('/style.css') && !h.includes('/ui.js') && !h.includes('/ui.css') && !h.includes('/page.js'), p + ' no longer loads the old layer');
-      assert.ok(!h.includes('<!--tfx:') && h.includes('id="menupanel"') && h.includes('class="tfx-foot"'), p + ': shared header and footer present');
+      assert.ok(!h.includes('<!--tfx:') && h.includes('id="menupanel"'), p + ': shared header present'); // the footer is only on the landing page since v3.0.5
       const csp = r.headers.get('content-security-policy') || '';
       assert.strictEqual(csp.includes('wasm-unsafe-eval'), p === '/playground', p + ': only the Playground may run WebAssembly');
       assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), p + ': no inline scripts allowed');
@@ -244,7 +244,7 @@ test('v3 phase 3: the marketplace page uses the shared shell; the server fills i
     const r = await fetch(t.base + '/plugins'), h = await r.text();
     assert.strictEqual(r.status, 200);
     assert.ok(!h.includes('<!--tfx:'), 'all markers were replaced');
-    for (const id of ['head', 'theme', 'menu', 'menupanel', 'm-plugins', 'm-dev', 'psearch', 'pfilters', 'psort', 'plist', 'pcount', 'pempty', 'pdetail', 'yr']) assert.ok(h.includes(`id="${id}"`), id);
+    for (const id of ['head', 'theme', 'menu', 'menupanel', 'm-plugins', 'm-dev', 'psearch', 'pfilters', 'psort', 'plist', 'pcount', 'pempty', 'pdetail']) assert.ok(h.includes(`id="${id}"`), id);
     assert.ok(h.includes('href="/tfx.css"') && h.includes('src="/shell.js"') && h.includes('src="/plugins.js"') && !h.includes('/style.css') && !h.includes('/ui.js'));
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(h) && !/ style=/.test(h));
     const csp = r.headers.get('content-security-policy') || ''; assert.ok(!csp.includes('wasm-unsafe-eval') && !/script-src[^;]*unsafe-inline/.test(csp));
