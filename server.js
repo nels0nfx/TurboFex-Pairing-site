@@ -43,11 +43,33 @@ function snapshotNumbers() {
     return { commands: String(j.bot.commands), categories: String(j.bot.categories), version: String(j.bot.version) };
   } catch (e) { return { commands: '-', categories: '-', version: '-' }; }
 }
+// The Bot page's category list is drawn here from public/commands.json (the real command list), so it can never drift from the bot.
+// The three example commands per category are picked by hand, but a name is only shown if it is really in the list; otherwise the first commands are used.
+const CAT_EXAMPLES = { group: ['welcome', 'warn', 'kick'], tools: ['calc', 'remind', 'timer'], lookup: ['weather', 'define', 'currency'], fun: ['joke', '8ball', 'truth'], games: ['hangman', 'connect4', 'bingo'], effect: ['bass', 'echo', 'nightcore'], media: ['sticker', 'pdf', 'removebg'], ai: ['ai', 'explain', 'summarize'], download: ['play', 'tiktok', 'ig'], general: ['menu', 'help', 'ping'], budget: ['budget', 'expense', 'income'], video: ['compress', 'gif', 'trim'], autoreply: ['filter', 'filters', 'stop'] };
+const escHtml = (x) => String(x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const shortText = (x) => { const t = String(x || '').split(/ \(|: |, /)[0].trim(); return t.length > 60 ? t.slice(0, 57).trimEnd() + '...' : t; };
+function renderCats() {
+  let j; try { j = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'commands.json'), 'utf8')); } catch (e) { return '<p class="note">The command list is not available right now.</p>'; }
+  const max = Math.max(...j.categories.map((c) => c.count), 1);
+  const plus = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  return [...j.categories].sort((a, b) => b.count - a.count || a.title.localeCompare(b.title)).map((c) => {
+    const by = new Map(c.commands.map((x) => [x.name, x]));
+    const pick = (CAT_EXAMPLES[c.key] || []).filter((n) => by.has(n)).map((n) => by.get(n));
+    for (const x of c.commands) { if (pick.length >= 6) break; if (!pick.includes(x)) pick.push(x); }
+    const shown = pick.slice(0, 6), three = shown.slice(0, 3).map((x) => x.name).join(' \u00b7 ');
+    const pct = Math.max(5, Math.min(100, Math.ceil((c.count / max) * 20) * 5));
+    const more = c.count - shown.length;
+    return '<details class="cat"' + (c.key === 'games' ? ' open' : '') + '><summary><b>' + escHtml(c.title) + '</b><span class="n">' + c.count + '</span><span class="ex">' + escHtml(three) + '</span><span class="bar"><i class="w' + pct + '"></i></span>' + plus + '</summary><ul>'
+      + shown.map((x) => '<li><code>' + escHtml(x.name) + '</code><span>' + escHtml(shortText(x.description)) + '</span></li>').join('') + '</ul>'
+      + (more > 0 ? '<p class="more">+ ' + more + ' more. Send .menu in WhatsApp.</p>' : '') + '</details>';
+  }).join('');
+}
 function shellify(buf) {
   const html = buf.toString('utf8');
   if (!html.includes('<!--tfx:')) return buf;
   let nums = null;
-  return Buffer.from(html.replace(/<!--tfx:(?:(sprite|head|foot|tabbar|head2|foot2)|n:(commands|categories|version))-->/g, (m, k, n) => {
+  return Buffer.from(html.replace(/<!--tfx:(?:(sprite|head|foot|tabbar|head2|foot2)|n:(commands|categories|version)|(cats))-->/g, (m, k, n, c) => {
+    if (c) return renderCats();
     if (n) { nums = nums || snapshotNumbers(); return nums[n].replace(/[^0-9A-Za-z.\-]/g, ''); }
     if (PARTIALS[k] === undefined) { try { PARTIALS[k] = fs.readFileSync(path.join(__dirname, 'partials', k + '.html'), 'utf8'); } catch (e) { PARTIALS[k] = ''; } }
     return PARTIALS[k];
@@ -388,7 +410,7 @@ function createApp(opts = {}) {
       const PAGES = { '/pair': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
       // the redesigned pages (preview): shown at /new while the old pages stay at their normal addresses. NEW_SITE=off hides them again.
       const newSiteOff = String(env.NEW_SITE || '') === 'off';
-      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; }
+      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; PAGES['/new/bot'] = 'new-bot.html'; PAGES['/new/bot/'] = 'new-bot.html'; PAGES['/new/install'] = 'new-install.html'; PAGES['/new/install/'] = 'new-install.html'; }
       const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
       if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html' && !(newSiteOff && /^new-/.test(name))) {
         try {

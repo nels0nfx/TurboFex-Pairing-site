@@ -24,6 +24,27 @@
 
   var yr = d.getElementById('yr'); if (yr) yr.textContent = String(new Date().getFullYear());
 
+
+  // "Where to run it" tabs and Copy buttons (without this script every guide simply stays visible, one under the other)
+  var tabs = d.querySelectorAll('[data-t]'), panes = d.querySelectorAll('[data-p]');
+  function pick(i) {
+    [].forEach.call(tabs, function (b) { b.setAttribute('aria-selected', b.getAttribute('data-t') === i ? 'true' : 'false'); });
+    [].forEach.call(panes, function (p) { p.hidden = p.getAttribute('data-p') !== i; });
+  }
+  if (tabs.length) {
+    [].forEach.call(tabs, function (b) { b.addEventListener('click', function () { pick(b.getAttribute('data-t')); }); });
+    var first = location.hash.length > 1 && d.querySelector('[data-t][data-key="' + location.hash.slice(1).replace(/[^a-z0-9-]/gi, '') + '"]');
+    pick(first ? first.getAttribute('data-t') : '0');
+  }
+  [].forEach.call(d.querySelectorAll('[data-copy]'), function (b) {
+    b.addEventListener('click', function () {
+      var pre = b.closest('.code').querySelector('pre'), text = pre ? pre.textContent.replace(/\n+$/, '') : '', label = b.querySelector('span');
+      function done(ok) { if (label) { label.textContent = ok ? 'Copied' : 'Select and copy'; setTimeout(function () { label.textContent = 'Copy'; }, 1800); } }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      else done(false);
+    });
+  });
+
   // live status: only what the server really says. /health must answer ok, and /api/status says whether the site is paused.
   var pill = d.getElementById('status'), label = pill && pill.querySelector('span');
   function setStatus(state, text) { if (!pill) return; pill.setAttribute('data-state', state); if (label) label.textContent = text; }

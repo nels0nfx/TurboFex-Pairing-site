@@ -44,7 +44,10 @@ function build({ list, groupByCategory, version }) {
     commands: g.cmds.map((c) => ({ name: String(c.name), description: clean(c.description) })),
   }));
   const total = categories.reduce((n, c) => n + c.count, 0);
-  return { generated: new Date().toISOString().slice(0, 10), bot: { version, commands: total, categories: categories.length }, categories };
+  const member = new Set(categories.flatMap((c) => c.commands.map((x) => x.name)));
+  // owner-only commands (names only, for checks such as ".mode" and ".plugin" really existing)
+  const owner = [...new Set(list.filter((c) => c && c.name && !member.has(String(c.name)) && (c.ownerOnly || c.realOwnerOnly)).map((c) => String(c.name)))].sort();
+  return { generated: new Date().toISOString().slice(0, 10), bot: { version, commands: total, categories: categories.length }, categories, ownerCommands: owner };
 }
 
 // every check the new data must pass before it may replace the old file
@@ -66,6 +69,7 @@ function validate(snap, loadErrors, previous) {
     }
   }
   if (seen.size !== snap.bot.commands) bad.push('The total does not equal the number of different commands.');
+  if (!Array.isArray(snap.ownerCommands) || snap.ownerCommands.some((n) => !/^[a-z0-9][a-z0-9_-]*$/i.test(n) || seen.has(n.toLowerCase()))) bad.push('The owner command list is wrong (odd name, or a name that is also a member command).');
   if (previous && previous.bot && !force && snap.bot.commands < previous.bot.commands * 0.8) {
     bad.push(`The count fell from ${previous.bot.commands} to ${snap.bot.commands} (more than 20% less). If that is on purpose, run it again with --force.`);
   }

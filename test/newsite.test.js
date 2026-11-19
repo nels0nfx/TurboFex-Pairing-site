@@ -87,3 +87,46 @@ test('footer and menu only link to pages that exist', async () => {
     for (const p of own) assert.strictEqual((await fetch(t.base + p)).status, 200, p);
   } finally { t.close(); }
 });
+
+test('Bot page: numbers, every category and its count, examples and protection names all come from the real command list', async () => {
+  const t = await boot();
+  try {
+    const r = await fetch(t.base + '/new/bot'); assert.strictEqual(r.status, 200);
+    const h = await r.text();
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
+    assert.ok(h.includes(`${snap.bot.commands} commands in ${snap.bot.categories} categories`));
+    const rows = h.match(/<details class="cat"/g) || [];
+    assert.strictEqual(rows.length, snap.categories.length, 'one compact row per category');
+    for (const c of snap.categories) assert.ok(h.includes(`<b>${c.title}</b><span class="n">${c.count}</span>`), c.title + ' with its real count');
+    const all = new Set(snap.categories.flatMap((c) => c.commands.map((x) => x.name)));
+    for (const m of h.matchAll(/<li><code>([^<]+)<\/code>/g)) assert.ok(all.has(m[1]), 'listed command exists: ' + m[1]);
+    for (const m of h.matchAll(/class="ex">([^<]+)</g)) for (const n of m[1].split(' · ')) assert.ok(all.has(n), 'example exists: ' + n);
+    for (const m of h.matchAll(/class="chip">([^<]+)</g)) assert.ok(all.has(m[1]), 'protection command exists: ' + m[1]);
+    assert.ok(snap.ownerCommands.includes('mode') && snap.ownerCommands.includes('plugin'), '.mode and .plugin exist');
+    assert.ok(h.includes('href="/new/install"') && h.includes('class="foot"') && h.includes('id="status"'));
+  } finally { t.close(); }
+});
+
+test('Install page: honest WhatsApp warning, three steps, six ways to run it with a Copy button', async () => {
+  const t = await boot();
+  try {
+    const r = await fetch(t.base + '/new/install'); assert.strictEqual(r.status, 200);
+    const h = await r.text();
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
+    assert.ok(h.includes('unofficial WhatsApp Web connection, not the official WhatsApp Business Platform'));
+    assert.strictEqual((h.match(/role="tab"/g) || []).length, 6);
+    assert.strictEqual((h.match(/data-p="/g) || []).length, 6);
+    assert.ok((h.match(/data-copy/g) || []).length >= 5);
+    assert.ok(h.includes('href="/pair"') && h.includes('class="foot"'));
+    assert.ok(!/tested on|all systems online/i.test(h), 'no claims we cannot back up');
+  } finally { t.close(); }
+});
+
+test('Home, menu and footer send people to the new Bot and Install pages', () => {
+  for (const f of ['partials/head2.html', 'partials/foot2.html']) {
+    const s = fs.readFileSync(path.join(root, f), 'utf8');
+    assert.ok(s.includes('href="/new/bot"') && s.includes('href="/new/install"'), f);
+  }
+  const home = fs.readFileSync(path.join(root, 'public', 'new-home.html'), 'utf8');
+  assert.ok(home.includes('href="/new/bot"') && home.includes('href="/new/install"'));
+});
