@@ -171,3 +171,51 @@ test('NEW_SITE=off hides Pair and Status previews too', async () => {
   const t = await boot({ NEW_SITE: 'off' });
   try { for (const p of ['/new/pair', '/new/status', '/new-pair.html', '/new-status.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
 });
+
+test('text pages: same wording as the live pages, new look, footer, no inline code', async () => {
+  const t = await boot();
+  const text = (h) => (h.match(/<article[^>]*class="prose"[^>]*>([\s\S]*?)<\/article>/) || [, ''])[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  try {
+    for (const n of ['about', 'terms', 'privacy', 'rules', 'community', 'support']) {
+      const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
+      const h = await r.text();
+      assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h), n + ' has no inline code');
+      assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && h.includes('class="foot"') && h.includes('noindex'), n);
+      const live = await (await fetch(t.base + '/' + n)).text();
+      if (n !== 'community') assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(live).replace(/\s?\/ ?/g, ''), n + ' wording is unchanged');
+      assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
+    }
+    const priv = await (await fetch(t.base + '/new/privacy')).text();
+    assert.ok(priv.includes('Last updated: 11 November 2026') && priv.includes('src="/doc.js"'));
+    const sup = await (await fetch(t.base + '/new/support')).text();
+    for (const id of ['sb-pair', 'qs', 'qnone', 'faq']) assert.ok(sup.includes('id="' + id + '"'), 'support needs #' + id);
+    assert.ok(sup.includes('src="/support.js"'));
+    assert.strictEqual((await fetch(t.base + '/tf2-doc.css')).status, 200);
+  } finally { t.close(); }
+});
+
+test('Docs and Playground previews: same wording, same ids and scripts, Playground may run WebAssembly like the live one', async () => {
+  const t = await boot();
+  const text = (h) => (h.match(/<article[^>]*class="prose"[^>]*>([\s\S]*?)<\/article>/) || [, ''])[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  try {
+    for (const [n, live] of [['docs', 'plugin-guide'], ['playground', 'playground']]) {
+      const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
+      const h = await r.text(); const l = await (await fetch(t.base + '/' + live)).text();
+      assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-doc.css') && !h.includes('tfx.css') && h.includes('class="foot"'), n);
+      assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(l).replace(/\s?\/ ?/g, ''), n + ' wording is unchanged');
+      assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
+    }
+    const pg = await fetch(t.base + '/new/playground'); const csp = pg.headers.get('content-security-policy') || '';
+    assert.ok(csp.includes("'wasm-unsafe-eval'"), 'the Playground preview can start the engine');
+    const live = await fetch(t.base + '/playground'); assert.strictEqual(live.headers.get('content-security-policy'), csp, 'same rule as the live Playground');
+    const h = await pg.text(); const js = fs.readFileSync(path.join(root, 'public', 'playground.js'), 'utf8');
+    for (const id of new Set([...js.matchAll(/\$\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'Playground needs #' + id);
+    assert.ok(h.includes('src="/playground-broker.js"') && h.includes('src="/playground.js"'));
+    assert.ok(!(await (await fetch(t.base + '/new/docs')).text()).match(/href="\/(plugin-guide|playground)"/), 'Docs links stay inside the preview');
+  } finally { t.close(); }
+});
+
+test('NEW_SITE=off hides the text page previews', async () => {
+  const t = await boot({ NEW_SITE: 'off' });
+  try { for (const n of ['about', 'terms', 'privacy', 'rules', 'community', 'support', 'docs', 'playground']) for (const p of ['/new/' + n, '/new-' + n + '.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
+});
