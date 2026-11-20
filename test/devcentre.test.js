@@ -848,7 +848,11 @@ test('admin redesign: the dashboard page loads the new styles, has the site link
     const r = await t.req('GET', '/admin'); assert.strictEqual(r.status, 200);
     for (const bit of ['href="/admin3.css"', 'class="asite"', 'class="afoot"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
     assert.ok(r.text.indexOf('/tfx.css') < r.text.indexOf('/admin3.css'), 'admin styles come after the shared design tokens');
+    assert.ok(r.text.includes('href="/admin4.css"') && r.text.indexOf('/admin3.css') < r.text.indexOf('/admin4.css'), 'the v4 look loads after the v3 layout rules');
+    assert.ok(r.text.includes('id="tabbar"'), 'the phone bottom bar is in the page');
     const css = await t.req('GET', '/admin3.css'); assert.strictEqual(css.status, 200); assert.ok(css.text.includes('.adm .ashell'));
+    const css4 = await t.req('GET', '/admin4.css'); assert.strictEqual(css4.status, 200); assert.ok(css4.text.includes('.adm .atabbar') && !/data:|url\(/.test(css4.text), 'admin4.css is served and has no data: or url() parts');
+    const js = fs.readFileSync(path.join(__dirname, '../public/admin.js'), 'utf8'); assert.ok(/Block a number/.test(js) && /openQuick/.test(js) && !/\.innerHTML\s*=|[^a-zA-Z]confirm\(|[^a-zA-Z]prompt\(/.test(js), 'quick actions exist and no innerHTML is used');
     assert.ok(!/script-src[^;]*unsafe-inline/.test(r.headers.get ? (r.headers.get('content-security-policy') || '') : ''), 'no inline scripts allowed');
   } finally { t.close(); }
 });

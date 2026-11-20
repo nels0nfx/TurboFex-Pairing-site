@@ -523,3 +523,14 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## v3.12.1 - Developer Centre redesigned as an account app (preview)
 - Owner rejected the v3.12.0 version ("copied the old layout"). /new/developers now uses dash.js (new script) + tf2-dev.css: 5 screens (Home, Plugins, Send, Stats, Account), bottom tab bar, no "Your plugins" list on Home (owner asked). developers.js stays only for the old /developers page.
 - Owner wants real redesigns with short words, not old structure restyled. Show a phone mockup first for any new layout.
+
+## v3.13.0 - Admin new look (LIVE at /admin, no preview)
+- Owner approved a mockup first (rejected 5 earlier mockups; he wants the SAME look as the new site, mobile first, bottom bar with a big + like the Developer Centre, real admin feel, short words, sample data clearly labelled). Prototype file lived outside the project; it is not shipped.
+- Visual only. Backend admin.js, roles (viewer, moderator, owner), permissions, API and the 5-step plugin review rule are unchanged. Quick actions only navigate (go(tab, focusFn)); they never send anything themselves.
+- New `public/admin4.css` loads AFTER admin3.css: the old gold tokens (--gold, --gold-grad, --line-gold, ...) now point at violet; light mode tokens too. Note: some tokens are hex, so use color-mix() (not rgb(var(--x) / .n)) with --ok/--bad/--warn/--info/--gold. Channel tokens (--cat, --c) are r g b numbers.
+- tfx.css already has global `.sheet` and `.tabbar` classes: the Admin uses `.asheet` and `.atabbar` instead. Do not rename them back.
+- admin.js: NAVS (8 items) replaces the old 10-item menu for display only; TABS/VIEWS/REFRESH are unchanged and every old #hash still works (#visitors, #security, #activity, #audit ...). Safety = security + activity + audit as `.subtabs` (audit only with audit.view). drawTabbar(), openQuick(), openMenu() (More) use sheet(). Names changed: Dashboard -> Home, Visitors -> People (page titles inside views unchanged except Home).
+- Chart bars: JS uses class `abar` for chart rects; admin4.css styles `.chart .abar` (was black before).
+- Tests: devcentre.test.js admin redesign test also checks admin4.css and the tab bar. Browser check with the real server and 3 roles done in the workspace (screens at 390 and 1280, dark and light). Not tested on a real phone or Render.
+- Rollback: restore the previous ZIP (v3.12.1). Next: final consistency check, then cutover only with the owner's explicit approval.
+

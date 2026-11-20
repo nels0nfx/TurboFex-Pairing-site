@@ -82,7 +82,7 @@
   var ICON = {
     overview: 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z', pairing: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1',
     visitors: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 20c1-4 4-5 8-5s7 1 8 5', security: 'M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z', server: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01',
-    activity: 'M3 12h4l3-8 4 16 3-8h4', audit: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5', announce: 'M4 10v4h3l7 4V6L7 10zM17 9a4 4 0 0 1 0 6', plugins: 'M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5', settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z' };
+    activity: 'M3 12h4l3-8 4 16 3-8h4', audit: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5', announce: 'M4 10v4h3l7 4V6L7 10zM17 9a4 4 0 0 1 0 6', plugins: 'M9 3v3M15 3v3M8 6h8a1 1 0 0 1 1 1v4a5 5 0 0 1-10 0V7a1 1 0 0 1 1-1zM12 16v5', more: 'M5 12h.01M12 12h.01M19 12h.01', chev: 'M9 6l6 6-6 6', plus: 'M12 5v14M5 12h14', settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-2-4-2 1-2-1-1-2h-4l-1 2-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1 1 2h4l1-2 2-1 2 1 2-4-2-1z' };
   var TABS = [
     ['overview', 'Dashboard', null, 'Main'], ['pairing', 'Pairing', null], ['visitors', 'Visitors', null],
     ['plugins', 'Plugins and reviews', 'plugins.review', 'Marketplace'],
@@ -90,41 +90,90 @@
     ['server', 'Server', null, 'System'], ['announce', 'Announcements', null], ['settings', 'Settings', null],
   ];
   var alertCount = 0;
+  // the sections people see: the Safety item holds Alerts, Activity and Audit log as small tabs (each is still its own page below)
+  var NAVS = [
+    ['overview', 'Home', 'Overview', null, ['overview']], ['pairing', 'Pairing', 'Operate', null, ['pairing']], ['visitors', 'People', 'Operate', null, ['visitors']], ['announce', 'Announcements', 'Operate', null, ['announce']],
+    ['plugins', 'Plugins', 'Marketplace', 'plugins.review', ['plugins']], ['security', 'Safety', 'Protect', null, ['security', 'activity', 'audit']],
+    ['server', 'Server', 'System', null, ['server']], ['settings', 'Settings', 'System', null, ['settings']],
+  ];
+  var SAFETY = ['security', 'activity', 'audit'];
   function drawNav() {
     drawBar();
-    var nav = clear($('nav'));
-    TABS.forEach(function (t) {
-      if (t[2] && !can(t[2])) return;
-      if (t[3]) nav.appendChild(h('span', { class: 'ng', 'aria-hidden': 'true', text: t[3] }));
-      var b = h('button', { type: 'button', role: 'tab', id: 'tab-' + t[0], 'aria-selected': t[0] === tab ? 'true' : 'false', onclick: function () { go(t[0]); } },
-        svg('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' }, svg('path', { d: ICON[t[0]], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })),
-        t[1], t[0] === 'security' && alertCount ? h('span', { class: 'n', text: alertCount }) : null);
-      nav.appendChild(b);
+    $('app').setAttribute('data-tab', tab);
+    var nav = clear($('nav')), grp = '';
+    NAVS.forEach(function (n) {
+      if (n[3] && !can(n[3])) return;
+      if (n[2] !== grp) { grp = n[2]; nav.appendChild(h('span', { class: 'ng', 'aria-hidden': 'true', text: grp })); }
+      nav.appendChild(h('button', { type: 'button', role: 'tab', id: 'tab-' + n[0], 'aria-selected': n[4].indexOf(tab) >= 0 ? 'true' : 'false', onclick: function () { go(n[0]); } },
+        svg('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' }, svg('path', { d: ICON[n[0]], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })),
+        n[1], n[0] === 'security' && alertCount ? h('span', { class: 'n', text: alertCount }) : null));
     });
+    drawTabbar();
+  }
+  // phones: bottom bar (Home, Plugins, quick actions, Safety, More). Without the plugin permission, Pairing takes the Plugins place.
+  function drawTabbar() {
+    var bar = clear($('tabbar')), seeP = can('plugins.review'), more = ['visitors', 'announce', 'server', 'settings'].concat(seeP ? ['pairing'] : []);
+    function tb(target, label, on, badge) { return h('button', { type: 'button', class: 'tb' + (on ? ' on' : ''), 'aria-current': on ? 'page' : 'false', onclick: function () { go(target); } }, icon(target, 24), h('span', { text: label }), badge ? h('i', { class: 'n', text: badge }) : null); }
+    bar.appendChild(tb('overview', 'Home', tab === 'overview'));
+    bar.appendChild(seeP ? tb('plugins', 'Plugins', tab === 'plugins') : tb('pairing', 'Pairing', tab === 'pairing'));
+    bar.appendChild(h('button', { type: 'button', class: 'tb plus', id: 'quick', 'aria-label': 'Quick actions', onclick: openQuick }, icon('plus', 26)));
+    bar.appendChild(tb('security', 'Safety', SAFETY.indexOf(tab) >= 0, alertCount));
+    bar.appendChild(h('button', { type: 'button', class: 'tb' + (more.indexOf(tab) >= 0 ? ' on' : ''), id: 'more', 'aria-label': 'More', onclick: openMenu }, icon('more', 24), h('span', { text: 'More' })));
+  }
+  // the three Safety pages as small tabs under the page title
+  function subnav() {
+    if (SAFETY.indexOf(tab) < 0) return null;
+    var w = h('div', { class: 'subtabs', role: 'tablist', 'aria-label': 'Safety' });
+    [['security', 'Alerts', null], ['activity', 'Activity', null], ['audit', 'Audit log', 'audit.view']].forEach(function (x) {
+      if (x[2] && !can(x[2])) return;
+      w.appendChild(h('button', { type: 'button', role: 'tab', 'aria-selected': x[0] === tab ? 'true' : 'false', onclick: function () { go(x[0]); } }, x[1], x[0] === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
+    });
+    return w;
   }
   function icon(name, size) { return svg('svg', { viewBox: '0 0 24 24', width: size || 22, height: size || 22, 'aria-hidden': 'true' }, svg('path', { d: ICON[name], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })); }
   function drawBar() { var n = $('menu-n'); n.hidden = !alertCount; n.textContent = alertCount ? String(alertCount) : ''; }
-  // phones: one menu button at the top (a bottom bar collides with the phone browser's own bottom toolbar)
-  function openMenu() {
-    var prev = document.activeElement, list = h('div', { class: 'amenu-l' });
-    var bg = h('div', { class: 'modal-bg amenu-bg' }, h('div', { class: 'amenu', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Sections' }, list));
+  // a slide-up sheet (phones) used by More and by the + button
+  function sheet(title, body) {
+    var prev = document.activeElement;
+    var bg = h('div', { class: 'modal-bg sheet-bg' }, h('div', { class: 'asheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, h('span', { class: 'agrab', 'aria-hidden': 'true' }), h('h2', { text: title }), body));
     function close() { bg.remove(); document.removeEventListener('keydown', key); try { if (prev && prev.focus) prev.focus(); } catch (e) { /* fine */ } }
     function key(e) { if (e.key === 'Escape') close(); }
-    TABS.forEach(function (t) {
-      if (t[2] && !can(t[2])) return;
-      if (t[3]) list.appendChild(h('span', { class: 'amenu-h', text: t[3] }));
-      list.appendChild(h('button', { type: 'button', id: 'm-' + t[0], 'aria-current': t[0] === tab ? 'page' : 'false', onclick: function () { close(); go(t[0]); } }, icon(t[0], 22), h('span', { text: t[1] }), t[0] === 'security' && alertCount ? h('i', { class: 'n', text: alertCount }) : null));
-    });
-    list.appendChild(h('span', { class: 'amenu-h', text: 'TurboFex site' }));
-    [['Pairing page', '/pair'], ['Marketplace', '/plugins'], ['Developer Centre', '/developers'], ['Plugin guide', '/plugin-guide'], ['Playground', '/playground']].forEach(function (l) { list.appendChild(h('a', { href: l[1], text: l[0] })); });
     bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
-    document.addEventListener('keydown', key); document.body.appendChild(bg); var cur = list.querySelector('[aria-current=page]') || list.querySelector('button'); if (cur) cur.focus();
+    document.addEventListener('keydown', key); document.body.appendChild(bg);
+    var f = bg.querySelector('button, a'); if (f) f.focus();
+    return close;
+  }
+  function srow(id, ico, label, sub, fn) { return h('button', { type: 'button', class: 'srow', id: id, onclick: fn }, h('span', { class: 'si' }, ico), h('span', { class: 'st2' }, h('b', { text: label }), sub ? h('small', { text: sub }) : null), icon('chev', 18)); }
+  function focusLater(id) { return function () { var e = $(id); if (e) { try { e.scrollIntoView({ block: 'center' }); e.focus(); } catch (x) { /* fine */ } } }; }
+  // the + button: shortcuts only. Each one opens the page that already holds the real form, so nothing new is sent from here.
+  function openQuick() {
+    var list = h('div', { class: 'slist' }), close;
+    function item(id, target, label, sub, after) { list.appendChild(srow(id, icon(target, 20), label, sub, function () { close(); go(target, after); })); }
+    if (can('blocks.manage')) item('q-block', 'visitors', 'Block a number', 'Keep a number out', focusLater('bk-num'));
+    if (can('announce.manage')) item('q-ann', 'announce', 'New announcement', 'A banner on the site', focusLater('an-t'));
+    if (can('settings.manage')) item('q-maint', 'settings', 'Maintenance mode', 'Pause pairing for everyone');
+    if (can('sessions.revoke')) item('q-sess', 'pairing', 'End a session', 'Live IDs and running attempts');
+    if (!list.firstChild) list.appendChild(h('p', { class: 'empty', text: 'Your role can look but not change things. There are no quick actions.' }));
+    close = sheet('Quick actions', list);
+  }
+  function openMenu() {
+    var list = h('div', { class: 'slist' }), close, seeP = can('plugins.review');
+    function item(target, label, sub) { var r = srow('m-' + target, icon(target, 20), label, sub, function () { close(); go(target); }); if (target === tab) r.setAttribute('aria-current', 'page'); list.appendChild(r); }
+    list.appendChild(h('span', { class: 'amenu-h', text: 'Manage' }));
+    if (seeP) item('pairing', 'Pairing', 'Live IDs and running attempts');
+    item('visitors', 'People', 'Visitors, numbers and blocks'); item('announce', 'Announcements', 'A banner on the site');
+    list.appendChild(h('span', { class: 'amenu-h', text: 'System' }));
+    item('server', 'Server', 'CPU, memory and health'); item('settings', 'Settings', 'Maintenance, limits, devices and account');
+    list.appendChild(h('span', { class: 'amenu-h', text: 'TurboFex site' }));
+    [['Pairing page', '/pair'], ['Marketplace', '/plugins'], ['Developer Centre', '/developers'], ['Plugin guide', '/plugin-guide'], ['Playground', '/playground']].forEach(function (l) { list.appendChild(h('a', { class: 'slink', href: l[1], text: l[0] })); });
+    list.appendChild(h('button', { type: 'button', class: 'btn danger full', onclick: function () { close(); $('out').click(); } }, 'Sign out'));
+    close = sheet('More', list);
   }
   $('menu').addEventListener('click', openMenu);
-  function go(t) {
+  function go(t, after) {
     if (!VIEWS[t]) return;
     tab = t; try { history.replaceState(null, '', '#' + t); } catch (e) { /* fine */ }
-    drawNav(); load(true); window.scrollTo(0, 0);
+    drawNav(); var p = load(true); if (after) p.then(after); window.scrollTo(0, 0);
     var sel = $('tab-' + t); if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
   window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (me && t !== tab && VIEWS[t]) go(t); });
@@ -146,7 +195,7 @@
     if (first) { clear(v); v.appendChild(skeleton()); }
     return VIEWS[t]().then(function (node) {
       if (t !== tab) return;
-      lastLoad = Date.now(); var keep = window.scrollY; clear(v); node.classList.add(first ? 'enter' : 'same'); v.appendChild(node); if (!first) window.scrollTo(0, keep);
+      lastLoad = Date.now(); var keep = window.scrollY; var sn = subnav(); if (sn) node.insertBefore(sn, node.children[1] || null); clear(v); node.classList.add(first ? 'enter' : 'same'); v.appendChild(node); if (!first) window.scrollTo(0, keep);
     }, function (e) { if (t === tab && first) { clear(v); v.appendChild(h('p', { class: 'empty', text: (e && e.message) || 'Could not load.' })); } fail(e); });
   }
   function schedule() {
@@ -252,7 +301,9 @@
       var o = r[0], s = r[1], an = r[2].announcements.filter(function (a) { return a.active && (!a.endsAt || a.endsAt > Date.now()); });
       var t = o.totals; pollAlerts();
       var n = h('div');
-      n.appendChild(head('Dashboard', 'Welcome back, ' + me.user + ' · last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' })));
+      n.appendChild(head('Home', 'Welcome back, ' + me.user + ' · last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), [h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' }),
+        can('blocks.manage') ? h('button', { type: 'button', class: 'btn sm dq', onclick: function () { go('visitors', focusLater('bk-num')); } }, 'Block a number') : null,
+        can('announce.manage') ? h('button', { type: 'button', class: 'btn sm dq', onclick: function () { go('announce', focusLater('an-t')); } }, 'New announcement') : null]));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
       // what needs a look right now: each chip opens the tab that deals with it
       var items = [];
