@@ -519,3 +519,7 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - /new/developers = new-developers.html + tf2-dev.css, same developers.js (unchanged; it builds the nav, cards, tiles and forms, so tf2-dev.css styles every class it creates). Signed-out and signed-in views are both in the one page. Status tags: ok green, wait amber, bad red. btn-gold = main, btn-ghost = secondary, btn-soft = danger.
 - GitHub sign-in (/auth/github) still returns to the old /developers until cutover.
 - Still to do: Admin (own look, visual changes only, v3.13.0), then cutover (needs owner approval).
+
+## v3.12.1 - Developer Centre redesigned as an account app (preview)
+- Owner rejected the v3.12.0 version ("copied the old layout"). /new/developers now uses dash.js (new script) + tf2-dev.css: 5 screens (Home, Plugins, Send, Stats, Account), bottom tab bar, no "Your plugins" list on Home (owner asked). developers.js stays only for the old /developers page.
+- Owner wants real redesigns with short words, not old structure restyled. Show a phone mockup first for any new layout.

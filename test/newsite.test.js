@@ -261,10 +261,10 @@ test('Developer Centre preview: same script, every id it needs, every view, hidd
     const r = await fetch(t.base + '/new/developers'); assert.strictEqual(r.status, 200);
     const h = await r.text();
     assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-dev.css') && !h.includes('tfx.css') && h.includes('noindex'));
-    const js = fs.readFileSync(path.join(root, 'public', 'developers.js'), 'utf8');
+    const js = fs.readFileSync(path.join(root, 'public', 'dash.js'), 'utf8');
     for (const id of new Set([...js.matchAll(/getElementById\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'Developer Centre needs #' + id);
-    for (const v of ['dashboard', 'plugins', 'send', 'tools', 'analytics', 'support', 'community', 'settings']) assert.ok(h.includes('id="v-' + v + '"'), 'view ' + v);
-    assert.ok(h.includes('src="/developers.js"') && !h.includes('src="/shell.js"'));
+    for (const v of ['home', 'plugins', 'send', 'stats', 'account']) { assert.ok(h.includes('id="v-' + v + '"') && h.includes('id="n-' + v + '"'), 'screen ' + v); }
+    assert.ok(h.includes('src="/dash.js"') && !h.includes('src="/shell.js"') && !h.includes('v-plugins-list') && !/Your plugins/.test(h.split('id="v-plugins"')[0]));
     const ids = [...h.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]); assert.strictEqual(ids.length, new Set(ids).size, 'no repeated ids');
     const live = await (await fetch(t.base + '/developers')).text();
     for (const f of ['drepo', 'dtag', 'dfolder', 'dhrepo', 'dhfolder']) assert.ok(live.includes('id="' + f + '"') && h.includes('id="' + f + '"'), f);
