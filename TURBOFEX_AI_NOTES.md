@@ -8,6 +8,7 @@ Where this file lives: inside the pairing site project (the repo root of `nels0n
 
 ## v3.17.0/3.17.1 - Logo, spinning cube, footer only on landing
 - Logo = owner's chrome "TF" picture, now real transparent PNGs: public/logo-light.png and public/logo-dark.png (swapped by theme). Do NOT use mix-blend-mode on them (it showed a white box inside the header, which has a backdrop blur). The shine is a ::after masked with the logo picture. Markup is the .mark span in partials/head2.html and foot2.html.
+- iPhone top bar: iOS reads it when the page opens, so tf2.js reloads once after the toggle on iOS (v3.17.2); tf2-theme.js also sets meta color-scheme to the chosen mode. Owner tests this on a real iPhone; if it is still wrong, ask what he sees.
 - The top-bar colour: tf2-theme.js and tf2.js REPLACE the theme-color meta element (editing it is ignored by some phones).
 - Footer (foot2) is only on new-home.html. Other new pages and pair.html load /tf2.js directly; pair.html keeps a hidden #yr because app.js needs it.
 - Cube turns with @keyframes tfspin (off for reduced motion); light look is in tf2.css.

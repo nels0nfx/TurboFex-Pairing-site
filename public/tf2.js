@@ -30,6 +30,10 @@
       d.documentElement.setAttribute('data-theme', next);
       try { localStorage.setItem('tfx-theme', next); } catch (e) { /* cannot save: it still works for this visit */ }
       paintToggle();
+      var cs = d.querySelector('meta[name="color-scheme"]');
+      if (cs) { var c2 = d.createElement('meta'); c2.name = 'color-scheme'; c2.content = next; cs.parentNode.replaceChild(c2, cs); }
+      // iPhones read the colour of their top bar when a page opens, so reload once to make it match (other browsers change at once)
+      if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) location.reload();
     });
   }
 
