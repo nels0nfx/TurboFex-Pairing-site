@@ -571,3 +571,6 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 
 ## v3.19.0
 - Home: "In your chat" section (`.chat3d` in new-home.html, styles at the end of tf2.css) between Explore and Open source. Pure CSS, decorative (aria-hidden). Loop = 11 s; staged with opacity/scale keyframes (tcpop, tcpop2, tcshow1-3, tcdots, tcrep, tcrun). Base styles show the final still state; animation only inside prefers-reduced-motion: no-preference. The chat is an example only (".play calm piano"); do not add numbers or claims to it.
+
+## v3.20.0
+- Home "Extend it": the panel has the extra class `tiles` (CSS block at the end of tf2.css) which turns its rows into a 2 x 2 card grid. Same links, same icons. Get started and Coming later are unchanged.
