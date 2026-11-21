@@ -246,3 +246,61 @@ html { background: var(--bg); }
 :root[data-theme="light"] .cu:nth-child(7n+2) .f1, :root[data-theme="light"] .cu:nth-child(5n+1) .f3 { border-color: rgb(var(--acc) / .6); background: linear-gradient(145deg, #f1eeff, #d9d3fb); box-shadow: inset 0 0 .7rem rgb(var(--acc) / .2), 0 0 1rem rgb(var(--acc) / .2); }
 :root[data-theme="light"] .cu:nth-child(11n+4) .f5 { border-color: rgb(var(--acc) / .4); background: linear-gradient(145deg, #ffffff, #dcdcea); }
 :root[data-theme="light"] .glow { background: radial-gradient(closest-side, rgb(var(--acc) / .35), transparent 72%); }
+
+/* v3.19.0: a floating WhatsApp conversation between Explore and Open source. Plain elements, drawn once; only transform-type properties and opacity move, so it stays smooth on phones. Shown fully (still) when the phone asks for reduced motion. */
+.chat3d { position: relative; height: 282px; margin-top: 14px; perspective: 900px; -webkit-perspective: 900px; overflow: hidden; border-radius: var(--r); border: 1px solid var(--line); background: radial-gradient(120% 90% at 50% 0%, rgb(var(--acc) / .10), transparent 60%), var(--s1); }
+.cscene { position: absolute; inset: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transform: rotateX(8deg) rotateY(-10deg); will-change: transform; }
+.cb { position: absolute; padding: 9px 12px 10px; border-radius: 14px; border: 1px solid rgb(var(--w) / .16); font-size: 14px; line-height: 1.35; color: var(--t); -webkit-backface-visibility: hidden; backface-visibility: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
+.cb p { margin: 0; }
+.cn { display: block; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.cme { left: 5%; top: 7%; width: 58%; transform: translateZ(46px); background: rgb(var(--w) / .08); border-bottom-left-radius: 4px; }
+.cme .cn { color: rgb(var(--cyan)); }
+.cme .tk { position: absolute; right: 9px; bottom: 6px; width: 17px; height: 17px; color: rgb(var(--cyan)); }
+.cme p { padding-right: 18px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.cbo { right: 5%; top: 38%; width: 66%; min-height: 62px; transform: translateZ(14px); background: rgb(var(--acc) / .16); border-color: rgb(var(--acc) / .38); border-bottom-right-radius: 4px; }
+.cbo .cn { color: rgb(var(--acc)); }
+.dots { position: absolute; left: 12px; bottom: 14px; display: none; gap: 4px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--acc)); }
+.chips { position: absolute; left: 4%; right: 4%; top: 77%; display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px; transform: translateZ(34px); }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-size: 11.5px; font-weight: 500; border: 1px solid; background: var(--s1); }
+.chip svg { width: 12px; height: 12px; }
+.cv { color: rgb(var(--acc)); border-color: rgb(var(--acc) / .45); }
+.cc { color: rgb(var(--cyan)); border-color: rgb(var(--cyan) / .45); }
+.cg { color: rgb(var(--ok)); border-color: rgb(var(--ok) / .5); }
+.spin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgb(var(--cyan) / .3); border-top-color: rgb(var(--cyan)); }
+.cline { position: absolute; left: 24%; top: 30%; width: 2px; height: 22%; transform: translateZ(30px); background: linear-gradient(rgb(var(--cyan) / .6), rgb(var(--acc) / .6)); border-radius: 2px; }
+.cline i { position: absolute; left: -2px; top: 0; width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--ok)); box-shadow: 0 0 10px rgb(var(--ok) / .8); }
+.orb { position: absolute; border-radius: 50%; filter: blur(18px); pointer-events: none; }
+.o1 { left: 62%; top: 6%; width: 90px; height: 90px; background: rgb(var(--acc) / .35); transform: translateZ(-70px); }
+.o2 { left: 6%; top: 52%; width: 80px; height: 80px; background: rgb(var(--cyan) / .28); transform: translateZ(-50px); }
+:root[data-theme="light"] .cb { box-shadow: 0 10px 26px rgb(40 40 80 / .12); border-color: rgb(var(--w) / .14); }
+:root[data-theme="light"] .cme { background: rgb(255 255 255 / .75); }
+@media (min-width: 640px) { .chat3d { height: 290px; } .cb { font-size: 15px; } .cme { width: 46%; } .cbo { width: 52%; top: 36%; } .chips { top: 76%; } }
+@media (prefers-reduced-motion: no-preference) {
+  .cscene { animation: tcsway 14s ease-in-out infinite alternate; }
+  .cme { animation: tcpop 11s ease-out infinite both, tcfloat 6s ease-in-out infinite alternate; }
+  .cbo { animation: tcpop2 11s ease-out infinite both, tcfloat 7s ease-in-out -2s infinite alternate; }
+  .chips { animation: tcfloat 8s ease-in-out -1s infinite alternate; }
+  .chip.cv { animation: tcshow1 11s ease-out infinite both; }
+  .chip.cc { animation: tcshow2 11s ease-out infinite both; }
+  .chip.cg { animation: tcshow3 11s ease-out infinite both; }
+  .cbo .rep { animation: tcrep 11s ease-out infinite both; }
+  .dots { display: flex; animation: tcdots 11s linear infinite both; }
+  .dots i { animation: tcdot 1s ease-in-out infinite; } .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+  .spin { animation: tcspin .9s linear infinite; }
+  .cline i { animation: tcrun 11s ease-in-out infinite both; }
+  .o1 { animation: tcorb 9s ease-in-out infinite alternate; } .o2 { animation: tcorb 11s ease-in-out -3s infinite alternate; }
+}
+@keyframes tcsway { from { transform: rotateX(6deg) rotateY(-16deg); } to { transform: rotateX(11deg) rotateY(8deg); } }
+@keyframes tcfloat { from { translate: 0 -5px 0; } to { translate: 0 5px 0; } }
+@keyframes tcpop { 0% { opacity: 0; scale: .88; } 6%, 92% { opacity: 1; scale: 1; } 98%, 100% { opacity: 0; scale: .96; } }
+@keyframes tcpop2 { 0%, 15% { opacity: 0; scale: .88; } 21%, 92% { opacity: 1; scale: 1; } 98%, 100% { opacity: 0; scale: .96; } }
+@keyframes tcdots { 0%, 16% { opacity: 0; } 19%, 34% { opacity: 1; } 37%, 100% { opacity: 0; } }
+@keyframes tcrep { 0%, 36% { opacity: 0; } 42%, 100% { opacity: 1; } }
+@keyframes tcshow1 { 0%, 8% { opacity: 0; scale: .8; } 13%, 92% { opacity: 1; scale: 1; } 98%, 100% { opacity: 0; } }
+@keyframes tcshow2 { 0%, 22% { opacity: 0; scale: .8; } 27%, 92% { opacity: 1; scale: 1; } 98%, 100% { opacity: 0; } }
+@keyframes tcshow3 { 0%, 44% { opacity: 0; scale: .8; } 50%, 92% { opacity: 1; scale: 1; } 98%, 100% { opacity: 0; } }
+@keyframes tcrun { 0%, 8% { opacity: 0; translate: 0 0; } 12% { opacity: 1; } 30% { opacity: 1; translate: 0 54px; } 34%, 100% { opacity: 0; translate: 0 54px; } }
+@keyframes tcdot { 0%, 100% { translate: 0 0; opacity: .4; } 50% { translate: 0 -3px; opacity: 1; } }
+@keyframes tcspin { to { rotate: 360deg; } }
+@keyframes tcorb { from { translate: -10px 6px; } to { translate: 12px -8px; } }

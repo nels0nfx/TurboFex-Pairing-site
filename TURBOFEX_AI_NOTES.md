@@ -568,3 +568,6 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## v3.18.1
 - Verified developers show a blue round mark (`vmark()` in dash.js, `.vmark` in tf2-dev.css) beside the name instead of the words "Verified developer". Title/aria-label keep the words. Not verified = the old "Developer" chip.
 - Cube: three independent animations on `.cube` in tf2.css (`tfspin` on transform = Y turn + Z sway, `tftumble` on the `rotate` property = X, `tffloat` on `translate`). All gated by prefers-reduced-motion: no-preference. If an iPhone shows a still cube, check Settings > Accessibility > Motion > Reduce Motion first.
+
+## v3.19.0
+- Home: "In your chat" section (`.chat3d` in new-home.html, styles at the end of tf2.css) between Explore and Open source. Pure CSS, decorative (aria-hidden). Loop = 11 s; staged with opacity/scale keyframes (tcpop, tcpop2, tcshow1-3, tcdots, tcrep, tcrun). Base styles show the final still state; animation only inside prefers-reduced-motion: no-preference. The chat is an example only (".play calm piano"); do not add numbers or claims to it.
