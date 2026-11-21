@@ -564,3 +564,7 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Direct file names like /new-home.html are 404 in live mode. Do not link to them.
 - Tests: newsite/plugins/devcentre/site tests boot with OLD_SITE=on (they compare new pages with the old ones); the live-mode tests are at the end of newsite.test.js.
 - Tab icon: favicon.png (64) and apple-touch-icon.png (180) are the chrome TF on a dark square. Originals are not kept in the repo.
+
+## v3.18.1
+- Verified developers show a blue round mark (`vmark()` in dash.js, `.vmark` in tf2-dev.css) beside the name instead of the words "Verified developer". Title/aria-label keep the words. Not verified = the old "Developer" chip.
+- Cube: three independent animations on `.cube` in tf2.css (`tfspin` on transform = Y turn + Z sway, `tftumble` on the `rotate` property = X, `tffloat` on `translate`). All gated by prefers-reduced-motion: no-preference. If an iPhone shows a still cube, check Settings > Accessibility > Motion > Reduce Motion first.

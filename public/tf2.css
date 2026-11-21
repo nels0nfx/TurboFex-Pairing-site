@@ -225,8 +225,19 @@ html { background: var(--bg); }
 .flegal { grid-column: 1 / -1; }
 .flegal ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
 /* the 3D block now turns slowly, and has a light-mode look */
-@media (prefers-reduced-motion: no-preference) { .cube { animation: tfspin 28s linear infinite; } }
-@keyframes tfspin { from { transform: rotateX(-24deg) rotateY(36deg); } to { transform: rotateX(-24deg) rotateY(396deg); } }
+/* the cube turns on its own: three independent motions, so it never repeats in an obvious way. Y turns steadily (26 s), X tumbles slowly (52 s, so it is two Y turns per X turn), and a small Z sway plus a soft float add depth. Only transform-type properties move, so the browser animates it on the graphics chip. No motion when the phone asks for reduced motion. */
+.cube { -webkit-transform-style: preserve-3d; will-change: transform; }
+.cu, .cu b { -webkit-transform-style: preserve-3d; -webkit-backface-visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .cube { animation: tfspin 26s linear infinite, tftumble 52s linear infinite, tffloat 7s ease-in-out infinite alternate; }
+}
+@keyframes tfspin {
+  0% { transform: rotateZ(-3deg) rotateX(-24deg) rotateY(36deg); }
+  50% { transform: rotateZ(3deg) rotateX(-24deg) rotateY(216deg); }
+  100% { transform: rotateZ(-3deg) rotateX(-24deg) rotateY(396deg); }
+}
+@keyframes tftumble { from { rotate: 1 0 0 0deg; } to { rotate: 1 0 0 360deg; } }
+@keyframes tffloat { from { translate: 0 -.35rem 0; } to { translate: 0 .35rem 0; } }
 :root[data-theme="light"] .cu b { border-color: rgb(var(--w) / .2); background: linear-gradient(145deg, #ffffff 0%, #ececf3 60%, #e0e0ea 100%); box-shadow: inset 0 0 .6rem rgb(var(--w) / .05); }
 :root[data-theme="light"] .cu .f3 { background: linear-gradient(145deg, #f3f3f8, #dedee8); }
 :root[data-theme="light"] .cu .f4 { background: linear-gradient(145deg, #eaeaf2, #d6d6e2); }

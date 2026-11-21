@@ -59,12 +59,22 @@
     });
   }
 
+  // the blue "verified" mark (round badge with a white tick) used next to a verified developer's name
+  function vmark() {
+    var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'vmark'); s.setAttribute('role', 'img'); s.setAttribute('aria-label', 'Verified developer');
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'title'); t.textContent = 'Verified developer'; s.appendChild(t);
+    var a = document.createElementNS('http://www.w3.org/2000/svg', 'path'); a.setAttribute('d', 'M23.20 12.00 L23.04 12.72 L22.61 13.40 L22.00 13.99 L21.37 14.51 L20.84 15.00 L20.50 15.52 L20.37 16.13 L20.40 16.85 L20.48 17.67 L20.49 18.51 L20.32 19.30 L19.92 19.92 L19.30 20.32 L18.51 20.49 L17.67 20.48 L16.85 20.40 L16.13 20.37 L15.52 20.50 L15.00 20.84 L14.51 21.37 L13.99 22.00 L13.40 22.61 L12.72 23.04 L12.00 23.20 L11.28 23.04 L10.60 22.61 L10.01 22.00 L9.49 21.37 L9.00 20.84 L8.48 20.50 L7.87 20.37 L7.15 20.40 L6.33 20.48 L5.49 20.49 L4.70 20.32 L4.08 19.92 L3.68 19.30 L3.51 18.51 L3.52 17.67 L3.60 16.85 L3.63 16.13 L3.50 15.52 L3.16 15.00 L2.63 14.51 L2.00 13.99 L1.39 13.40 L0.96 12.72 L0.80 12.00 L0.96 11.28 L1.39 10.60 L2.00 10.01 L2.63 9.49 L3.16 9.00 L3.50 8.48 L3.63 7.87 L3.60 7.15 L3.52 6.33 L3.51 5.49 L3.68 4.70 L4.08 4.08 L4.70 3.68 L5.49 3.51 L6.33 3.52 L7.15 3.60 L7.87 3.63 L8.48 3.50 L9.00 3.16 L9.49 2.63 L10.01 2.00 L10.60 1.39 L11.28 0.96 L12.00 0.80 L12.72 0.96 L13.40 1.39 L13.99 2.00 L14.51 2.63 L15.00 3.16 L15.52 3.50 L16.13 3.63 L16.85 3.60 L17.67 3.52 L18.51 3.51 L19.30 3.68 L19.92 4.08 L20.32 4.70 L20.49 5.49 L20.48 6.33 L20.40 7.15 L20.37 7.87 L20.50 8.48 L20.84 9.00 L21.37 9.49 L22.00 10.01 L22.61 10.60 L23.04 11.28Z'); a.setAttribute('fill', '#20a5f0'); s.appendChild(a);
+    var b = document.createElementNS('http://www.w3.org/2000/svg', 'path'); b.setAttribute('d', 'M7.6 12.4l3 3 5.8-6.2'); b.setAttribute('fill', 'none'); b.setAttribute('stroke', '#fff'); b.setAttribute('stroke-width', '2.4'); b.setAttribute('stroke-linecap', 'round'); b.setAttribute('stroke-linejoin', 'round'); s.appendChild(b);
+    return s;
+  }
+
   // ----- Home -----
   function tile(n, label) { var t = el('div'); t.appendChild(el('b', null, String(n))); t.appendChild(el('span', null, label)); return t; }
   function drawHome(j) {
-    document.getElementById('wname').textContent = 'Hi, ' + j.user.login;
+    var wn = document.getElementById('wname'); wn.textContent = 'Hi, '; var wl = el('span', 'wlogin', j.user.login); wn.appendChild(wl);
     var ws = document.getElementById('wstat'); ws.textContent = '';
-    var v = el('span', 'vbadge' + (j.user.verified ? ' ok' : '')); v.appendChild(ico(j.user.verified ? 'check' : 'user')); v.appendChild(el('b', null, j.user.verified ? 'Verified developer' : 'Developer')); ws.appendChild(v);
+    if (j.user.verified) { wl.appendChild(vmark()); ws.hidden = true; } // verified: just the blue mark beside the name
+    else { ws.hidden = false; var v = el('span', 'vbadge'); v.appendChild(ico('user')); v.appendChild(el('b', null, 'Developer')); ws.appendChild(v); }
     var t = document.getElementById('tiles'); t.textContent = '';
     var live = groups.filter(function (g) { return g.live; }).length, review = groups.filter(function (g) { return g.waiting; }).length, bots = 0, hasStats = false;
     Object.keys(stats).forEach(function (k) { hasStats = true; bots += stats[k].installs || 0; });
@@ -220,7 +230,7 @@
     groups = makeGroups(j.submissions || []);
     if (hookBox) { hookBox.hidden = false; drawHooks(j.hooks || []); }
     drawHome(j); drawFilters(); drawSubs(); drawStats();
-    var ac = document.getElementById('acct'); ac.textContent = ''; var v = el('span', 'vbadge' + (j.user.verified ? ' ok' : '')); v.appendChild(ico(j.user.verified ? 'check' : 'user')); v.appendChild(el('b', null, j.user.login + ' · ' + (j.user.verified ? 'Verified developer' : 'Developer'))); ac.appendChild(v);
+    var ac = document.getElementById('acct'); ac.textContent = ''; var v = el('span', 'vbadge'); v.appendChild(el('b', null, j.user.login)); if (j.user.verified) { v.appendChild(vmark()); } else { v.appendChild(el('b', 'dmuted', ' · Developer')); } ac.appendChild(v);
     show(location.hash.slice(1));
   }
   function load() {

@@ -1,4 +1,6 @@
 CHANGED IN THE NEXT VERSION
+- NEW (pairing site v3.18.1): a blue round "verified" mark (white tick) now shows beside a verified developer's name in the Developer Centre, instead of the long "Verified developer" label. Tap or hover it to see the words. Developers who are not verified still see "Developer".
+- FIXED (pairing site v3.18.1): the cube on the Home page now turns smoothly all the time: it spins on the Y axis, tumbles slowly on the X axis, sways a little on Z and floats softly. Same cube, colours, size and place. Safari fixes added so it does not flicker. It stays still only if the phone is set to Reduce Motion.
 - NEW (pairing site v3.18.0): the redesigned site is now the live site. Home is at "/", and Install, Pair, Plugins, Developers, Docs (Plugin Guide), Playground, Support, About, Terms, Privacy and Rules all use the new look at their normal addresses. Dark and light mode, the animated logo and the cube are live everywhere.
 - NEW (pairing site v3.18.0): new tab icon and phone home-screen icon from the new TurboFex logo.
 - CHANGED (pairing site v3.18.0): the old pages are no longer shown in the browser, but their files are kept in the project. The old Community page and the Pair Classic page are gone from the site. Saved /new/... links forward to the real address. Set OLD_SITE=on on the host to bring the old pages back (rollback).

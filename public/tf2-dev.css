@@ -133,3 +133,8 @@ details.fold > summary + * { margin-top: 0; }
 .btrack { display: block; height: 8px; border-radius: 8px; background: rgb(var(--w) / .07); overflow: hidden; }
 .btrack i { display: block; height: 100%; background: rgb(var(--acc)); border-radius: 8px; }
 @media (min-width: 720px) { .pad { padding: 20px 24px; } }
+
+/* the blue verified mark beside a developer's name */
+.vmark { display: inline-block; width: .8em; height: .8em; vertical-align: -.06em; margin-left: .15em; flex: none; }
+.vbadge .vmark { width: 16px; height: 16px; vertical-align: middle; margin-left: 2px; }
+.wlogin { white-space: nowrap; }
