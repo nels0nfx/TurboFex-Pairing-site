@@ -6,9 +6,9 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
-## v3.14.0 - Pairing page new look (PREVIEW at /new/pair, live /pair untouched)
+## v3.14.1 - Pairing page rebuilt (PREVIEW at /new/pair, live /pair untouched)
 - Only public/new-pair.html and public/tf2-pair.css changed (redesign block at the end of the css). app.js/pair.js/server.js untouched; every id app.js needs is still on the page (test checks this).
-- Layout: heading + status chips, one panel (progress, Pairing code/QR switch, form or step), privacy facts, 5 troubleshooting answers, small footer (class "foot min").
+- Owner rejected v3.14.0 as "just the old layout". v3.14.1 layout: title + status chips, one narrow panel (animated phone-to-TurboFex link drawing driven by data-step, two method tiles, form or step), 3 trust points, 3 help questions, small footer ("foot min"). Keep words few: owner wants less text.
 - Rollback: restore the v3.13.0 ZIP. Do not switch live /pair without the owner's approval.
 
 ## 1. Who the owner is and how to talk to them
