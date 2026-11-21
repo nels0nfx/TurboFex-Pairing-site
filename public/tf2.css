@@ -199,24 +199,31 @@ details p a { color: var(--t); text-decoration: underline; text-decoration-color
 /* the page behind the phone's top bar and the overscroll area follows the mode too */
 html { background: var(--bg); }
 
-/* v3.17.0: the TurboFex logo. Two pictures (light and dark) that blend into the page, so the page colour shows through. */
-.logo .mark, .mark { position: relative; display: inline-block; flex: none; width: 46px; height: 32px; }
+/* v3.17.0: the TurboFex logo (real transparent pictures, one for light and one for dark) */
+.mark { position: relative; display: inline-block; flex: none; width: 34px; height: 24px; }
 .mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
-.mark .m-l { mix-blend-mode: multiply; }
-.mark .m-d { mix-blend-mode: screen; display: none; }
+.mark .m-d { display: none; }
 :root:not([data-theme="light"]) .mark .m-l { display: none; }
 :root:not([data-theme="light"]) .mark .m-d { display: block; }
-.logo { gap: 10px; }
-.mark::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .9) 50%, transparent 60%) 160% 0 / 260% 100% no-repeat; mix-blend-mode: screen; }
-:root:not([data-theme="light"]) .mark::after { mix-blend-mode: overlay; }
+.logo { gap: 9px; }
+.mark::after { content: ""; position: absolute; inset: 0; pointer-events: none; -webkit-mask: url(/logo-light.png) center / contain no-repeat; mask: url(/logo-light.png) center / contain no-repeat; background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .95) 50%, transparent 60%) 160% 0 / 260% 100% no-repeat; }
 @media (prefers-reduced-motion: no-preference) {
   .mark img { animation: tflogoin .9s cubic-bezier(.2, .8, .2, 1) both; }
   .mark::after { animation: tfglint 5s ease-in-out 1.4s infinite; }
 }
 @keyframes tflogoin { from { opacity: 0; transform: translateX(-8px) scale(.82); } to { opacity: 1; transform: none; } }
 @keyframes tfglint { 0% { background-position: 160% 0; } 28%, 100% { background-position: -60% 0; } }
-.lnk .nd .mark { width: 40px; height: 28px; }
+.lnk .nd .mark { width: 34px; height: 24px; }
 
+/* footer: two columns that do not wait for each other, Legal in one row (no empty gaps) */
+.foot { margin-top: 40px; padding-top: 26px; }
+.fg { gap: 20px 16px; align-items: start; }
+.fcol { display: flex; flex-direction: column; gap: 18px; }
+.fg h3 { margin-bottom: 6px; }
+.fg li { margin-bottom: 2px; }
+.fg li a { padding: 5px 0; }
+.flegal { grid-column: 1 / -1; }
+.flegal ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
 /* the 3D block now turns slowly, and has a light-mode look */
 @media (prefers-reduced-motion: no-preference) { .cube { animation: tfspin 28s linear infinite; } }
 @keyframes tfspin { from { transform: rotateX(-24deg) rotateY(36deg); } to { transform: rotateX(-24deg) rotateY(396deg); } }

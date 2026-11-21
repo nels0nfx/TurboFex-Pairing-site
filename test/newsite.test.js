@@ -128,7 +128,7 @@ test('dark / light switch: every new page sets the mode before drawing, has the 
     }
     assert.ok((await (await fetch(t.base + '/pair')).text()).includes('id="ttheme"'), 'live /pair has the switch');
     const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
-    assert.ok(css.includes(':root[data-theme="light"]') && !/data:|url\(/.test(css));
+    assert.ok(css.includes(':root[data-theme="light"]') && !/data:/.test(css));
     for (const f of ['logo-light.png', 'logo-dark.png']) assert.ok(fs.existsSync(path.join(root, 'public', f)), f);
     assert.ok(h0.includes('class="mark"') && h0.includes('/logo-light.png') && h0.includes('/logo-dark.png'), 'the header shows the TurboFex logo');
     assert.ok(css.includes('@keyframes tfspin') && css.includes('.cu b'), 'the 3D block turns and has a light look');

@@ -6,8 +6,8 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
-## v3.17.0 - Logo, spinning cube, footer only on landing
-- Logo = owner's chrome "TF" picture. public/logo-light.png (white background, used with mix-blend-mode: multiply) and public/logo-dark.png (inverted, black background, screen blend). Markup is the .mark span in partials/head2.html and foot2.html. Never put a transform/opacity animation on an ancestor of .mark images, it breaks the blending (animate the img or ::after only).
+## v3.17.0/3.17.1 - Logo, spinning cube, footer only on landing
+- Logo = owner's chrome "TF" picture, now real transparent PNGs: public/logo-light.png and public/logo-dark.png (swapped by theme). Do NOT use mix-blend-mode on them (it showed a white box inside the header, which has a backdrop blur). The shine is a ::after masked with the logo picture. Markup is the .mark span in partials/head2.html and foot2.html.
 - The top-bar colour: tf2-theme.js and tf2.js REPLACE the theme-color meta element (editing it is ignored by some phones).
 - Footer (foot2) is only on new-home.html. Other new pages and pair.html load /tf2.js directly; pair.html keeps a hidden #yr because app.js needs it.
 - Cube turns with @keyframes tfspin (off for reduced motion); light look is in tf2.css.

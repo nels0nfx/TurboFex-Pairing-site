@@ -1,4 +1,6 @@
 CHANGED IN THE NEXT VERSION
+- FIXED (pairing site v3.17.1): the logo was too big and showed a white box around it on the phone (the footer and header). The logo is now smaller and is a real see-through picture (light and dark version), so no box shows in either mode. The shine still passes over it.
+- FIXED (pairing site v3.17.1): the landing page footer had big empty gaps. It now has two columns that do not wait for each other, the Legal links sit in one row, and the spacing between links is tighter.
 - NEW (pairing site v3.17.0): THE TURBOFEX LOGO is now in the header (and the pairing page graphic and the landing page footer). It has a light version and a dark version, so it matches both modes, comes in with a small animation and has a shine that passes over it every few seconds. The shine and animation stop if the phone has "reduce motion" on.
 - CHANGED (pairing site v3.17.0): the 3D block on the landing page now turns slowly (it also stops with "reduce motion") and has its own light-mode look (white blocks with violet edges).
 - FIXED (pairing site v3.17.0): the top bar of the phone (clock and battery) stayed black in light mode. The page now tells the phone the right colour for the chosen mode, and the page behind it follows the mode.
