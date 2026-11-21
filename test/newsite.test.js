@@ -331,7 +331,7 @@ test('3D scenes (v3.22.0): the right pages have one, they are decoration only, s
       assert.ok(h.includes('class="sc ' + cls + '" aria-hidden="true"'), p + ' has its scene');
       assert.ok(h.includes('/tf2-scenes.css') && h.includes('/tf2-scenes.js'), p + ' loads the shared kit');
       assert.ok(!/ style=|<style/.test(h), p + ' has no inline style');
-      assert.strictEqual((h.match(/class="sc /g) || []).length, 1, p + ' has exactly one scene');
+      assert.strictEqual((h.match(/class="sc /g) || []).length, p === '/developers' ? 2 : 1, p + ' has the expected number of scenes');
     }
     for (const p of ['/about', '/terms', '/privacy', '/rules', '/support']) assert.ok(!(await (await fetch(t.base + p)).text()).includes('class="sc '), p + ' stays plain');
     const home = await (await fetch(t.base + '/')).text();

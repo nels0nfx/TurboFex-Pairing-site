@@ -842,14 +842,19 @@ test('collections: owner builds them in the admin dashboard; they are checked, s
   } catch (e) { try { t.close(); } catch (x) { /* already closed */ } throw e; }
 });
 
-test('admin redesign: the dashboard page loads the new styles, has the site links and footer, and the styles are served', async () => {
+test('admin redesign: the dashboard page loads the new styles, has the site links (no footer) and the new sign-in page, and the styles are served', async () => {
   const t = await boot();
   try {
     const r = await t.req('GET', '/admin'); assert.strictEqual(r.status, 200);
-    for (const bit of ['href="/admin3.css"', 'class="asite"', 'class="afoot"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
+    for (const bit of ['href="/admin3.css"', 'class="asite"', 'id="nav"', 'src="/admin.js"']) assert.ok(r.text.includes(bit), bit);
     assert.ok(r.text.indexOf('/tfx.css') < r.text.indexOf('/admin3.css'), 'admin styles come after the shared design tokens');
     assert.ok(r.text.includes('href="/admin4.css"') && r.text.indexOf('/admin3.css') < r.text.indexOf('/admin4.css'), 'the v4 look loads after the v3 layout rules');
     assert.ok(r.text.includes('id="tabbar"'), 'the phone bottom bar is in the page');
+    assert.ok(!r.text.includes('<footer') && !r.text.includes('class="afoot"'), 'no footer in the admin dashboard');
+    assert.ok(r.text.includes('/admin5.css') && r.text.indexOf('/admin4.css') < r.text.indexOf('/admin5.css'), 'the brand styles load last');
+    assert.ok(r.text.includes('class="sc s-adm"') && r.text.includes('/logo-brand-dark.png') && !r.text.includes('logo-gold'), 'new sign-in scene and new logo, no old gold logo');
+    for (const id of ['login', 'f-login', 'u', 'p', 'c', 'trust', 'b-login', 'lg-err', 'tfxframe']) assert.ok(r.text.includes('id="' + id + '"'), 'sign-in keeps #' + id);
+    for (const f of ['/admin5.css', '/logo-brand-dark.png', '/logo-brand-light.png']) assert.strictEqual((await t.req('GET', f)).status, 200, f);
     const css = await t.req('GET', '/admin3.css'); assert.strictEqual(css.status, 200); assert.ok(css.text.includes('.adm .ashell'));
     const css4 = await t.req('GET', '/admin4.css'); assert.strictEqual(css4.status, 200); assert.ok(css4.text.includes('.adm .atabbar') && !/data:|url\(/.test(css4.text), 'admin4.css is served and has no data: or url() parts');
     const js = fs.readFileSync(path.join(__dirname, '../public/admin.js'), 'utf8'); assert.ok(/Block a number/.test(js) && /openQuick/.test(js) && !/\.innerHTML\s*=|[^a-zA-Z]confirm\(|[^a-zA-Z]prompt\(/.test(js), 'quick actions exist and no innerHTML is used');

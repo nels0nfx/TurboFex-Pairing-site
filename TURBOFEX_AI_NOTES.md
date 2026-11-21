@@ -589,3 +589,7 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 
 ## v3.22.1 - class name clashes
 - Lesson: never reuse short class names across stylesheets (the Pair page already has .chips, .spin, .wire, the doc pages .pn, .rk). Chat visual classes are now `ch*` (chchips, chchip, chspin, chdots, chrep, chtk, chn, chb). Scene kit renamed: gp (panel), rack, pkgo, wr3, nde, ic3, pl3, ck3. New classes should get a unique prefix.
+
+## v3.23.0 - admin and dev dashboard
+- Admin: `admin5.css` loads last and only re-maps the colour tokens (the old "gold" tokens now hold the brand violet, light and dark), so admin3/admin4 are untouched. `.gold` text = `--brand`. Logos: logo-brand-dark.png / logo-brand-light.png (T chrome + violet F baked in, toggled by data-theme). Admin footer removed from admin.html (`.afoot` is also hidden in CSS). Sign-in page rewritten (same ids: login, f-login, u, p, c, trust, b-login, lg-err, tfxframe) with the `s-adm` scene.
+- The Home "Extend it" grid class is now `xtiles` (the Developer Centre uses `.tiles` for its numbers box). Remember: unique prefixes for new class names.

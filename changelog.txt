@@ -1,4 +1,9 @@
 CHANGED IN THE NEXT VERSION
+- NEW (pairsite v3.23.0): the admin sign-in page is redesigned in the new look: new logo, the brand violet, a short form, and a small floating 3D scene (dashboard panel, shield, two-step code) that moves on its own. The old copy and the gold look are gone. The form fields and sign-in steps work exactly as before.
+- CHANGED (pairsite v3.23.0): the whole admin dashboard now uses the same colours and logo as the rest of the site (violet instead of gold, new logo, "Fex" in the brand colour, dark and light). Layout and features are unchanged.
+- CHANGED (pairsite v3.23.0): the footer is removed from the admin dashboard.
+- NEW (pairsite v3.23.0): the Developer Centre Home screen (signed in) gets a small version of the Developer Centre scene.
+- FIXED (pairsite v3.23.0): the numbers box on the Developer Centre Home screen (Live, In review, Plugins) had lost its frame because the Home card grid used the same class name. The grid now has its own name.
 - FIXED (pairsite v3.22.1): Pair page: the "Secure connection" label was sitting on top of the "5-minute ID / Encrypted / Unlink any time" line, the status label had dropped below the form, and the phone and bot icons were stuck together with no dots between them. The new animation styles used names that the Pair page already used. All the new animation and chat styles now have their own names, so nothing clashes again.
 - FIXED (pairsite v3.22.1): Home: less empty space above and between the two animations, and the small plugin modules now have solid coloured sides instead of pale slivers on phones.
 - FIXED (pairsite v3.22.1): Plugins list: the plugin icon now lines up with the plugin name.

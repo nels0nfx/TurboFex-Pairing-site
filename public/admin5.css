@@ -1,0 +1,70 @@
+/* TurboFex Admin v5 (v3.23.0): the admin now uses the same identity as the new site: the brand violet instead of gold, the new logo, the new sign-in page. Loaded last, so it only has to change the colour tokens. */
+:root, :root[data-theme="dark"] {
+  --bg: #050506; --bg2: #0d0d10; --surface: #0d0d10; --surface2: #141418; --raise: #1b1b21;
+  --line: rgba(255, 255, 255, .08); --line-gold: rgba(139, 124, 255, .30); --line-gold-strong: rgba(139, 124, 255, .62);
+  --text: #f4f4f8; --muted: #a3a3b2; --faint: #74748a;
+  --gold: #6c5ce7; --gold-hi: #9a8dff; --gold-lo: #5445c9; --gold-text: #a99fff;
+  --gold-grad: linear-gradient(135deg, #7a6cf0 0%, #6c5ce7 55%, #5a49d6 100%);
+  --gold-glow: rgba(108, 92, 231, .4); --gold-faint: rgba(139, 124, 255, .12);
+  --ok: #34d399; --bad: #f87171; --warn: #f5a623; --on-gold: #fff;
+  --nav-bg: rgba(5, 5, 6, .8);
+}
+:root[data-theme="light"] {
+  --bg: #f6f6f9; --bg2: #f0f0f5; --surface: #ffffff; --surface2: #fafafd; --raise: #ececf3;
+  --line: rgba(20, 20, 40, .09); --line-gold: rgba(108, 92, 231, .32); --line-gold-strong: rgba(108, 92, 231, .65);
+  --text: #14141b; --muted: #5a5a6a; --faint: #8a8a9a;
+  --gold: #6c5ce7; --gold-hi: #8b7cf0; --gold-lo: #5445c9; --gold-text: #5445c9;
+  --gold-grad: linear-gradient(135deg, #7a6cf0 0%, #6c5ce7 55%, #5a49d6 100%);
+  --gold-glow: rgba(108, 92, 231, .3); --gold-faint: rgba(108, 92, 231, .09);
+  --ok: #1e8a52; --bad: #b3382c; --warn: #a66a00; --on-gold: #fff;
+  --nav-bg: rgba(246, 246, 249, .85);
+}
+.adm { --brand: #6c5ce7; --acc: 139 124 255; --cyan: 34 211 238; --pink: 244 114 182; --fuc: 217 119 255; --sky: 96 165 250; --w: 255 255 255; --s1: #0d0d10; --s3: #1b1b21; --r: 16px; }
+:root[data-theme="light"] .adm { --acc: 108 92 231; --w: 20 20 40; --s1: #ffffff; --s3: #e6e6ee; }
+.adm .sc { --ok: 52 211 153; --warn: 245 166 35; --bad: 248 113 113; }
+/* "Fex" is exactly the brand colour, everywhere */
+.adm .gold { background: none; -webkit-text-fill-color: currentColor; color: var(--brand); }
+/* new logo (a dark and a light picture) */
+.adm .logo { background: transparent; border: 0; width: auto; height: auto; border-radius: 0; }
+.adm .logo img { display: block; height: 24px; width: auto; }
+.adm .logo .lb-l { display: none; } :root[data-theme="light"] .adm .logo .lb-d { display: none; } :root[data-theme="light"] .adm .logo .lb-l { display: block; }
+.adm .cta { background: var(--brand); box-shadow: none; } .adm .btn.solid { background: var(--brand); }
+.adm .chip { background: rgb(var(--acc) / .16); color: var(--gold-text); border: 1px solid rgb(var(--acc) / .35); letter-spacing: .08em; }
+/* no footer in the dashboard */
+.adm .afoot { display: none; }
+/* ---- sign-in page ---- */
+.adm .lg { background: radial-gradient(60% 40% at 50% 0%, rgb(var(--acc) / .14), transparent 70%), var(--bg); gap: 14px; align-content: center; }
+.adm .lg-art { display: block; width: 100%; max-width: 420px; }
+.adm .lg-art .sc { --sch: 128px; margin: 0; }
+.adm .lg-note { display: none; margin: 0; color: var(--muted); font-size: 16px; text-align: center; }
+.adm .lg-box { max-width: 420px; padding: 24px 22px 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .6); }
+.adm .lg-box::before { display: none; }
+.adm .lg-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-size: 19px; }
+.adm .lg-brand b { font-weight: 700; letter-spacing: -.01em; }
+.adm .lg-box h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+.adm .lg-box input:not([type=checkbox]) { border: 1px solid var(--line); border-radius: 12px; min-height: 50px; background: var(--bg2); }
+.adm .lg-box input:not([type=checkbox]):focus { outline: 0; border-color: var(--brand); box-shadow: 0 0 0 3px rgb(var(--acc) / .22); }
+.adm .lg-box .back { color: var(--muted); } .adm .lg-box .back:hover { color: var(--text); }
+:root[data-theme="light"] .adm .lg-box { box-shadow: 0 24px 50px -30px rgba(40, 40, 90, .3); }
+@media (min-width: 900px) {
+  .adm .lg { grid-template-columns: 1fr 440px; gap: 60px; max-width: 1040px; align-content: center; }
+  .adm .lg-art { max-width: none; } .adm .lg-art .sc { --sch: 280px; } .adm .lg-art .s-adm .st { scale: 1.75; } .adm .lg-note { display: block; margin-top: 8px; }
+}
+/* the admin sign-in scene: dashboard panel, shield, two-step code panel */
+.s-adm { --hc: var(--acc); }
+.s-adm .ac { --x: -78px; --y: 2px; --fd: 6s; --fl: -1s; transform: translateZ(-12px); } .s-adm .ac .gp { --pw: 62px; --ph: 62px; --c: var(--cyan); }
+.s-adm .as { --x: 0px; --y: -6px; --fd: 7s; --fl: -3s; transform: translateZ(30px); }
+.s-adm .al { --x: 78px; --y: 4px; --fd: 6.4s; --fl: -2s; transform: translateZ(-4px); } .s-adm .al .gp { --pw: 62px; --ph: 62px; --c: var(--acc); }
+.s-adm .as .nb { position: absolute; left: -21px; top: -21px; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: rgb(var(--acc)); border: 1px solid rgb(var(--acc) / .6); background: linear-gradient(145deg, rgb(var(--acc) / .3), rgb(var(--acc) / .08)), var(--s1); box-shadow: 0 10px 22px rgb(0 0 0 / .3); }
+.s-adm .as .nb svg { width: 22px; height: 22px; }
+.s-adm .wr3.w-a { left: -46px; width: 26px; } .s-adm .wr3.w-b { left: 20px; width: 26px; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 30px; } .bars i { flex: 1; border-radius: 2px; background: rgb(var(--cyan) / .75); } .bars i:nth-child(1) { height: 40%; } .bars i:nth-child(2) { height: 70%; } .bars i:nth-child(3) { height: 52%; } .bars i:nth-child(4) { height: 88%; } .bars i:nth-child(5) { height: 62%; }
+.cd6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; } .cd6 i { height: 11px; border-radius: 3px; background: rgb(var(--acc) / .5); border: 1px solid rgb(var(--acc) / .7); }
+@media (prefers-reduced-motion: no-preference) {
+  .s-adm .t { --rd: 8s; --ra: 14deg; } .s-adm .as .t { --rd: 6s; --rl: -2s; } .s-adm .al .t { --rd: 9s; --rl: -4s; }
+  .s-adm .wr3.w-a i { animation: scRunA 4.8s linear infinite; } .s-adm .wr3.w-b i { animation: scRunB 4.8s linear infinite; }
+  .s-adm .cd6 i { animation: scBlink2 2.4s ease-in-out infinite; } .s-adm .cd6 i:nth-child(2n) { animation-delay: -.8s; } .s-adm .cd6 i:nth-child(3n) { animation-delay: -1.6s; }
+  .bars i { animation: scBar 3.2s ease-in-out infinite alternate; } .bars i:nth-child(2n) { animation-delay: -1s; } .bars i:nth-child(3n) { animation-delay: -2s; }
+}
+@keyframes scBlink2 { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes scBar { from { transform: scaleY(.75); } to { transform: scaleY(1); } } .bars i { transform-origin: bottom; }

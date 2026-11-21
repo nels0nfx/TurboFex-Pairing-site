@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/tfx.css">
 <link rel="stylesheet" href="/admin3.css">
 <link rel="stylesheet" href="/admin4.css">
+<link rel="stylesheet" href="/tf2-scenes.css">
+<link rel="stylesheet" href="/admin5.css">
 <script src="/theme.js"></script>
 </head>
 <body class="adm">
@@ -18,15 +20,18 @@
 <!-- sign in -->
 <main id="login" class="lg" hidden>
   <section class="lg-art" aria-hidden="true">
-    <span class="logo"><img src="/logo-gold.png" alt="" width="44" height="31"></span>
-    <h2>Run TurboFex <span class="gold">with confidence</span></h2>
-    <p>Pairing, plugins, reviews, safety and server health in one place.</p>
-    <ul><li>Every admin action is written to a tamper-evident log</li><li>Two-step sign-in with your authenticator app</li><li>Only the permissions your role has</li></ul>
+    <div class="sc s-adm"><div class="st">
+      <span class="wr3 w-a"><i></i></span><span class="wr3 w-b"><i></i></span>
+      <div class="o ac"><div class="t"><div class="gp"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span><i class="l3b w2"></i></div></div></div>
+      <div class="o as"><div class="t"><span class="nb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.5c0 4.2-2.8 7.8-7 9.2-4.2-1.4-7-5-7-9.2V5.8z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span></div></div>
+      <div class="o al"><div class="t"><div class="gp"><span class="cd6"><i></i><i></i><i></i><i></i><i></i><i></i></span><i class="l3b w3"></i><i class="l3b w2"></i></div></div></div>
+    </div></div>
+    <p class="lg-note">Pairing, plugins, reviews and server health in one place.</p>
   </section>
   <div class="lg-box">
-    <span class="logo sm"><img src="/logo-gold.png" alt="" width="34" height="24"></span>
-    <h1>Admin <span class="gold">sign in</span></h1>
-    <p class="muted">TurboFex Pair dashboard. Authorised administrators only.</p>
+    <div class="lg-brand"><span class="logo"><img class="lb-d" src="/logo-brand-dark.png" alt="" width="34" height="24"><img class="lb-l" src="/logo-brand-light.png" alt="" width="34" height="24"></span><b>Turbo<span class="gold">Fex</span></b><span class="chip">Admin</span></div>
+    <h1>Sign in</h1>
+    <p class="muted">For TurboFex administrators only.</p>
     <form id="f-login" method="post" action="/admin/api/noop" target="tfxframe" autocomplete="on" novalidate>
       <label for="u">Username</label>
       <input id="u" name="username" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="40" required>
@@ -34,19 +39,19 @@
       <input id="p" name="password" type="password" autocomplete="current-password" maxlength="200" required>
       <label for="c">6-digit code <span class="opt">(not needed on a trusted device)</span></label>
       <input id="c" name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="7" placeholder="123456">
-      <label class="chk" for="trust"><input id="trust" name="trust" type="checkbox"><span>Trust this device for 30 days (no code needed here, password still asked)</span></label>
+      <label class="chk" for="trust"><input id="trust" name="trust" type="checkbox"><span>Trust this device for 30 days</span></label>
       <button class="cta" id="b-login" type="submit"><span>Sign in</span></button>
     </form>
     <iframe name="tfxframe" id="tfxframe" title="" hidden tabindex="-1"></iframe>
     <p class="err" id="lg-err" role="alert"></p>
-    <a class="back" href="/">← Back to TurboFex Pair</a>
+    <a class="back" href="/">Back to TurboFex</a>
   </div>
 </main>
 
 <!-- dashboard -->
 <div id="app" class="ashell" hidden>
   <aside class="side">
-    <a class="ab" href="/admin" aria-label="TurboFex admin"><span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span><b>Turbo<span class="gold">Fex</span></b><span class="chip">Admin</span></a>
+    <a class="ab" href="/admin" aria-label="TurboFex admin"><span class="logo"><img class="lb-d" src="/logo-brand-dark.png" alt="" width="34" height="24"><img class="lb-l" src="/logo-brand-light.png" alt="" width="34" height="24"></span><b>Turbo<span class="gold">Fex</span></b><span class="chip">Admin</span></a>
     <nav class="nav" id="nav" role="tablist" aria-label="Dashboard sections"></nav>
     <nav class="asite" aria-label="TurboFex site"><span class="asite-h">TurboFex site</span><a href="/pair">Pairing page</a><a href="/plugins">Marketplace</a><a href="/developers">Developer Centre</a><a href="/plugin-guide">Plugin guide</a><a href="/playground">Playground</a></nav>
     <div class="who"><span class="av" aria-hidden="true"></span><span class="wt"><b id="who-u"></b><small id="who-r"></small></span></div>
@@ -54,7 +59,7 @@
 
   <div class="main">
     <header class="ah">
-      <a class="ab ab-m" href="/admin" aria-label="TurboFex admin"><span class="logo"><img src="/logo-gold.png" alt="" width="34" height="24"></span><b>Turbo<span class="gold">Fex</span></b><span class="chip">Admin</span></a>
+      <a class="ab ab-m" href="/admin" aria-label="TurboFex admin"><span class="logo"><img class="lb-d" src="/logo-brand-dark.png" alt="" width="34" height="24"><img class="lb-l" src="/logo-brand-light.png" alt="" width="34" height="24"></span><b>Turbo<span class="gold">Fex</span></b><span class="chip">Admin</span></a>
       <span class="ah-sp"></span>
       <button id="menu" class="ibtn amenubtn" type="button" aria-label="Menu" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><i class="n" id="menu-n" hidden></i></button>
       <button id="theme" class="ibtn themebtn" type="button" aria-label="Switch theme" title="Switch theme">
@@ -64,7 +69,6 @@
       <button id="out" class="ibtn" type="button" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </header>
     <main class="view" id="view" tabindex="-1" aria-live="polite"></main>
-    <footer class="afoot"><span>TurboFex Admin · signed-in area</span><nav aria-label="Footer"><a href="/pair">Pairing page</a><a href="/plugins">Marketplace</a><a href="/developers">Developer Centre</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></footer>
   </div>
   <nav class="atabbar" id="tabbar" aria-label="Sections"></nav>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -72,5 +76,6 @@
 
 <noscript><p class="lg-box">This dashboard needs JavaScript.</p></noscript>
 <script src="/admin.js"></script>
+<script src="/tf2-scenes.js"></script>
 </body>
 </html>

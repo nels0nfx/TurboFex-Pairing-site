@@ -315,16 +315,16 @@ html { background: var(--bg); }
 @keyframes tcorb { from { translate: -10px 6px; } to { translate: 12px -8px; } }
 
 /* v3.20.0: "Extend it" as a 2 x 2 grid of cards (Install and Pair stay full-width rows) */
-.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0; background: none; box-shadow: none; overflow: visible; border-radius: 0; }
-.tiles .row, .tiles .row + .row { position: relative; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 12px; min-height: 128px; padding: 14px 14px 13px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgb(var(--w) / .04); transition: transform .18s ease, border-color .18s ease, background-color .18s ease; -webkit-tap-highlight-color: transparent; }
-.tiles .row .tx { flex: none; width: 100%; }
-.tiles .row b { font-size: 15px; }
-.tiles .row .d { font-size: 12.5px; margin-top: 3px; }
-.tiles .row .go { position: absolute; top: 14px; right: 12px; width: 15px; height: 15px; }
-.tiles a.row:hover, .tiles a.row:focus-visible { border-color: var(--line2); background: var(--s2); transform: translateY(-2px); }
-.tiles a.row:active { transform: scale(.98); }
-@media (max-width: 380px) { .tiles { gap: 8px; } .tiles .row, .tiles .row + .row { padding: 12px 12px 11px; min-height: 120px; } .tiles .row .d { font-size: 12px; } }
-@media (prefers-reduced-motion: reduce) { .tiles .row, .tiles .row + .row { transition: none; } .tiles a.row:hover, .tiles a.row:focus-visible, .tiles a.row:active { transform: none; } }
+.xtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0; background: none; box-shadow: none; overflow: visible; border-radius: 0; }
+.xtiles .row, .xtiles .row + .row { position: relative; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 12px; min-height: 128px; padding: 14px 14px 13px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgb(var(--w) / .04); transition: transform .18s ease, border-color .18s ease, background-color .18s ease; -webkit-tap-highlight-color: transparent; }
+.xtiles .row .tx { flex: none; width: 100%; }
+.xtiles .row b { font-size: 15px; }
+.xtiles .row .d { font-size: 12.5px; margin-top: 3px; }
+.xtiles .row .go { position: absolute; top: 14px; right: 12px; width: 15px; height: 15px; }
+.xtiles a.row:hover, .xtiles a.row:focus-visible { border-color: var(--line2); background: var(--s2); transform: translateY(-2px); }
+.xtiles a.row:active { transform: scale(.98); }
+@media (max-width: 380px) { .xtiles { gap: 8px; } .xtiles .row, .xtiles .row + .row { padding: 12px 12px 11px; min-height: 120px; } .xtiles .row .d { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .xtiles .row, .xtiles .row + .row { transition: none; } .xtiles a.row:hover, .xtiles a.row:focus-visible, .xtiles a.row:active { transform: none; } }
 
 /* v3.21.0: one brand colour (--brand, set at the top) for the Get started button, the "Fex" in the name and the F of the logo */
 .logo .fx { color: var(--brand); }
@@ -412,7 +412,7 @@ html { background: var(--bg); }
 a.row:hover .ico, a.row:focus-visible .ico { transform: translateY(-2px) rotate(-6deg) scale(1.07); box-shadow: 0 6px 14px rgb(var(--c, var(--acc)) / .28); }
 a.row:active .ico { transform: scale(.94); }
 a.row .go { transition: transform .2s ease, color .2s ease; } a.row:hover .go, a.row:focus-visible .go { transform: translateX(3px); }
-.tiles a.row:hover .go, .tiles a.row:focus-visible .go { transform: translate(2px, -2px); }
+.xtiles a.row:hover .go, .xtiles a.row:focus-visible .go { transform: translate(2px, -2px); }
 .btn { transition: background-color .18s ease, transform .12s ease, border-color .18s ease; } .btn:active:not(:disabled) { transform: scale(.98); }
 @media (prefers-reduced-motion: no-preference) {
   .menu:not([hidden]) { animation: tfmenuin .18s cubic-bezier(.2, .8, .2, 1) both; transform-origin: top right; }

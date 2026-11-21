@@ -104,3 +104,6 @@
   .lnk .nd:first-child { animation: scFloat 4.6s ease-in-out infinite alternate; }
   .lnk .nd.bot { animation: scFloat 5.8s ease-in-out -2s infinite alternate; }
 }
+
+/* the same Developer Centre scene, smaller, on the signed-in Home screen */
+.s-dash { --sch: 108px; margin: 18px 0 0; }
