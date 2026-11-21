@@ -406,3 +406,20 @@ html { background: var(--bg); }
 @keyframes modjoin { 0%, 22% { translate: var(--ox) var(--oy) 0; } 40%, 52% { translate: var(--ix) var(--iy) 20px; } 78%, 100% { translate: var(--ox) var(--oy) 0; } }
 @keyframes modturn { from { rotate: .2 1 0 -34deg; } to { rotate: 0 1 .3 34deg; } }
 @keyframes modglow { 0%, 34% { opacity: 0; } 46% { opacity: 1; } 58%, 100% { opacity: 0; } }
+
+/* v3.22.0: small interface motion. Cards: the icon tilts and lifts a little on hover and tap. Panels that appear (steps, results, errors, tabs, menu) fade and slide in softly. Never for reduced motion. */
+.row .ico { transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease; }
+a.row:hover .ico, a.row:focus-visible .ico { transform: translateY(-2px) rotate(-6deg) scale(1.07); box-shadow: 0 6px 14px rgb(var(--c, var(--acc)) / .28); }
+a.row:active .ico { transform: scale(.94); }
+a.row .go { transition: transform .2s ease, color .2s ease; } a.row:hover .go, a.row:focus-visible .go { transform: translateX(3px); }
+.tiles a.row:hover .go, .tiles a.row:focus-visible .go { transform: translate(2px, -2px); }
+.btn { transition: background-color .18s ease, transform .12s ease, border-color .18s ease; } .btn:active:not(:disabled) { transform: scale(.98); }
+@media (prefers-reduced-motion: no-preference) {
+  .menu:not([hidden]) { animation: tfmenuin .18s cubic-bezier(.2, .8, .2, 1) both; transform-origin: top right; }
+  .menu.out { animation: tfmenuout .14s ease-in both; }
+  .step:not([hidden]), #pane-qr:not([hidden]), .dv [id^="v-"]:not([hidden]), .err:not([hidden]), .codemsg:not([hidden]), #retry:not([hidden]), .qrmsg:not([hidden]), #pdetail:not([hidden]), .dnotice:not([hidden]), .pcols:not([hidden]) { animation: tfpanelin .26s ease-out both; }
+  .step:not([hidden]) { animation-duration: .32s; }
+}
+@keyframes tfmenuin { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes tfmenuout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px) scale(.97); } }
+@keyframes tfpanelin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

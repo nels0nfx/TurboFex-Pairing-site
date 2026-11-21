@@ -321,3 +321,29 @@ test('brand colour: one token for the Get started button, the "Fex" in the name 
     assert.ok(/prefers-reduced-motion: no-preference/.test(css) && /@keyframes tfspin/.test(css) && /@keyframes modjoin/.test(css) && /@keyframes beamrun/.test(css));
   } finally { t.close(); }
 });
+
+test('3D scenes (v3.22.0): the right pages have one, they are decoration only, share one kit, pause off screen and respect reduced motion', async () => {
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    const want = { '/install': 's-inst', '/plugins': 's-plug', '/plugin-guide': 's-docs', '/playground': 's-play', '/developers': 's-dev' };
+    for (const [p, cls] of Object.entries(want)) {
+      const h = await (await fetch(t.base + p)).text();
+      assert.ok(h.includes('class="sc ' + cls + '" aria-hidden="true"'), p + ' has its scene');
+      assert.ok(h.includes('/tf2-scenes.css') && h.includes('/tf2-scenes.js'), p + ' loads the shared kit');
+      assert.ok(!/ style=|<style/.test(h), p + ' has no inline style');
+      assert.strictEqual((h.match(/class="sc /g) || []).length, 1, p + ' has exactly one scene');
+    }
+    for (const p of ['/about', '/terms', '/privacy', '/rules', '/support']) assert.ok(!(await (await fetch(t.base + p)).text()).includes('class="sc '), p + ' stays plain');
+    const home = await (await fetch(t.base + '/')).text();
+    assert.ok(home.includes('/tf2-scenes.css') && home.includes('/tf2-scenes.js'), 'Home pauses its scenes too');
+    const pair = await (await fetch(t.base + '/pair')).text();
+    assert.ok(!pair.includes('class="sc '), 'the pairing page gets no extra scene near the QR');
+    const css = await (await fetch(t.base + '/tf2-scenes.css')).text();
+    const motion = css.slice(css.indexOf('@media (prefers-reduced-motion: no-preference)'));
+    assert.ok(motion.includes('animation:') && !/^[^@]*\.o \{[^}]*animation:/m.test(css.slice(0, css.indexOf('@media (prefers-reduced-motion'))), 'all scene motion is inside the no-preference rule');
+    assert.match(css, /\.off, \.off \*/); assert.match(css, /animation-play-state: paused/); assert.match(css, /@supports not/);
+    const js = await (await fetch(t.base + '/tf2-scenes.js')).text();
+    assert.ok(/IntersectionObserver/.test(js) && !/innerHTML|eval\(/.test(js));
+    assert.strictEqual((await fetch(t.base + '/admin.html')).status, 404);
+  } finally { t.close(); }
+});

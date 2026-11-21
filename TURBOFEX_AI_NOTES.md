@@ -580,3 +580,9 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Home: no "Explore" heading. `.hub3d` (Connection Hub) above the Get started label, `.eng3d` (Modular Plugin Engine) above the Extend it label; both pure CSS 3D at the end of tf2.css, only transform/opacity animated, still frame when reduced motion. Labels use `.group.mid` (centred); the "Coming later" label was left as it was.
 - The tab icon (favicon.png) is not recoloured.
 - Cube: `tfspin` (transform, 31 s, irregular stops), `tftumble` (rotate property, 41 s), `tffloat`.
+
+## v3.22.0 - shared 3D scene kit
+- `public/tf2-scenes.css` is the kit (frame `.sc`, stage `.st`, object `.o`, inner turner `.t`, box `.bx` from tf2.css, glass panel `.pn`, `.wire`). Per-scene classes: s-inst, s-plug, s-docs, s-play, s-dev. Positions and speeds are set with CSS variables (--x --y --fd --fl --rd --ra --rl) in classes, because the site CSP blocks inline style. `public/tf2-scenes.js` only pauses scenes off screen (adds `.off`) and in hidden tabs.
+- Scenes live in the page header of Install, Plugins, Plugin Guide, Playground and Developer Centre. NOT on: Pair (only the existing icons float), About/Terms/Privacy/Rules/Support (informational), admin (own style, left alone). The old Status/Bot pages no longer exist, so they have none.
+- To add a scene: copy one of the five in a page, give it a new `s-xxx` class in tf2-scenes.css, keep all motion inside the `prefers-reduced-motion: no-preference` block.
+- Interface motion (tf2.css end + tf2.js): menu fade open/close (the menu now closes after 140 ms; code uses aria-expanded, not `panel.hidden`), card icon hover, panel fade-in.

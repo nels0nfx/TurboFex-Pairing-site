@@ -8,12 +8,18 @@
   var btn = d.getElementById('tmenu'), panel = d.getElementById('tmenupanel');
   function setMenu(on) {
     if (!btn || !panel) return;
-    panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (on) { panel.classList.remove('out'); panel.hidden = false; return; }
+    if (calm || panel.hidden) { panel.hidden = true; return; }
+    // closing: let the menu fade out first, then hide it
+    panel.classList.add('out');
+    setTimeout(function () { if (btn.getAttribute('aria-expanded') !== 'true') { panel.hidden = true; panel.classList.remove('out'); } }, 140);
   }
   if (btn && panel) {
-    btn.addEventListener('click', function (e) { e.stopPropagation(); setMenu(panel.hidden); });
-    d.addEventListener('click', function (e) { if (!panel.hidden && !panel.contains(e.target)) setMenu(false); });
-    d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { setMenu(false); btn.focus(); } });
+    btn.addEventListener('click', function (e) { e.stopPropagation(); setMenu(btn.getAttribute('aria-expanded') !== 'true'); });
+    d.addEventListener('click', function (e) { if (btn.getAttribute('aria-expanded') === 'true' && !panel.contains(e.target)) setMenu(false); });
+    d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setMenu(false); btn.focus(); } });
   }
 
   // dark / light switch (the saved choice is applied earlier by tf2-theme.js)
