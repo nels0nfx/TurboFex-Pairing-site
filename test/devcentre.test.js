@@ -31,7 +31,7 @@ async function boot(envExtra = {}, dataDir, extra = {}) {
   const acct = { user: 'own', role: 'owner', hash: hashPassword('Correct-Horse-42'), totp: newTotpSecret() };
   const mod = { user: 'mod', role: 'moderator', hash: acct.hash, totp: newTotpSecret() };
   dataDir = dataDir || fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-dev-'));
-  const env = { GITHUB_CLIENT_ID: 'cid', GITHUB_CLIENT_SECRET: 'csecret', SITE_URL: 'https://turbofex-pair.example', REGISTRY_PULL_TOKEN: TOKEN, ADMIN_ACCOUNTS: JSON.stringify([acct, mod]), ...envExtra };
+  const env = { GITHUB_CLIENT_ID: 'cid', GITHUB_CLIENT_SECRET: 'csecret', SITE_URL: 'https://turbofex-pair.example', REGISTRY_PULL_TOKEN: TOKEN, OLD_SITE: 'on', ADMIN_ACCOUNTS: JSON.stringify([acct, mod]), ...envExtra };
   const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env, fetchImpl: gh.fetchImpl, ...extra });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;

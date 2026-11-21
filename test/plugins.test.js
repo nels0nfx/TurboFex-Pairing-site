@@ -28,7 +28,7 @@ const files = (index = INDEX, mutate) => {
 
 async function boot(registry) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pairsite-plug-'));
-  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env: {}, registry });
+  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env: { OLD_SITE: 'on' }, registry });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   return { app, base: `http://127.0.0.1:${app.server.address().port}`, close: () => { app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); } };
 }

@@ -11,7 +11,7 @@ const snap = JSON.parse(fs.readFileSync(path.join(root, 'public', 'commands.json
 
 async function boot(env = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'newsite-test-'));
-  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env: { PAIR_LIMIT: '50', ...env } });
+  const app = createApp({ engine: { start() { return { cancel() {} }; } }, dataDir, env: { PAIR_LIMIT: '50', OLD_SITE: 'on', ...env } });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   return { base: `http://127.0.0.1:${app.server.address().port}`, close: () => { app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); } };
 }
@@ -70,16 +70,10 @@ test('the old Home and pages are unchanged and /new can be switched off', async 
     assert.ok(home.includes('tfx.css') && !home.includes('tf2.css'), 'the live Home still uses the old look');
     assert.strictEqual((await fetch(on.base + '/pair')).status, 200);
   } finally { on.close(); }
-  const off = await boot({ NEW_SITE: 'off' });
-  try {
-    assert.strictEqual((await fetch(off.base + '/new')).status, 404);
-    assert.strictEqual((await fetch(off.base + '/new-home.html')).status, 404);
-    assert.strictEqual((await fetch(off.base + '/')).status, 200);
-  } finally { off.close(); }
 });
 
 test('footer and menu only link to pages that exist', async () => {
-  const t = await boot();
+  const t = await boot({ OLD_SITE: '' });
   try {
     const html = fs.readFileSync(path.join(root, 'partials', 'head2.html'), 'utf8') + fs.readFileSync(path.join(root, 'partials', 'foot2.html'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'new-home.html'), 'utf8');
     const own = [...new Set([...html.matchAll(/href="(\/[a-z0-9\-/]*)"/g)].map((m) => m[1]))];
@@ -99,7 +93,7 @@ test('Install page: honest WhatsApp warning, three steps, six ways to run it wit
     assert.strictEqual((h.match(/role="tab"/g) || []).length, 6);
     assert.strictEqual((h.match(/data-p="/g) || []).length, 6);
     assert.ok((h.match(/data-copy/g) || []).length >= 5);
-    assert.ok(h.includes('href="/new/pair"') && !h.includes('class="foot"'));
+    assert.ok(h.includes('href="/pair"') && !h.includes('class="foot"'));
     assert.ok(!/tested on|all systems online/i.test(h), 'no claims we cannot back up');
   } finally { t.close(); }
 });
@@ -107,14 +101,14 @@ test('Install page: honest WhatsApp warning, three steps, six ways to run it wit
 test('Home, menu and footer send people to Install; the Bot, Community and Status pages are gone', async () => {
   for (const f of ['partials/head2.html', 'partials/foot2.html']) {
     const x = fs.readFileSync(path.join(root, f), 'utf8');
-    assert.ok(x.includes('href="/new/install"'), f);
-    for (const gone of ['/new/bot', '/new/community', '/new/status']) assert.ok(!x.includes('href="' + gone + '"'), f + ' no longer links to ' + gone);
+    assert.ok(x.includes('href="/install"'), f);
+    for (const gone of ['/bot', '/community', '/status']) assert.ok(!x.includes('href="' + gone + '"'), f + ' no longer links to ' + gone);
   }
   const home = fs.readFileSync(path.join(root, 'public', 'new-home.html'), 'utf8');
-  assert.ok(home.includes('href="/new/install"') && !/href="\/new\/(bot|community|status)"/.test(home));
-  for (const f of fs.readdirSync(path.join(root, 'public')).filter((n) => /\.html$/.test(n) && n !== 'admin.html')) assert.ok(!/href="\/new\/(bot|community|status)\/?"/.test(fs.readFileSync(path.join(root, 'public', f), 'utf8')), f + ' has no link to a removed page');
-  const t = await boot();
-  try { for (const n of ['bot', 'community', 'status']) assert.strictEqual((await fetch(t.base + '/new/' + n)).status, 404, n); } finally { t.close(); }
+  assert.ok(home.includes('href="/install"') && !/href="\/(bot|community|status)"/.test(home));
+  for (const f of fs.readdirSync(path.join(root, 'public')).filter((n) => (/^new-.*\.html$/.test(n) || n === 'pair.html'))) assert.ok(!/href="\/(bot|community|status)\/?"/.test(fs.readFileSync(path.join(root, 'public', f), 'utf8')), f + ' has no link to a removed page');
+  const t = await boot({ OLD_SITE: '' });
+  try { for (const n of ['bot', 'community', 'status']) assert.strictEqual((await fetch(t.base + '/' + n)).status, 404, n); } finally { t.close(); }
 });
 
 test('dark / light switch: every new page sets the mode before drawing, has the button, and light colours exist', async () => {
@@ -160,10 +154,6 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
 });
 
 
-test('NEW_SITE=off hides the Pair preview too', async () => {
-  const t = await boot({ NEW_SITE: 'off' });
-  try { for (const p of ['/new/pair', '/new-pair.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
-});
 
 test('text pages: same wording as the live pages, new look, footer, no inline code', async () => {
   const t = await boot();
@@ -173,7 +163,7 @@ test('text pages: same wording as the live pages, new look, footer, no inline co
       const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
       const h = await r.text();
       assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h), n + ' has no inline code');
-      assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && !h.includes('<footer') && h.includes('noindex'), n);
+      assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && !h.includes('<footer') && !h.includes('noindex'), n);
       const live = await (await fetch(t.base + '/' + n)).text();
       assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(live).replace(/ Community(?= Plugins and developers)/, '').replace(/\s?\/ ?/g, ''), n + ' wording is unchanged (apart from the removed Community link)');
       assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
@@ -204,14 +194,9 @@ test('Docs and Playground previews: same wording, same ids and scripts, Playgrou
     const h = await pg.text(); const js = fs.readFileSync(path.join(root, 'public', 'playground.js'), 'utf8');
     for (const id of new Set([...js.matchAll(/\$\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'Playground needs #' + id);
     assert.ok(h.includes('src="/playground-broker.js"') && h.includes('src="/playground.js"'));
-    assert.ok(!(await (await fetch(t.base + '/new/docs')).text()).match(/href="\/(plugin-guide|playground)"/), 'Docs links stay inside the preview');
   } finally { t.close(); }
 });
 
-test('NEW_SITE=off hides the text page previews', async () => {
-  const t = await boot({ NEW_SITE: 'off' });
-  try { for (const n of ['about', 'terms', 'privacy', 'rules', 'support', 'docs', 'playground']) for (const p of ['/new/' + n, '/new-' + n + '.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
-});
 
 test('colour system: every category has a colour family, one family per category everywhere, four button looks, icons come from the sprite', async () => {
   const t = await boot();
@@ -233,12 +218,12 @@ test('colour system: every category has a colour family, one family per category
   } finally { t.close(); }
 });
 
-test('Plugins preview: same script and ids as the live store, simple layout, stays hidden when NEW_SITE=off', async () => {
+test('Plugins preview: same script and ids as the live store, simple layout', async () => {
   const t = await boot();
   try {
     const r = await fetch(t.base + '/new/plugins'); assert.strictEqual(r.status, 200);
     const h = await r.text();
-    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-plugins.css') && !h.includes('tfx.css') && h.includes('noindex'));
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-plugins.css') && !h.includes('tfx.css') && !h.includes('noindex'));
     const js = fs.readFileSync(path.join(root, 'public', 'tf2-plugins.js'), 'utf8');
     assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(/.test(js), 'the list is never turned into HTML');
     assert.ok(h.includes('tf2-store.css'));
@@ -247,16 +232,14 @@ test('Plugins preview: same script and ids as the live store, simple layout, sta
     assert.strictEqual((await fetch(t.base + '/new/plugins/')).status, 200);
     assert.strictEqual((await fetch(t.base + '/plugins')).status, 200);
   } finally { t.close(); }
-  const off = await boot({ NEW_SITE: 'off' });
-  try { for (const p of ['/new/plugins', '/new-plugins.html']) assert.strictEqual((await fetch(off.base + p)).status, 404, p); } finally { off.close(); }
 });
 
-test('Developer Centre preview: same script, every id it needs, every view, hidden when NEW_SITE=off', async () => {
+test('Developer Centre preview: same script, every id it needs, every view', async () => {
   const t = await boot();
   try {
     const r = await fetch(t.base + '/new/developers'); assert.strictEqual(r.status, 200);
     const h = await r.text();
-    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-dev.css') && !h.includes('tfx.css') && h.includes('noindex'));
+    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-dev.css') && !h.includes('tfx.css') && !h.includes('noindex'));
     const js = fs.readFileSync(path.join(root, 'public', 'dash.js'), 'utf8');
     for (const id of new Set([...js.matchAll(/getElementById\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'Developer Centre needs #' + id);
     for (const v of ['home', 'plugins', 'send', 'stats', 'account']) { assert.ok(h.includes('id="v-' + v + '"') && h.includes('id="n-' + v + '"'), 'screen ' + v); }
@@ -266,6 +249,55 @@ test('Developer Centre preview: same script, every id it needs, every view, hidd
     for (const f of ['drepo', 'dtag', 'dfolder', 'dhrepo', 'dhfolder']) assert.ok(live.includes('id="' + f + '"') && h.includes('id="' + f + '"'), f);
     assert.strictEqual((await fetch(t.base + '/new/developers/')).status, 200);
   } finally { t.close(); }
-  const off = await boot({ NEW_SITE: 'off' });
-  try { for (const p of ['/new/developers', '/new-developers.html']) assert.strictEqual((await fetch(off.base + p)).status, 404, p); } finally { off.close(); }
+});
+
+// ---- the redesigned site is live (v3.18.0) ----
+test('live site: the new pages are at their real addresses, old pages are not served, old preview links forward', async () => {
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    const home = await (await fetch(t.base + '/')).text();
+    assert.ok(home.includes('tf2.css') && !home.includes('tfx.css'), 'Home is the new design');
+    assert.ok(!/noindex/.test(home), 'the live pages can be found by search engines');
+    for (const p of ['/install', '/pair', '/about', '/terms', '/privacy', '/rules', '/support', '/plugins', '/developers', '/playground', '/plugin-guide', '/docs']) {
+      const r = await fetch(t.base + p);
+      assert.strictEqual(r.status, 200, p);
+      const h = await r.text();
+      assert.ok(h.includes('tf2.css'), p + ' uses the new design');
+      assert.ok(!/href="\/new[\/"]/.test(h), p + ' has no link to the old preview addresses');
+      assert.ok(!/noindex/.test(h), p);
+    }
+    // old pages and their files are not served
+    for (const p of ['/pair-classic', '/community', '/home.html', '/index.html', '/about.html', '/plugins.html', '/developers.html', '/plugin-guide.html', '/playground.html', '/new-home.html', '/new-plugins.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p);
+    // saved preview addresses forward to the real ones
+    for (const [from, to] of [['/new', '/'], ['/new/', '/'], ['/new/plugins', '/plugins'], ['/new/pair', '/pair'], ['/new/install', '/install'], ['/new/docs', '/docs']]) {
+      const r = await fetch(t.base + from, { redirect: 'manual' });
+      assert.strictEqual(r.status, 301, from);
+      assert.strictEqual(new URL(r.headers.get('location'), t.base).pathname, to, from);
+    }
+    assert.strictEqual((await fetch(t.base + '/new/bot')).status, 404);
+    assert.strictEqual((await fetch(t.base + '/new/status')).status, 404);
+  } finally { t.close(); }
+});
+
+test('live site: the footer is only on the Home page, the Playground keeps its sandbox rule, the tab icon is the new logo', async () => {
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    assert.ok((await (await fetch(t.base + '/')).text()).includes('class="flegal"'));
+    assert.ok(!(await (await fetch(t.base + '/plugins')).text()).includes('class="flegal"'));
+    assert.match((await fetch(t.base + '/playground')).headers.get('content-security-policy'), /wasm-unsafe-eval/);
+    assert.doesNotMatch((await fetch(t.base + '/plugins')).headers.get('content-security-policy'), /wasm-unsafe-eval/);
+    const ico = await fetch(t.base + '/favicon.png');
+    assert.strictEqual(ico.status, 200);
+    assert.deepStrictEqual([...Buffer.from(await ico.arrayBuffer()).subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
+    // the Developer Centre sign-in still works from the real address
+    assert.strictEqual((await fetch(t.base + '/developers')).status, 200);
+  } finally { t.close(); }
+});
+
+test('rollback: OLD_SITE=on brings the old pages back at their old addresses', async () => {
+  const t = await boot({ OLD_SITE: 'on' });
+  try {
+    assert.ok((await (await fetch(t.base + '/')).text()).includes('tfx.css'));
+    for (const p of ['/pair-classic', '/community', '/plugins', '/new/plugins']) assert.strictEqual((await fetch(t.base + p)).status, 200, p);
+  } finally { t.close(); }
 });

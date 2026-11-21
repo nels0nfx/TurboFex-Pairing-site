@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TurboFex | Docs</title>
 <meta name="description" content="How to write a TurboFex plugin: the files, the permissions, the commands you can use and the limits.">
-<meta name="robots" content="noindex">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -198,10 +197,10 @@
 node tools/plugin-test.js path/to/your-plugin-folder --command "hello Sam"
 node tools/plugin-test.js path/to/your-plugin-folder --event message --text "hi"</code></pre>
     <p>It first checks your two files with the same rules as the bot, then runs every command, event and schedule once and shows what the bot would say, react with, send or do in the group. Websites you call get a pretend answer unless you add <code>--live-network</code>. Use <code>--as owner</code> or <code>--as admin</code> to try a command that needs more than an everyday member. It does not replace the owner review.</p>
-    <p>No computer? Use the <a href="/new/playground">Playground</a>: type or paste your two files and run them in your browser, with the same safety rules and a pretend chat.</p>
+    <p>No computer? Use the <a href="/playground">Playground</a>: type or paste your two files and run them in your browser, with the same safety rules and a pretend chat.</p>
 
     <h2>5e. Send new releases automatically</h2>
-    <p>Instead of pressing "Send for review" every time, you can let GitHub do it. On the <a href="/new/developers">Developers page</a>, add your repository under "Send new releases automatically", then press "Show my webhook details". In your GitHub repository go to Settings, Webhooks, Add webhook. Paste the Payload URL, choose the content type application/json, paste the secret, pick "Let me select individual events" and tick only "Releases".</p>
+    <p>Instead of pressing "Send for review" every time, you can let GitHub do it. On the <a href="/developers">Developers page</a>, add your repository under "Send new releases automatically", then press "Show my webhook details". In your GitHub repository go to Settings, Webhooks, Add webhook. Paste the Payload URL, choose the content type application/json, paste the secret, pick "Let me select individual events" and tick only "Releases".</p>
     <p>From then on, each time you publish a release, the plugin is copied at that release's tag and sent for review exactly like a manual send, with the same checks. Draft and pre-releases are ignored. The result of the last release is shown on your Developers page. Raise the version in <code>turbofex-plugin.json</code> before you tag, because a version that was already sent is refused. If the secret ever leaks, press "Make a new secret" and paste the new one into GitHub.</p>
 
     <h2>6. The limits</h2>
@@ -218,7 +217,7 @@ node tools/plugin-test.js path/to/your-plugin-folder --event message --text "hi"
     <ol class="how2">
       <li>Put the two files in a public repository on your GitHub account.</li>
       <li>On GitHub, make a release with a tag such as <code>v1.0.0</code>.</li>
-      <li>Open the <a href="/new/developers">Developer Centre</a>, sign in, and send the repository address and the tag.</li>
+      <li>Open the <a href="/developers">Developer Centre</a>, sign in, and send the repository address and the tag.</li>
     </ol>
     <p>You can test a plugin yourself first: copy the folder into the bot's <code>data/plugins</code> folder, then send <code>.plugin install your-plugin-id</code>.</p>
     <p>Reviewers read the code. Keep it plain and readable: code that is minified, hides what it does, or builds code while running is flagged and is much more likely to be refused.</p>

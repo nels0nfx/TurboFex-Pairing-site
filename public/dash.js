@@ -26,7 +26,7 @@
   function vnum(v) { var p = String(v).split('.').map(Number); return (p[0] || 0) * 1e8 + (p[1] || 0) * 1e4 + (p[2] || 0); }
 
   var e = (new URLSearchParams(location.search).get('e') || '');
-  if (NOTES[e]) { notice.textContent = NOTES[e]; notice.hidden = false; try { history.replaceState(null, '', '/new/developers'); } catch (x) { /* fine */ } }
+  if (NOTES[e]) { notice.textContent = NOTES[e]; notice.hidden = false; try { history.replaceState(null, '', '/developers'); } catch (x) { /* fine */ } }
 
   // ----- screens -----
   var tabBtns = {};
@@ -147,7 +147,7 @@
       if (s.status === 'pending' || s.status === 'approved') acts.appendChild(action('Withdraw', 'danger', function (b) {
         b.disabled = true; post('/api/dev/withdraw', { id: s.id }).then(function (x) { if (x.ok) load(); else { b.disabled = false; b.textContent = (x.j && x.j.error) || 'Could not withdraw'; } });
       }));
-      if (live) { var lk = el('a', 'btn sm quiet', 'In store'); lk.href = '/new/plugins#' + encodeURIComponent(s.pluginId); acts.appendChild(lk); }
+      if (live) { var lk = el('a', 'btn sm quiet', 'In store'); lk.href = '/plugins#' + encodeURIComponent(s.pluginId); acts.appendChild(lk); }
       if (acts.childNodes.length) card.appendChild(acts);
       card.appendChild(tout); card.appendChild(box);
       if (g.older.length) {
@@ -229,7 +229,7 @@
       signedIn(j);
     }).catch(function () { pub.hidden = false; dash.hidden = true; tabs.hidden = true; stateBox.textContent = ''; stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre cannot be loaded right now. Please try again in a moment.')); });
   }
-  document.getElementById('dout').addEventListener('click', function () { post('/api/dev/logout').then(function () { try { history.replaceState(null, '', '/new/developers'); } catch (x) { /* fine */ } load(); }); });
+  document.getElementById('dout').addEventListener('click', function () { post('/api/dev/logout').then(function () { try { history.replaceState(null, '', '/developers'); } catch (x) { /* fine */ } load(); }); });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault(); say('');
     var body = { repo: document.getElementById('drepo').value, tag: document.getElementById('dtag').value, folder: document.getElementById('dfolder').value };

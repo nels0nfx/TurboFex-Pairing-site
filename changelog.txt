@@ -1,4 +1,8 @@
 CHANGED IN THE NEXT VERSION
+- NEW (pairing site v3.18.0): the redesigned site is now the live site. Home is at "/", and Install, Pair, Plugins, Developers, Docs (Plugin Guide), Playground, Support, About, Terms, Privacy and Rules all use the new look at their normal addresses. Dark and light mode, the animated logo and the cube are live everywhere.
+- NEW (pairing site v3.18.0): new tab icon and phone home-screen icon from the new TurboFex logo.
+- CHANGED (pairing site v3.18.0): the old pages are no longer shown in the browser, but their files are kept in the project. The old Community page and the Pair Classic page are gone from the site. Saved /new/... links forward to the real address. Set OLD_SITE=on on the host to bring the old pages back (rollback).
+- CHANGED (pairing site v3.18.0): the new pages no longer carry "noindex", so search engines can find them.
 - FIXED (pairing site v3.17.2): on iPhone the top bar (clock and battery) stayed black after switching back to light mode. The page now also tells the browser which colour mode it is in, and on iPhones the page reloads once after you press the sun/moon button so the top bar picks up the new colour. Other phones and computers change instantly without a reload. Not testable in my workspace, so please check on your phone.
 - FIXED (pairing site v3.17.1): the logo was too big and showed a white box around it on the phone (the footer and header). The logo is now smaller and is a real see-through picture (light and dark version), so no box shows in either mode. The shine still passes over it.
 - FIXED (pairing site v3.17.1): the landing page footer had big empty gaps. It now has two columns that do not wait for each other, the Legal links sit in one row, and the spacing between links is tighter.

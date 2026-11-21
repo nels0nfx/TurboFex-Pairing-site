@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TurboFex | Developer Centre</title>
 <meta name="description" content="Build a plugin for the TurboFex bot and send it in. A person reads every plugin before it is published.">
-<meta name="robots" content="noindex">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -32,7 +31,7 @@
     <section class="wrap sec"><div class="col">
       <h2>How it works</h2>
       <ol class="panel hows mt">
-        <li><span class="num">1</span><div><b>Write it</b><p>Follow the <a href="/new/docs">Docs</a>. Keep it in a public GitHub repository with a <code>turbofex-plugin.json</code> file. Try it in the <a href="/new/playground">Playground</a>.</p></div></li>
+        <li><span class="num">1</span><div><b>Write it</b><p>Follow the <a href="/plugin-guide">Docs</a>. Keep it in a public GitHub repository with a <code>turbofex-plugin.json</code> file. Try it in the <a href="/playground">Playground</a>.</p></div></li>
         <li><span class="num">2</span><div><b>Tag a release</b><p>Make a release tag on GitHub. Sign in here and send the repository address and the tag.</p></div></li>
         <li><span class="num">3</span><div><b>Checks and review</b><p>The site checks the plugin is well formed. Then a person reads it. We aim to answer within 14 days.</p></div></li>
         <li><span class="num">4</span><div><b>Signed and published</b><p>If approved, it is signed and added to the store. Bot owners install it with one command.</p></div></li>
@@ -48,7 +47,7 @@
         <li>The plugin id belongs to the first developer who gets it approved.</li>
         <li>Approval is not a guarantee. We can withdraw a plugin at any time, and bots stop using a withdrawn plugin.</li>
       </ul></div>
-      <p class="fine">Read the full <a href="/new/rules">Developer rules</a>.</p>
+      <p class="fine">Read the full <a href="/rules">Developer rules</a>.</p>
     </div></section>
 
     <section class="wrap sec"><div class="col">
@@ -58,7 +57,7 @@
 
     <section class="wrap sec"><div class="col">
       <h2>Resources</h2>
-      <div class="panel mt"><a class="row" href="/new/docs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg></span><span class="tx"><b>Docs</b><span class="d">Manifest, permissions, events, examples</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/new/playground"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><span class="tx"><b>Playground</b><span class="d">Run plugin code in your browser</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/new/plugins"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="tx"><b>Plugins</b><span class="d">See what others have published</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gh"/></svg></span><span class="tx"><b>Examples</b><span class="d">Working plugins to start from</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tg"/></svg></span><span class="tx"><b>Ask for help</b><span class="d">The Telegram developer group</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+      <div class="panel mt"><a class="row" href="/plugin-guide"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg></span><span class="tx"><b>Docs</b><span class="d">Manifest, permissions, events, examples</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/playground"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><span class="tx"><b>Playground</b><span class="d">Run plugin code in your browser</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/plugins"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-puzzle"/></svg></span><span class="tx"><b>Plugins</b><span class="d">See what others have published</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gh"/></svg></span><span class="tx"><b>Examples</b><span class="d">Working plugins to start from</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://t.me/+7PwU2Vo9czE1NTRk" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tg"/></svg></span><span class="tx"><b>Ask for help</b><span class="d">The Telegram developer group</span></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
     </div></section>
   </div>
 
@@ -94,7 +93,7 @@
           </form>
         </section>
         <details class="panel fold"><summary>Before you send</summary>
-          <ul class="dcheck"><li>Your repository is public and has a <code>turbofex-plugin.json</code> file.</li><li>You made a release tag and raised the <code>version</code> number.</li><li>You tried the plugin in the <a href="/new/playground">Playground</a>.</li><li>It asks only for the permissions it needs.</li></ul></details>
+          <ul class="dcheck"><li>Your repository is public and has a <code>turbofex-plugin.json</code> file.</li><li>You made a release tag and raised the <code>version</code> number.</li><li>You tried the plugin in the <a href="/playground">Playground</a>.</li><li>It asks only for the permissions it needs.</li></ul></details>
       </section>
 
       <section class="dpane" id="v-stats" role="tabpanel" aria-labelledby="n-stats" hidden>
@@ -105,7 +104,7 @@
       <section class="dpane" id="v-account" role="tabpanel" aria-labelledby="n-account" hidden>
         <header class="phead"><h1>Account</h1><div class="wstat" id="acct"></div></header>
         <h2 class="gh">Tools</h2>
-        <div class="panel"><a class="row" href="/new/docs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg></span><span class="tx"><b>Docs</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/new/playground"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><span class="tx"><b>Playground</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/new/rules"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg></span><span class="tx"><b>Developer rules</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gh"/></svg></span><span class="tx"><b>Examples</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <div class="panel"><a class="row" href="/plugin-guide"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg></span><span class="tx"><b>Docs</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/playground"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><span class="tx"><b>Playground</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="/rules"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg></span><span class="tx"><b>Developer rules</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="row" href="https://github.com/nels0nfx/TurboFex/tree/main/examples" target="_blank" rel="noopener noreferrer"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-gh"/></svg></span><span class="tx"><b>Examples</b></span><svg class="go" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
         <details class="panel fold" id="dhooks" hidden>
           <summary>Auto-send from GitHub</summary>
           <p class="dmuted">List a repository and tell GitHub to ping us. Every new release tag is then sent for review by itself. You still choose the tag.</p>

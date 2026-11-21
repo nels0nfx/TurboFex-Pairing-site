@@ -556,3 +556,11 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Tests: devcentre.test.js admin redesign test also checks admin4.css and the tab bar. Browser check with the real server and 3 roles done in the workspace (screens at 390 and 1280, dark and light). Not tested on a real phone or Render.
 - Rollback: restore the previous ZIP (v3.12.1). Next: final consistency check, then cutover only with the owner's explicit approval.
 
+
+## v3.18.0 - cutover (owner approved: everything new goes live, keep old files)
+- LIVE now: `/` = new-home.html; /install, /pair, /about, /terms, /privacy, /rules, /support, /plugins, /developers, /playground, /plugin-guide and /docs (both = new-docs.html) serve the new-*.html files (pair.html for /pair). Routing table is at the "static page" part of server.js (NEWPAGES / OLDFILES).
+- Old pages (home.html, index.html, about.html, terms.html, privacy.html, plugins.html, developers.html, plugin-guide.html, rules.html, playground.html, community.html, support.html) stay in `public/` but are NOT served (404). `OLD_SITE=on` = rollback: old pages at old addresses, new ones at /new/... NEW_SITE switch is gone.
+- `/new`, `/new/<page>` forward (301) to the real address. All links inside the new pages now use real addresses.
+- Direct file names like /new-home.html are 404 in live mode. Do not link to them.
+- Tests: newsite/plugins/devcentre/site tests boot with OLD_SITE=on (they compare new pages with the old ones); the live-mode tests are at the end of newsite.test.js.
+- Tab icon: favicon.png (64) and apple-touch-icon.png (180) are the chrome TF on a dark square. Originals are not kept in the repo.

@@ -29,7 +29,7 @@ function fakeEngine(behaviour = 'ok') {
 
 async function boot(env = {}, behaviour) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pairsite-test-'));
-  const app = createApp({ engine: fakeEngine(behaviour), dataDir, env: { PAIR_LIMIT: '50', ...env } });
+  const app = createApp({ engine: fakeEngine(behaviour), dataDir, env: { PAIR_LIMIT: '50', OLD_SITE: 'on', ...env } });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   return { app, base, close: () => { app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); } };
@@ -125,7 +125,7 @@ test('QR mode: no number needed, a scannable QR picture is served, then linked',
 
 test('page and assets are served with safe headers', async () => {
   const s = await boot();
-  const r = await fetch(s.base + '/pair');
+  const r = await fetch(s.base + '/pair-classic');
   assert.strictEqual(r.status, 200);
   assert.match(r.headers.get('content-security-policy'), /default-src 'self'/);
   assert.match(await r.text(), /<title>TurboFex Pair/);
@@ -267,7 +267,7 @@ test('site: session endpoint is one-use, an expired ID is rejected, the page sho
 test('mobile: the page does not draw under the phone status bar or navigation bar', async () => {
   const t = await boot();
   try {
-    const html = await (await fetch(t.base + '/pair')).text();
+    const html = await (await fetch(t.base + '/pair-classic')).text();
     // "viewport-fit=cover" lets some Android browsers put the header under the status bar, so it must stay off
     assert.ok(/name="viewport"/.test(html) && !/viewport-fit\s*=\s*cover/.test(html));
     const css = await (await fetch(t.base + '/tfx.css')).text();
@@ -278,7 +278,7 @@ test('mobile: the page does not draw under the phone status bar or navigation ba
 test('navigation (v3): one header with logo, wordmark, theme and menu buttons; the pairing page has its own stylesheet; motion respects reduced-motion', async () => {
   const t = await boot();
   try {
-    const html = await (await fetch(t.base + '/pair')).text();
+    const html = await (await fetch(t.base + '/pair-classic')).text();
     assert.strictEqual((html.match(/<header /g) || []).length, 1, 'only one header');
     for (const id of ['head', 'theme', 'menu', 'menupanel', 'isl-text', 'secure-text', 'island']) assert.ok(html.includes(`id="${id}"`), id);
     assert.ok(html.includes('/logo-gold.png') && html.includes('href="/pair.css"') && html.includes('href="/tfx.css"') && !html.includes('/style.css'));
@@ -291,7 +291,7 @@ test('navigation (v3): one header with logo, wordmark, theme and menu buttons; t
 test('redesign: new sections exist, status comes from the real /health, nothing is made up', async () => {
   const t = await boot();
   try {
-    const html = await (await fetch(t.base + '/pair')).text();
+    const html = await (await fetch(t.base + '/pair-classic')).text();
     for (const id of ['connect', 'faq', 'faq-list', 'm-sound']) assert.ok(html.includes(`id="${id}"`), id);
     for (const word of ['Linked devices', 'Link a device', 'Never share your pairing code']) assert.ok(html.includes(word), word);
     // no invented numbers, ratings, links or claims
@@ -324,7 +324,7 @@ test('refresh stays at the top; the FAQ is plain open/close questions (no cards,
 });
 
 test('v2.13: no status bar; the music is gone (v2.19)', async () => {
-  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: { OLD_SITE: 'on' } });
   await new Promise((r) => app.server.listen(0, r));
   const port = app.server.address().port;
   try {
@@ -337,7 +337,7 @@ test('v2.13: no status bar; the music is gone (v2.19)', async () => {
 });
 
 test('v2.14: About and Terms pages are served and linked', async () => {
-  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: { OLD_SITE: 'on' } });
   await new Promise((r) => app.server.listen(0, r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   try {
@@ -347,7 +347,7 @@ test('v2.14: About and Terms pages are served and linked', async () => {
       assert.ok(!/<script(?![^>]*src=)/i.test(h) && !/\sstyle=/i.test(h), 'no inline script or style (CSP)');
     }
     assert.equal((await fetch(base + '/about.html')).status, 200);
-    const home = await (await fetch(base + '/pair')).text();
+    const home = await (await fetch(base + '/pair-classic')).text();
     for (const id of ['m-about', 'm-terms', 'm-privacy']) assert.ok(home.includes(`id="${id}"`));
     assert.ok(home.includes('href="/about"') && home.includes('href="/terms"'));
   } finally { app.close(); }
@@ -355,10 +355,10 @@ test('v2.14: About and Terms pages are served and linked', async () => {
 
 test('v2.17: the FAQ replaces How to connect + Security tips and covers both; the theme follows the phone', async () => {
   const fs2 = require('fs');
-  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: {} });
+  const app = createApp({ engine: { start() {} }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-')), env: { OLD_SITE: 'on' } });
   await new Promise((r) => app.server.listen(0, r));
   try {
-    const html = await (await fetch(`http://127.0.0.1:${app.server.address().port}/pair`)).text();
+    const html = await (await fetch(`http://127.0.0.1:${app.server.address().port}/pair-classic`)).text();
     assert.ok(!html.includes('id="how"') && !html.includes('id="security"') && !html.includes('Security tips') && !html.includes('href="#security"'));
     assert.ok((html.match(/<details class="qa"/g) || []).length >= 8);
     assert.equal((html.match(/class="ftab( on)?"/g) || []).length, 3, 'three FAQ topic tabs'); assert.equal((html.match(/class="fpanel"/g) || []).length, 3);

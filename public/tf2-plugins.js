@@ -1,4 +1,4 @@
-// The Plugins page (new design, /new/plugins; same data and same safety rules as plugins.js): loads the signed plugin list from this site and shows a browse view and a full page for each plugin
+// The Plugins page (new design, /plugins; same data and same safety rules as plugins.js): loads the signed plugin list from this site and shows a browse view and a full page for each plugin
 // (/plugins#plugin-id). Everything is added with textContent (never as HTML), so nothing from the list can run as code.
 (function () {
   var list = document.getElementById('plist'), count = document.getElementById('pcount'), search = document.getElementById('psearch'), empty = document.getElementById('pempty');

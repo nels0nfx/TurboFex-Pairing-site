@@ -409,12 +409,23 @@ function createApp(opts = {}) {
 
     // static page
     if (req.method === 'GET') {
-      const PAGES = { '/pair': 'pair.html', '/pair-classic': 'index.html', '/pair-classic/': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html' }; // clean addresses for the text pages
-      // the redesigned pages (preview): shown at /new while the old pages stay at their normal addresses. NEW_SITE=off hides them again.
-      const newSiteOff = String(env.NEW_SITE || '') === 'off';
-      if (!newSiteOff) { PAGES['/new'] = 'new-home.html'; PAGES['/new/'] = 'new-home.html'; PAGES['/new/install'] = 'new-install.html'; PAGES['/new/install/'] = 'new-install.html'; PAGES['/new/pair'] = 'pair.html'; PAGES['/new/pair/'] = 'pair.html'; for (const n of ['about','terms','privacy','rules','support','docs','playground','plugins','developers']) { PAGES['/new/' + n] = 'new-' + n + '.html'; PAGES['/new/' + n + '/'] = 'new-' + n + '.html'; } }
-      const name = p === '/' ? 'home.html' : PAGES[p] || p.slice(1);
-      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html' && !(newSiteOff && /^new-/.test(name))) {
+      // The redesigned site is the live site. The old pages stay in the project but are not served; OLD_SITE=on brings them back at their old addresses (the new pages then sit at /new/...), as a rollback.
+      const oldSite = String(env.OLD_SITE || '') === 'on';
+      const NEWPAGES = { home: 'new-home.html', install: 'new-install.html', pair: 'pair.html', about: 'new-about.html', terms: 'new-terms.html', privacy: 'new-privacy.html', rules: 'new-rules.html', support: 'new-support.html', plugins: 'new-plugins.html', developers: 'new-developers.html', playground: 'new-playground.html', docs: 'new-docs.html', 'plugin-guide': 'new-docs.html' };
+      const OLDFILES = ['home.html', 'index.html', 'about.html', 'terms.html', 'privacy.html', 'plugins.html', 'developers.html', 'plugin-guide.html', 'rules.html', 'playground.html', 'community.html', 'support.html'];
+      const PAGES = {};
+      if (!oldSite) {
+        for (const k of Object.keys(NEWPAGES)) if (k !== 'home') { PAGES['/' + k] = NEWPAGES[k]; PAGES['/' + k + '/'] = NEWPAGES[k]; }
+        // old preview addresses still work for anyone who saved them: they go to the real address
+        const m = /^\/new(?:\/([a-z-]+))?\/?$/.exec(p);
+        if (m && (!m[1] || NEWPAGES[m[1]])) { res.writeHead(301, { Location: !m[1] || m[1] === 'home' ? '/' : '/' + m[1], 'Cache-Control': 'no-store' }); return res.end(); }
+      } else {
+        Object.assign(PAGES, { '/pair': 'pair.html', '/pair-classic': 'index.html', '/pair-classic/': 'index.html', '/about': 'about.html', '/terms': 'terms.html', '/privacy': 'privacy.html', '/plugins': 'plugins.html', '/developers': 'developers.html', '/plugin-guide': 'plugin-guide.html', '/rules': 'rules.html', '/playground': 'playground.html', '/community': 'community.html', '/support': 'support.html', '/new': 'new-home.html', '/new/': 'new-home.html' });
+        for (const k of Object.keys(NEWPAGES)) if (k !== 'home' && k !== 'plugin-guide') { PAGES['/new/' + k] = NEWPAGES[k]; PAGES['/new/' + k + '/'] = NEWPAGES[k]; }
+      }
+      const name = p === '/' ? (oldSite ? 'home.html' : 'new-home.html') : PAGES[p] || p.slice(1);
+      const hiddenFile = oldSite ? false : (OLDFILES.includes(name) || (/^new-/.test(name) && p !== '/' && name !== PAGES[p]));
+      if (/^[a-z0-9._-]+$/i.test(name) && TYPES[path.extname(name)] && name !== 'admin.html' && !hiddenFile) {
         try {
           let body = fs.readFileSync(path.join(PUBLIC, name));
           if (path.extname(name) === '.html') body = shellify(body);
