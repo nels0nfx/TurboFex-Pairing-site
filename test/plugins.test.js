@@ -230,9 +230,9 @@ test('v3 phase 2: the pairing page uses the new design, keeps every id the pairi
   try {
     const h = await (await fetch(t.base + '/pair')).text();
     for (const id of ['form', 'number', 'cpick', 'csheet', 'csheet-bg', 'csheet-x', 'csearch', 'cul', 'go', 'code', 'copycode', 'qrimg', 'status', 'retry', 'cancel', 'sid', 'copy', 'env', 'copyenv', 'again', 'step-number', 'step-wait', 'step-done', 'faq-list']) assert.ok(h.includes(`id="${id}"`), id);
-    assert.ok(h.includes('href="/pair.css"') && h.includes('src="/pair.js"') && !h.includes('/style.css') && !h.includes('/ui.js'));
+    assert.ok(h.includes('href="/tf2-pair.css"') && h.includes('src="/pair.js"') && !h.includes('/style.css') && !h.includes('/ui.js'));
     assert.ok(!/<script(?![^>]*src=)[^>]*>/.test(h) && !/ style=/.test(h));
-    for (const f of ['/pair.css', '/pair.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
+    for (const f of ['/tf2-pair.css', '/pair.js']) assert.strictEqual((await fetch(t.base + f)).status, 200, f);
     assert.ok(!/wasm-unsafe-eval/.test((await fetch(t.base + '/pair')).headers.get('content-security-policy')));
   } finally { await t.close(); }
 });

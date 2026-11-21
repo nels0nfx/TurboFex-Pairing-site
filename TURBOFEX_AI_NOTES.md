@@ -6,6 +6,11 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
+## v3.15.0 - Pair page LIVE + Plugins page new look (preview)
+- /pair now serves public/pair.html (the redesigned page, was new-pair.html). The old page is public/index.html at /pair-classic (rollback: point PAGES['/pair'] back to 'index.html' in server.js). The live pair page header/footer link to /new/* pages for now.
+- Plugins redesign is a PREVIEW at /new/plugins: public/new-plugins.html + tf2-plugins.js (forked from plugins.js, which is still used by the live /plugins) + tf2-store.css (loaded after tf2-plugins.css, which still styles the rating form). Do not switch live /plugins without the owner's approval.
+- Owner wants: a page that clearly looks like what it is (a real pair page, a real plugin store), not the old layout re-coloured, and few words.
+
 ## v3.14.1 - Pairing page rebuilt (PREVIEW at /new/pair, live /pair untouched)
 - Only public/new-pair.html and public/tf2-pair.css changed (redesign block at the end of the css). app.js/pair.js/server.js untouched; every id app.js needs is still on the page (test checks this).
 - Owner rejected v3.14.0 as "just the old layout". v3.14.1 layout: title + status chips, one narrow panel (animated phone-to-TurboFex link drawing driven by data-step, two method tiles, form or step), 3 trust points, 3 help questions, small footer ("foot min"). Keep words few: owner wants less text.

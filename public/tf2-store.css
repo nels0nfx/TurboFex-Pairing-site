@@ -1,0 +1,110 @@
+/* v3.15.0: the new Plugins page. An app-store look: swipeable Featured row, one clean list, a simple page for each plugin.
+   Loaded after tf2-plugins.css (which still styles the rating form). violet = actions, green = no permissions, amber/red = risk. */
+.pl .ph { padding-top: 24px; padding-bottom: 0; }
+.pl h1.page { margin: 0 0 14px; font-size: 28px; letter-spacing: -.02em; }
+.pl .ph .col, .pl .sec .col, .pl .psec .col { max-width: 760px; }
+.pl .wrap > .col { max-width: 760px; }
+.pfind input { height: 52px; border-radius: 16px; background: var(--s1); }
+.pfind input:focus { outline: none; border-color: rgb(var(--acc)); box-shadow: 0 0 0 3px rgb(var(--acc) / .18); }
+.pfilters { margin: 12px -16px 0; padding: 2px 16px 4px; }
+.fchip { height: 36px; padding: 0 14px; font-size: 14px; }
+.fchip i { display: none; }
+.pbar { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 0; }
+.pcount { margin: 0; color: var(--m); font-size: 13px; }
+.psort select { height: 34px; border: 0; background: transparent; color: var(--b); font-size: 13px; padding-right: 4px; }
+.psec { margin-top: 20px; }
+.shead h2 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+
+/* Featured: swipe sideways */
+.pcar { display: flex; gap: 12px; overflow-x: auto; padding: 2px 16px 8px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.pcar::-webkit-scrollbar { display: none; }
+@media (min-width: 840px) { .pcar { padding-left: calc((100vw - 760px) / 2); padding-right: 16px; } }
+.pc.tile { position: relative; flex: none; display: flex; flex-direction: column; width: min(76vw, 280px); padding: 16px; border: 1px solid var(--line2); border-radius: 20px; scroll-snap-align: start; background: linear-gradient(160deg, rgb(var(--tc) / .2), var(--s1) 62%); }
+.pc.tile .pmain { flex-direction: column; align-items: flex-start; gap: 14px; flex: 1; }
+.pc.tile .picon { width: 56px; height: 56px; border-radius: 16px; }
+.pc.tile .pdesc { -webkit-line-clamp: 2; }
+.pc.tile .pget { margin-top: 14px; width: 100%; justify-content: center; }
+
+/* the list: one surface, thin lines, no box per plugin */
+.pl2 { border-top: 1px solid var(--line); }
+.pc { --tc: var(--acc); display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.pc.t0 { --tc: var(--acc); } .pc.t1 { --tc: var(--cyan); } .pc.t2 { --tc: var(--pink); } .pc.t3 { --tc: var(--ok); } .pc.t4 { --tc: var(--warn); }
+.pc .pmain { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.picon { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 15px; overflow: hidden; background: rgb(var(--tc, var(--acc)) / .16); border: 1px solid rgb(var(--tc, var(--acc)) / .35); color: rgb(var(--tc, var(--acc))); font-size: 22px; font-weight: 700; }
+.picon img { width: 100%; height: 100%; object-fit: cover; }
+.ptt { display: grid; gap: 3px; min-width: 0; }
+.pname { color: var(--t); font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pdesc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--b); font-size: 14px; line-height: 1.4; }
+.pmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: 2px; color: var(--m); font-size: 12.5px; }
+.pauth { display: inline-flex; align-items: center; gap: 4px; }
+.pauth svg { width: 14px; height: 14px; color: rgb(var(--cyan)); }
+.prate { display: inline-flex; align-items: center; gap: 3px; color: var(--b); }
+.prate svg { width: 13px; height: 13px; color: rgb(var(--warn)); fill: currentColor; }
+.pperm { display: inline-flex; align-items: center; gap: 5px; }
+.pperm::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pperm.none { color: rgb(var(--ok)); } .pperm.low { color: rgb(var(--cyan)); } .pperm.medium { color: rgb(var(--warn)); } .pperm.high { color: rgb(var(--bad)); }
+.pget { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid rgb(var(--acc) / .55); background: rgb(var(--acc) / .1); color: var(--t); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.pget svg { width: 16px; height: 16px; color: rgb(var(--acc)); }
+.pget:hover { background: rgb(var(--acc) / .2); }
+.pget:focus-visible, .pc .pmain:focus-visible, .fchip:focus-visible, .dget:focus-visible { outline: 2px solid rgb(var(--acc)); outline-offset: 2px; }
+.pk { height: 78px; margin: 0; border-radius: 0; border-bottom: 1px solid var(--line); }
+.pempty { margin: 24px 0; text-align: center; color: var(--m); }
+@media (min-width: 700px) { .pl2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; } }
+
+/* sets (collections) */
+.pcolrow { display: grid; gap: 10px; }
+.pcol { padding: 14px; border: 1px solid var(--line2); border-radius: 16px; background: var(--s1); }
+.pcol b { font-size: 15px; } .pcolnames { margin: 6px 0 10px; color: var(--m); font-size: 13px; } .pcolnames a { color: var(--b); }
+.prow { display: flex; align-items: center; gap: 10px; } .prow code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* bottom: install note + trust */
+.howto { margin: 28px 0 14px; color: var(--m); font-size: 13.5px; line-height: 1.6; text-align: center; }
+.howto b { color: var(--b); font-weight: 600; }
+.howto code { padding: 1px 6px; border-radius: 6px; background: var(--s2); color: var(--t); font-size: 12.5px; }
+.trust { display: flex; justify-content: center; gap: 18px; padding: 0; margin: 0 0 8px; list-style: none; color: var(--m); font-size: 13px; }
+.trust li { display: flex; align-items: center; gap: 6px; }
+.trust svg { width: 16px; height: 16px; color: rgb(var(--cyan)); fill: none; stroke: currentColor; }
+
+/* one plugin */
+.backlnk { margin-top: 8px; }
+.dhead { --tc: var(--acc); margin-top: 6px; padding: 20px 18px; border-radius: 22px; border: 1px solid rgb(var(--tc) / .3); background: linear-gradient(165deg, rgb(var(--tc) / .16), var(--s1) 70%); }
+.dhead.t0 { --tc: var(--acc); } .dhead.t1 { --tc: var(--cyan); } .dhead.t2 { --tc: var(--pink); } .dhead.t3 { --tc: var(--ok); } .dhead.t4 { --tc: var(--warn); }
+.drow { display: flex; align-items: center; gap: 16px; }
+.dhead .picon { --tc: inherit; width: 84px; height: 84px; border-radius: 24px; font-size: 36px; background: rgb(var(--tc) / .2); border-color: rgb(var(--tc) / .45); color: rgb(var(--tc)); }
+.dtx { min-width: 0; } .dtx h1 { margin: 0; font-size: 24px; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; }
+.dby { display: flex; align-items: center; gap: 5px; margin: 4px 0 0; color: var(--m); font-size: 14px; }
+.dby svg { width: 15px; height: 15px; color: rgb(var(--cyan)); }
+.dlead { margin: 16px 0 0; color: var(--b); font-size: 15px; line-height: 1.5; }
+.dget { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 54px; margin-top: 18px; border: 0; border-radius: 14px; background: var(--btn); color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.dget:hover { background: var(--btn2); } .dget svg { width: 20px; height: 20px; }
+.dcmd { margin: 10px 0 0; text-align: center; } .dcmd code { color: var(--m); font-size: 13px; overflow-wrap: anywhere; }
+.dstrip { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--s1); }
+.dcell { display: grid; gap: 2px; padding: 12px 6px; text-align: center; } .dcell + .dcell { border-left: 1px solid var(--line); }
+.dcell b { color: var(--t); font-size: 16px; font-weight: 600; } .dcell span { color: var(--m); font-size: 12.5px; }
+.dcell b.none { color: rgb(var(--ok)); } .dcell b.low { color: rgb(var(--cyan)); } .dcell b.medium { color: rgb(var(--warn)); } .dcell b.high { color: rgb(var(--bad)); }
+.dsec { margin-top: 26px; } .dsec h2 { margin: 0 0 10px; font-size: 17px; font-weight: 600; }
+.dperms { display: grid; gap: 0; padding: 0; margin: 0; list-style: none; }
+.dperms li { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); color: var(--b); font-size: 14.5px; }
+.dperms li:first-child { border-top: 1px solid var(--line); } .dperms li span { flex: 1; } .dperms small { color: var(--m); font-size: 12.5px; }
+.dperms li.pperm { display: flex; }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--m); } .dot.low { background: rgb(var(--cyan)); } .dot.medium { background: rgb(var(--warn)); } .dot.high { background: rgb(var(--bad)); }
+.pdoc { padding: 14px; border: 0; border-radius: 14px; background: var(--s1); font-size: 13.5px; }
+.ddev { display: flex; align-items: center; gap: 10px; } .dvname { font-size: 15px; }
+.dver { display: inline-flex; align-items: center; gap: 4px; color: rgb(var(--cyan)); font-size: 13px; } .dver svg { width: 14px; height: 14px; }
+.dlink { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; height: 40px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 999px; color: var(--t); font-size: 14px; } .dlink svg { width: 18px; height: 18px; }
+.dfold { margin-top: 12px; border-top: 1px solid var(--line); } .dfold summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; color: var(--t); font-size: 16px; font-weight: 600; cursor: pointer; list-style: none; }
+.dfold summary::-webkit-details-marker { display: none; } .dfold summary::after { content: "+"; color: var(--m); font-size: 22px; font-weight: 400; } .dfold[open] summary::after { content: "–"; }
+.dfold > :not(summary) { margin-bottom: 14px; }
+#pdetail { padding-bottom: 8px; }
+.rev .prv { background: var(--s1); border: 0; }
+@media (min-width: 700px) { .pl h1.page { font-size: 34px; } .pl .ph { padding-top: 44px; } .dhead { padding: 26px 24px; } }
+@media (prefers-reduced-motion: no-preference) { .pc, .pget, .dget, .fchip { transition: background .2s, border-color .2s; } }
+
+/* fixes over the older stylesheet */
+.pc .pmain { flex-direction: row; padding: 0; border-radius: 0; }
+.pc.tile .pmain { flex-direction: column; }
+.pcar { scroll-padding: 0 16px; }
+@media (min-width: 840px) { .pcar { scroll-padding-left: calc((100vw - 760px) / 2); } }
+.dsec { padding: 0; border: 0; border-radius: 0; background: none; }
+.dsec h2 { margin-bottom: 10px; }
+@media (min-width: 700px) { .dsec { padding: 0; } }

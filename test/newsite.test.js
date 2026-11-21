@@ -147,7 +147,9 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
     assert.ok(h.includes('unofficial WhatsApp Web connection'), 'honest warning in the safety answers');
     assert.ok(h.includes('class="foot min"') && !h.includes('class="fg"'), 'the pairing page has the small footer, not the full homepage one');
     const live = await (await fetch(t.base + '/pair')).text();
-    assert.ok(live.includes('src="/app.js"') && live.includes('tfx.css'), 'the live pairing page is untouched');
+    assert.ok(live === h && live.includes('tf2-pair.css'), 'the live /pair is the new pairing page');
+    const classic = await (await fetch(t.base + '/pair-classic')).text();
+    assert.ok(classic.includes('src="/app.js"') && classic.includes('tfx.css') && !classic.includes('tf2.css'), 'the old pairing page is kept at /pair-classic for rollback');
   } finally { t.close(); }
 });
 
@@ -245,9 +247,11 @@ test('Plugins preview: same script and ids as the live store, simple layout, sta
     const r = await fetch(t.base + '/new/plugins'); assert.strictEqual(r.status, 200);
     const h = await r.text();
     assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-plugins.css') && !h.includes('tfx.css') && h.includes('noindex'));
-    const js = fs.readFileSync(path.join(root, 'public', 'plugins.js'), 'utf8');
+    const js = fs.readFileSync(path.join(root, 'public', 'tf2-plugins.js'), 'utf8');
+    assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(/.test(js), 'the list is never turned into HTML');
+    assert.ok(h.includes('tf2-store.css'));
     for (const id of new Set([...js.matchAll(/getElementById\('([a-z-]+)'\)/g)].map((m) => m[1]))) assert.ok(h.includes('id="' + id + '"'), 'store needs #' + id);
-    assert.ok(h.includes('src="/plugins.js"') && !h.includes('src="/shell.js"'));
+    assert.ok(h.includes('src="/tf2-plugins.js"') && !h.includes('src="/shell.js"'));
     assert.strictEqual((await fetch(t.base + '/new/plugins/')).status, 200);
     assert.strictEqual((await fetch(t.base + '/plugins')).status, 200);
   } finally { t.close(); }
