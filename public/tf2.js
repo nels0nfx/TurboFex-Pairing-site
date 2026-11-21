@@ -21,7 +21,7 @@
   function paintToggle() {
     var light = d.documentElement.getAttribute('data-theme') === 'light';
     if (tg) { tg.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode'); tg.setAttribute('aria-pressed', light ? 'true' : 'false'); }
-    var m = d.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', light ? '#f6f6f9' : '#050506');
+    var m = d.querySelector('meta[name="theme-color"]'); if (m) { var n = d.createElement('meta'); n.name = 'theme-color'; n.content = light ? '#f6f6f9' : '#050506'; m.parentNode.replaceChild(n, m); } // replaced (not edited) so phones repaint the top bar
   }
   if (tg) {
     paintToggle();

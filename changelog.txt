@@ -1,4 +1,9 @@
 CHANGED IN THE NEXT VERSION
+- NEW (pairing site v3.17.0): THE TURBOFEX LOGO is now in the header (and the pairing page graphic and the landing page footer). It has a light version and a dark version, so it matches both modes, comes in with a small animation and has a shine that passes over it every few seconds. The shine and animation stop if the phone has "reduce motion" on.
+- CHANGED (pairing site v3.17.0): the 3D block on the landing page now turns slowly (it also stops with "reduce motion") and has its own light-mode look (white blocks with violet edges).
+- FIXED (pairing site v3.17.0): the top bar of the phone (clock and battery) stayed black in light mode. The page now tells the phone the right colour for the chosen mode, and the page behind it follows the mode.
+- CHANGED (pairing site v3.17.0): the footer now shows on the landing page only. All other new pages and the pairing page end without a footer.
+- NEW (pairing site v3.17.0): new files public/logo-light.png and public/logo-dark.png (your logo, cleaned for each mode).
 - NEW (pairing site v3.16.0): DARK / LIGHT SWITCH. A sun/moon button sits next to the menu button on every new page (including the live /pair). It remembers your choice on that device. Dark stays the default. Light mode has its own colours (white cards, dark text, a slightly deeper violet) so everything stays readable.
 - CHANGED (pairing site v3.16.0): the landing page icons now each have their own colour (blue, green, pink, cyan, amber, fuchsia, violet) instead of all matching the site. The three numbers at the top are coloured too.
 - CHANGED (pairing site v3.16.0): REMOVED the Bot, Community and Status pages from the new site (/new/bot, /new/community, /new/status), plus their menu, footer and landing-page links and their styles. The footer's small "Server online" light stays. The old live pages (/community and the old site) are not changed.

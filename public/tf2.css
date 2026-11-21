@@ -195,3 +195,36 @@ details p a { color: var(--t); text-decoration: underline; text-decoration-color
 :root[data-theme="light"] .pill { background: var(--s1); border-color: var(--line2); }
 :root[data-theme="light"] .skip { color: #fff; }
 :root[data-theme="light"] .code { background: #14141b; }
+
+/* the page behind the phone's top bar and the overscroll area follows the mode too */
+html { background: var(--bg); }
+
+/* v3.17.0: the TurboFex logo. Two pictures (light and dark) that blend into the page, so the page colour shows through. */
+.logo .mark, .mark { position: relative; display: inline-block; flex: none; width: 46px; height: 32px; }
+.mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+.mark .m-l { mix-blend-mode: multiply; }
+.mark .m-d { mix-blend-mode: screen; display: none; }
+:root:not([data-theme="light"]) .mark .m-l { display: none; }
+:root:not([data-theme="light"]) .mark .m-d { display: block; }
+.logo { gap: 10px; }
+.mark::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .9) 50%, transparent 60%) 160% 0 / 260% 100% no-repeat; mix-blend-mode: screen; }
+:root:not([data-theme="light"]) .mark::after { mix-blend-mode: overlay; }
+@media (prefers-reduced-motion: no-preference) {
+  .mark img { animation: tflogoin .9s cubic-bezier(.2, .8, .2, 1) both; }
+  .mark::after { animation: tfglint 5s ease-in-out 1.4s infinite; }
+}
+@keyframes tflogoin { from { opacity: 0; transform: translateX(-8px) scale(.82); } to { opacity: 1; transform: none; } }
+@keyframes tfglint { 0% { background-position: 160% 0; } 28%, 100% { background-position: -60% 0; } }
+.lnk .nd .mark { width: 40px; height: 28px; }
+
+/* the 3D block now turns slowly, and has a light-mode look */
+@media (prefers-reduced-motion: no-preference) { .cube { animation: tfspin 28s linear infinite; } }
+@keyframes tfspin { from { transform: rotateX(-24deg) rotateY(36deg); } to { transform: rotateX(-24deg) rotateY(396deg); } }
+:root[data-theme="light"] .cu b { border-color: rgb(var(--w) / .2); background: linear-gradient(145deg, #ffffff 0%, #ececf3 60%, #e0e0ea 100%); box-shadow: inset 0 0 .6rem rgb(var(--w) / .05); }
+:root[data-theme="light"] .cu .f3 { background: linear-gradient(145deg, #f3f3f8, #dedee8); }
+:root[data-theme="light"] .cu .f4 { background: linear-gradient(145deg, #eaeaf2, #d6d6e2); }
+:root[data-theme="light"] .cu .f5 { background: linear-gradient(145deg, #ffffff, #e7e7f0); }
+:root[data-theme="light"] .cu .f6 { background: #d2d2de; }
+:root[data-theme="light"] .cu:nth-child(7n+2) .f1, :root[data-theme="light"] .cu:nth-child(5n+1) .f3 { border-color: rgb(var(--acc) / .6); background: linear-gradient(145deg, #f1eeff, #d9d3fb); box-shadow: inset 0 0 .7rem rgb(var(--acc) / .2), 0 0 1rem rgb(var(--acc) / .2); }
+:root[data-theme="light"] .cu:nth-child(11n+4) .f5 { border-color: rgb(var(--acc) / .4); background: linear-gradient(145deg, #ffffff, #dcdcea); }
+:root[data-theme="light"] .glow { background: radial-gradient(closest-side, rgb(var(--acc) / .35), transparent 72%); }

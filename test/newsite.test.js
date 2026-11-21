@@ -99,7 +99,7 @@ test('Install page: honest WhatsApp warning, three steps, six ways to run it wit
     assert.strictEqual((h.match(/role="tab"/g) || []).length, 6);
     assert.strictEqual((h.match(/data-p="/g) || []).length, 6);
     assert.ok((h.match(/data-copy/g) || []).length >= 5);
-    assert.ok(h.includes('href="/new/pair"') && h.includes('class="foot"'));
+    assert.ok(h.includes('href="/new/pair"') && !h.includes('class="foot"'));
     assert.ok(!/tested on|all systems online/i.test(h), 'no claims we cannot back up');
   } finally { t.close(); }
 });
@@ -120,6 +120,7 @@ test('Home, menu and footer send people to Install; the Bot, Community and Statu
 test('dark / light switch: every new page sets the mode before drawing, has the button, and light colours exist', async () => {
   const t = await boot();
   try {
+    const h0 = await (await fetch(t.base + '/new')).text();
     for (const n of ['', '/pair', '/install', '/plugins', '/docs', '/developers', '/about', '/support', '/playground', '/privacy', '/terms', '/rules']) {
       const h = await (await fetch(t.base + '/new' + n)).text();
       assert.ok(h.includes('src="/tf2-theme.js"') && h.indexOf('tf2-theme.js') < h.indexOf('tf2.css'), n + ' sets the mode first');
@@ -128,6 +129,9 @@ test('dark / light switch: every new page sets the mode before drawing, has the 
     assert.ok((await (await fetch(t.base + '/pair')).text()).includes('id="ttheme"'), 'live /pair has the switch');
     const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
     assert.ok(css.includes(':root[data-theme="light"]') && !/data:|url\(/.test(css));
+    for (const f of ['logo-light.png', 'logo-dark.png']) assert.ok(fs.existsSync(path.join(root, 'public', f)), f);
+    assert.ok(h0.includes('class="mark"') && h0.includes('/logo-light.png') && h0.includes('/logo-dark.png'), 'the header shows the TurboFex logo');
+    assert.ok(css.includes('@keyframes tfspin') && css.includes('.cu b'), 'the 3D block turns and has a light look');
     const js = fs.readFileSync(path.join(root, 'public', 'tf2-theme.js'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'tf2.js'), 'utf8');
     assert.ok(js.includes("'tfx-theme'") && !/innerHTML/.test(js));
   } finally { t.close(); }
@@ -147,7 +151,7 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
     assert.ok(h.includes('src="/app.js"') && h.includes('src="/countries.js"') && h.includes('src="/pair.js"'));
     assert.ok(!h.includes('notice.js') && !h.includes('shell.js') && !h.includes('src="/theme.js"'), 'no old header scripts (they would fight the new header)');
     assert.ok(h.includes('unofficial WhatsApp Web connection'), 'honest warning in the safety answers');
-    assert.ok(h.includes('class="foot min"') && !h.includes('class="fg"'), 'the pairing page has the small footer, not the full homepage one');
+    assert.ok(!h.includes('<footer') && h.includes('id="yr"'), 'the pairing page has no footer (only the landing page does)');
     const live = await (await fetch(t.base + '/pair')).text();
     assert.ok(live === h && live.includes('tf2-pair.css'), 'the live /pair is the new pairing page');
     const classic = await (await fetch(t.base + '/pair-classic')).text();
@@ -169,7 +173,7 @@ test('text pages: same wording as the live pages, new look, footer, no inline co
       const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
       const h = await r.text();
       assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h), n + ' has no inline code');
-      assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && h.includes('class="foot"') && h.includes('noindex'), n);
+      assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && !h.includes('<footer') && h.includes('noindex'), n);
       const live = await (await fetch(t.base + '/' + n)).text();
       assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(live).replace(/ Community(?= Plugins and developers)/, '').replace(/\s?\/ ?/g, ''), n + ' wording is unchanged (apart from the removed Community link)');
       assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
@@ -190,7 +194,7 @@ test('Docs and Playground previews: same wording, same ids and scripts, Playgrou
     for (const [n, live] of [['docs', 'plugin-guide'], ['playground', 'playground']]) {
       const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
       const h = await r.text(); const l = await (await fetch(t.base + '/' + live)).text();
-      assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-doc.css') && !h.includes('tfx.css') && h.includes('class="foot"'), n);
+      assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h) && h.includes('tf2-doc.css') && !h.includes('tfx.css') && !h.includes('<footer'), n);
       assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(l).replace(/\s?\/ ?/g, ''), n + ' wording is unchanged');
       assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
     }

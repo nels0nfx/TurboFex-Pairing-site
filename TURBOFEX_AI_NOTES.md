@@ -6,6 +6,12 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
+## v3.17.0 - Logo, spinning cube, footer only on landing
+- Logo = owner's chrome "TF" picture. public/logo-light.png (white background, used with mix-blend-mode: multiply) and public/logo-dark.png (inverted, black background, screen blend). Markup is the .mark span in partials/head2.html and foot2.html. Never put a transform/opacity animation on an ancestor of .mark images, it breaks the blending (animate the img or ::after only).
+- The top-bar colour: tf2-theme.js and tf2.js REPLACE the theme-color meta element (editing it is ignored by some phones).
+- Footer (foot2) is only on new-home.html. Other new pages and pair.html load /tf2.js directly; pair.html keeps a hidden #yr because app.js needs it.
+- Cube turns with @keyframes tfspin (off for reduced motion); light look is in tf2.css.
+
 ## v3.16.0 - Dark/light switch, colourful landing icons, Bot/Community/Status pages removed (new site)
 - Theme: html[data-theme="light"|"dark"], set early by public/tf2-theme.js (in every new page head), saved in localStorage "tfx-theme", default dark. Button #ttheme is in partials/head2.html, wired in tf2.js. Light colours are the block at the end of tf2.css; all white overlays use rgb(var(--w) / x), so keep using that instead of rgba(255,255,255,x).
 - Removed from the NEW site only: /new/bot, /new/community, /new/status (files and links). The old live site was not touched. The footer "Server online" light (sitestatus) stays.
