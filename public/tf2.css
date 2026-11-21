@@ -7,7 +7,7 @@
   --w: 255 255 255; --bgc: 5 5 6;
   --acc: 139 124 255; --ok: 52 211 153; --warn: 245 166 35; --bad: 248 113 113;
   /* identity colours (only for command categories and a few feature icons) and the main button */
-  --vio: 139 124 255; --sky: 96 165 250; --cyan: 34 211 238; --pink: 244 114 182; --fuc: 217 119 255; --btn: #6c5ce7; --btn2: #7a6cf0;
+  --vio: 139 124 255; --sky: 96 165 250; --cyan: 34 211 238; --pink: 244 114 182; --fuc: 217 119 255; --brand: #6c5ce7; --brand2: #7a6cf0; --btn: var(--brand); --btn2: var(--brand2);
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Roboto Mono", monospace;
@@ -225,18 +225,27 @@ html { background: var(--bg); }
 .flegal { grid-column: 1 / -1; }
 .flegal ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
 /* the 3D block now turns slowly, and has a light-mode look */
-/* the cube turns on its own: three independent motions, so it never repeats in an obvious way. Y turns steadily (26 s), X tumbles slowly (52 s, so it is two Y turns per X turn), and a small Z sway plus a soft float add depth. Only transform-type properties move, so the browser animates it on the graphics chip. No motion when the phone asks for reduced motion. */
+/* the cube tumbles on its own through changing angles. Three motions with different lengths (so it never repeats in an obvious way): `rotate` swings the turning axis around (41 s), `transform` turns it on Y with slow and fast stretches and rolls it on Z and X (31 s), and a soft float. Only transform-type properties move. No motion when the phone asks for reduced motion. */
 .cube { -webkit-transform-style: preserve-3d; will-change: transform; }
 .cu, .cu b { -webkit-transform-style: preserve-3d; -webkit-backface-visibility: hidden; }
 @media (prefers-reduced-motion: no-preference) {
-  .cube { animation: tfspin 26s linear infinite, tftumble 52s linear infinite, tffloat 7s ease-in-out infinite alternate; }
+  .cube { animation: tfspin 31s ease-in-out infinite, tftumble 41s ease-in-out infinite, tffloat 7s ease-in-out infinite alternate; }
 }
 @keyframes tfspin {
-  0% { transform: rotateZ(-3deg) rotateX(-24deg) rotateY(36deg); }
-  50% { transform: rotateZ(3deg) rotateX(-24deg) rotateY(216deg); }
-  100% { transform: rotateZ(-3deg) rotateX(-24deg) rotateY(396deg); }
+  0% { transform: rotateZ(-6deg) rotateX(-24deg) rotateY(36deg); }
+  18% { transform: rotateZ(14deg) rotateX(-6deg) rotateY(120deg); }
+  34% { transform: rotateZ(-14deg) rotateX(-38deg) rotateY(160deg); }
+  55% { transform: rotateZ(10deg) rotateX(-12deg) rotateY(290deg); }
+  78% { transform: rotateZ(-8deg) rotateX(-32deg) rotateY(335deg); }
+  100% { transform: rotateZ(-6deg) rotateX(-24deg) rotateY(396deg); }
 }
-@keyframes tftumble { from { rotate: 1 0 0 0deg; } to { rotate: 1 0 0 360deg; } }
+@keyframes tftumble {
+  0% { rotate: 1 0 0 0deg; }
+  22% { rotate: 1 .5 .2 70deg; }
+  47% { rotate: .3 1 .6 150deg; }
+  72% { rotate: .6 .2 1 230deg; }
+  100% { rotate: 1 0 0 360deg; }
+}
 @keyframes tffloat { from { translate: 0 -.35rem 0; } to { translate: 0 .35rem 0; } }
 :root[data-theme="light"] .cu b { border-color: rgb(var(--w) / .2); background: linear-gradient(145deg, #ffffff 0%, #ececf3 60%, #e0e0ea 100%); box-shadow: inset 0 0 .6rem rgb(var(--w) / .05); }
 :root[data-theme="light"] .cu .f3 { background: linear-gradient(145deg, #f3f3f8, #dedee8); }
@@ -316,3 +325,84 @@ html { background: var(--bg); }
 .tiles a.row:active { transform: scale(.98); }
 @media (max-width: 380px) { .tiles { gap: 8px; } .tiles .row, .tiles .row + .row { padding: 12px 12px 11px; min-height: 120px; } .tiles .row .d { font-size: 12px; } }
 @media (prefers-reduced-motion: reduce) { .tiles .row, .tiles .row + .row { transition: none; } .tiles a.row:hover, .tiles a.row:focus-visible, .tiles a.row:active { transform: none; } }
+
+/* v3.21.0: one brand colour (--brand, set at the top) for the Get started button, the "Fex" in the name and the F of the logo */
+.logo .fx { color: var(--brand); }
+.mark .mf { position: absolute; inset: 0; pointer-events: none; background: url(/logo-f-hi.png) center / contain no-repeat, url(/logo-f-lo.png) center / contain no-repeat, var(--brand); -webkit-mask: url(/logo-f.png) center / contain no-repeat; mask: url(/logo-f.png) center / contain no-repeat; }
+
+/* v3.21.0: section labels centred; the two section animations (Connection Hub, Modular Plugin Engine). Plain elements; only transform-type properties and opacity move. */
+.group.mid { text-align: center; margin-top: 6px; }
+.hub3d, .eng3d { position: relative; height: 176px; perspective: 700px; -webkit-perspective: 700px; margin-top: 4px; }
+.hs, .es { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
+.hub3d::before, .eng3d::before { content: ""; position: absolute; inset: 14% 12%; background: radial-gradient(closest-side, rgb(var(--acc) / .14), transparent 72%); pointer-events: none; }
+.bx, .mb, .core { position: relative; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
+.bx b, .mb b, .core b { position: absolute; display: block; -webkit-backface-visibility: hidden; backface-visibility: hidden; border: 1px solid rgb(var(--w) / .2); box-sizing: border-box; }
+/* box faces: --w --h --d set on the box */
+.bx b.fr, .mb b.fr, .core b.fr { width: var(--w); height: var(--h); left: calc(var(--w) / -2); top: calc(var(--h) / -2); transform: translateZ(calc(var(--d) / 2)); }
+.bx b.bk, .mb b.bk, .core b.bk { width: var(--w); height: var(--h); left: calc(var(--w) / -2); top: calc(var(--h) / -2); transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); }
+.bx b.lf, .mb b.lf, .core b.lf { width: var(--d); height: var(--h); left: calc(var(--d) / -2); top: calc(var(--h) / -2); transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
+.bx b.rt, .mb b.rt, .core b.rt { width: var(--d); height: var(--h); left: calc(var(--d) / -2); top: calc(var(--h) / -2); transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); }
+.bx b.tp, .mb b.tp, .core b.tp { width: var(--w); height: var(--d); left: calc(var(--w) / -2); top: calc(var(--d) / -2); transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); }
+.bx b.bt, .mb b.bt, .core b.bt { width: var(--w); height: var(--d); left: calc(var(--w) / -2); top: calc(var(--d) / -2); transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); }
+.bx b, .mb b.bk, .mb b.lf, .mb b.rt, .mb b.tp, .mb b.bt { background: linear-gradient(150deg, var(--s3), var(--s1)); }
+.ob { position: absolute; width: 0; height: 0; top: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
+/* hub */
+.ob.ph { left: -86px; } .ob.ph .bx { --w: 50px; --h: 90px; --d: 9px; } .ob.ph .bx b { border-radius: 9px; }
+.ob.sv { left: 86px; } .ob.sv .bx { --w: 70px; --h: 58px; --d: 40px; } .ob.sv .bx b { border-radius: 6px; }
+.scr { position: absolute; inset: 5px; border-radius: 6px; background: linear-gradient(160deg, rgb(var(--acc) / .35), rgb(var(--cyan) / .18)); border: 1px solid rgb(var(--acc) / .35); display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 8px; }
+.scr i { display: block; height: 9px; border-radius: 5px; background: rgb(var(--w) / .5); }
+.scr .b1 { width: 70%; } .scr .b2 { width: 82%; align-self: flex-end; background: rgb(var(--ok) / .85); } .scr .b3 { width: 55%; }
+.un { position: absolute; left: 7px; right: 7px; height: 12px; border-radius: 3px; background: rgb(var(--w) / .08); border: 1px solid rgb(var(--w) / .14); display: flex; align-items: center; gap: 5px; padding: 0 5px; }
+.un:nth-child(1) { top: 7px; } .un:nth-child(2) { top: 23px; } .un:nth-child(3) { top: 39px; }
+.un .led { width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--ok)); box-shadow: 0 0 6px rgb(var(--ok) / .9); }
+.un .led.l2 { background: rgb(var(--cyan)); box-shadow: 0 0 6px rgb(var(--cyan) / .9); } .un .led.l3 { background: rgb(var(--acc)); box-shadow: 0 0 6px rgb(var(--acc) / .9); }
+.un .bar { flex: 1; height: 3px; border-radius: 2px; background: rgb(var(--w) / .2); }
+.beam { position: absolute; left: -56px; top: -1px; width: 104px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--cyan) / .55), rgb(var(--acc) / .55)); box-shadow: 0 0 8px rgb(var(--acc) / .5); transform: translateZ(2px); }
+.beam i { position: absolute; left: 0; top: -2px; width: 14px; height: 6px; border-radius: 4px; background: linear-gradient(90deg, transparent, #fff); box-shadow: 0 0 10px 2px rgb(var(--cyan) / .8); opacity: 0; }
+/* engine */
+.core { --w: 34px; --h: 34px; --d: 34px; }
+.core b { background: linear-gradient(145deg, rgb(var(--acc) / .9), rgb(var(--acc) / .45)); border-color: rgb(var(--acc) / .8); box-shadow: inset 0 0 10px rgb(255 255 255 / .25); border-radius: 6px; }
+.core b.lf, .core b.rt { background: linear-gradient(145deg, rgb(var(--acc) / .6), rgb(var(--acc) / .3)); }
+.ring { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgb(var(--acc) / .8); opacity: 0; transform: translateZ(-4px); }
+.md { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; --ox: 0px; --oy: 0px; --ix: 0px; --iy: 0px; --c: var(--acc); translate: var(--ox) var(--oy) 0; }
+.md .mb { --w: 32px; --h: 32px; --d: 8px; }
+.md .mb b { border-radius: 8px; border-color: rgb(var(--c) / .55); }
+.md .mb b.fr { background: linear-gradient(145deg, rgb(var(--c) / .32), rgb(var(--c) / .12)), var(--s1); color: rgb(var(--c)); display: grid; place-items: center; }
+.md .mb b.fr svg { width: 18px; height: 18px; }
+.md .gl { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--c) / .45), transparent); opacity: 0; pointer-events: none; }
+.md.m1 { --ox: -92px; --oy: -42px; --ix: -26px; --iy: -16px; --c: var(--pink); }
+.md.m2 { --ox: 92px; --oy: -46px; --ix: 26px; --iy: -16px; --c: var(--cyan); }
+.md.m3 { --ox: -88px; --oy: 44px; --ix: -26px; --iy: 16px; --c: var(--warn); }
+.md.m4 { --ox: 90px; --oy: 42px; --ix: 26px; --iy: 16px; --c: var(--fuc); }
+:root[data-theme="light"] .bx b, :root[data-theme="light"] .mb b.bk, :root[data-theme="light"] .mb b.lf, :root[data-theme="light"] .mb b.rt, :root[data-theme="light"] .mb b.tp, :root[data-theme="light"] .mb b.bt { background: linear-gradient(150deg, #ffffff, #e2e2ec); border-color: rgb(var(--w) / .22); }
+:root[data-theme="light"] .scr i { background: rgb(var(--w) / .28); } :root[data-theme="light"] .un { background: rgb(var(--w) / .06); }
+:root[data-theme="light"] .md .mb b.fr { background: linear-gradient(145deg, rgb(var(--c) / .28), rgb(var(--c) / .1)), #fff; }
+@media (min-width: 640px) { .hub3d, .eng3d { height: 200px; } .ob.ph { left: -120px; } .ob.sv { left: 120px; } .beam { left: -90px; width: 140px; } .md.m1 { --ox: -130px; --ix: -30px; } .md.m2 { --ox: 130px; --ix: 30px; } .md.m3 { --ox: -124px; --ix: -30px; } .md.m4 { --ox: 126px; --ix: 30px; } }
+@media (prefers-reduced-motion: no-preference) {
+  .hs { animation: hubtilt 12s ease-in-out infinite alternate; }
+  .ob.ph { animation: hubfloat 5.5s ease-in-out infinite alternate; } .ob.sv { animation: hubfloat 6.5s ease-in-out -2s infinite alternate; }
+  .ob.ph .bx { animation: hubturn 9s ease-in-out infinite alternate; } .ob.sv .bx { animation: hubturn2 11s ease-in-out -3s infinite alternate; }
+  .beam { animation: beamglow 2.4s ease-in-out infinite; }
+  .beam i { animation: beamrun 2.4s linear infinite; } .beam i.p2 { animation-delay: -.8s; } .beam i.p3 { animation-delay: -1.6s; }
+  .un .led { animation: ledblink 2.4s ease-in-out infinite; } .un .led.l2 { animation-delay: -.8s; } .un .led.l3 { animation-delay: -1.6s; }
+  .es { animation: engtilt 16s ease-in-out infinite alternate; }
+  .core { animation: coreturn 14s linear infinite; }
+  .ring { animation: ringburst 3s ease-out infinite; }
+  .md { animation: modjoin 12s ease-in-out infinite; }
+  .md.m2 { animation-delay: -3s; } .md.m4 { animation-delay: -6s; } .md.m3 { animation-delay: -9s; }
+  .md .mb { animation: modturn 7s ease-in-out infinite alternate; } .md.m2 .mb { animation-delay: -2s; } .md.m3 .mb { animation-delay: -4s; } .md.m4 .mb { animation-delay: -1s; }
+  .md .gl { animation: modglow 12s ease-in-out infinite; animation-delay: inherit; } .md.m2 .gl { animation-delay: -3s; } .md.m4 .gl { animation-delay: -6s; } .md.m3 .gl { animation-delay: -9s; } .md.m1 .gl { animation-delay: 0s; }
+}
+@keyframes hubtilt { from { transform: rotateX(8deg) rotateY(-12deg); } to { transform: rotateX(-4deg) rotateY(12deg); } }
+@keyframes hubfloat { from { translate: 0 -6px 0; } to { translate: 0 6px 0; } }
+@keyframes hubturn { from { rotate: 0 1 0 -28deg; } to { rotate: 0 1 .1 26deg; } }
+@keyframes hubturn2 { from { rotate: 0 1 0 24deg; } to { rotate: .1 1 0 -26deg; } }
+@keyframes beamglow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes beamrun { 0% { opacity: 0; translate: 0 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; translate: 92px 0; } }
+@keyframes ledblink { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes engtilt { from { transform: rotateX(14deg) rotateY(-18deg); } to { transform: rotateX(-6deg) rotateY(16deg); } }
+@keyframes coreturn { from { transform: rotateX(-20deg) rotateY(0deg); } to { transform: rotateX(-20deg) rotateY(360deg); } }
+@keyframes ringburst { 0% { opacity: .9; scale: .7; } 100% { opacity: 0; scale: 1.9; } }
+@keyframes modjoin { 0%, 22% { translate: var(--ox) var(--oy) 0; } 40%, 52% { translate: var(--ix) var(--iy) 20px; } 78%, 100% { translate: var(--ox) var(--oy) 0; } }
+@keyframes modturn { from { rotate: .2 1 0 -34deg; } to { rotate: 0 1 .3 34deg; } }
+@keyframes modglow { 0%, 34% { opacity: 0; } 46% { opacity: 1; } 58%, 100% { opacity: 0; } }

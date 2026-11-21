@@ -123,8 +123,8 @@ test('dark / light switch: every new page sets the mode before drawing, has the 
     assert.ok((await (await fetch(t.base + '/pair')).text()).includes('id="ttheme"'), 'live /pair has the switch');
     const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
     assert.ok(css.includes(':root[data-theme="light"]') && !/data:/.test(css));
-    for (const f of ['logo-light.png', 'logo-dark.png']) assert.ok(fs.existsSync(path.join(root, 'public', f)), f);
-    assert.ok(h0.includes('class="mark"') && h0.includes('/logo-light.png') && h0.includes('/logo-dark.png'), 'the header shows the TurboFex logo');
+    for (const f of ['logo-light.png', 'logo-dark.png', 'logo-t-light.png', 'logo-t-dark.png', 'logo-f.png', 'logo-f-hi.png', 'logo-f-lo.png']) assert.ok(fs.existsSync(path.join(root, 'public', f)), f);
+    assert.ok(h0.includes('class="mark"') && h0.includes('/logo-t-light.png') && h0.includes('/logo-t-dark.png') && h0.includes('class="mf"'), 'the header shows the TurboFex logo');
     assert.ok(css.includes('@keyframes tfspin') && css.includes('.cu b'), 'the 3D block turns and has a light look');
     const js = fs.readFileSync(path.join(root, 'public', 'tf2-theme.js'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'tf2.js'), 'utf8');
     assert.ok(js.includes("'tfx-theme'") && !/innerHTML/.test(js));
@@ -299,5 +299,25 @@ test('rollback: OLD_SITE=on brings the old pages back at their old addresses', a
   try {
     assert.ok((await (await fetch(t.base + '/')).text()).includes('tfx.css'));
     for (const p of ['/pair-classic', '/community', '/plugins', '/new/plugins']) assert.strictEqual((await fetch(t.base + p)).status, 200, p);
+  } finally { t.close(); }
+});
+
+test('brand colour: one token for the Get started button, the "Fex" in the name and the F of the logo; Home sections are organised as asked', async () => {
+  const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
+  assert.match(css, /--brand: #[0-9a-f]{6};/i);
+  assert.match(css, /--btn: var\(--brand\)/);
+  assert.match(css, /\.logo \.fx \{ color: var\(--brand\)/);
+  assert.match(css, /\.mark \.mf \{[^}]*var\(--brand\)/);
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    const h = await (await fetch(t.base + '/')).text();
+    assert.ok(h.includes('Turbo<span class="fx">Fex</span>') && h.includes('class="mf"'), 'header carries the coloured name and F');
+    const main = h.slice(h.indexOf('<main'));
+    assert.ok(!/<h2>Explore<\/h2>/.test(main), 'no Explore heading');
+    const i1 = main.indexOf('class="hub3d"'), g1 = main.indexOf('class="group mid">Get started'), i2 = main.indexOf('class="eng3d"'), g2 = main.indexOf('class="group mid">Extend it'), g3 = main.indexOf('Coming later');
+    assert.ok(i1 > 0 && i1 < g1 && g1 < i2 && i2 < g2 && g2 < g3, 'hub above Get started, plugin engine above Extend it, Coming later last');
+    for (const m of ['m1', 'm2', 'm3', 'm4']) assert.ok(main.includes('class="md ' + m + '"'), m);
+    for (const href of ['/install', '/pair', '/plugins', '/plugin-guide', '/playground', '/developers']) assert.ok(main.includes('href="' + href + '"'), href);
+    assert.ok(/prefers-reduced-motion: no-preference/.test(css) && /@keyframes tfspin/.test(css) && /@keyframes modjoin/.test(css) && /@keyframes beamrun/.test(css));
   } finally { t.close(); }
 });

@@ -574,3 +574,9 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 
 ## v3.20.0
 - Home "Extend it": the panel has the extra class `tiles` (CSS block at the end of tf2.css) which turns its rows into a 2 x 2 card grid. Same links, same icons. Get started and Coming later are unchanged.
+
+## v3.21.0
+- Brand colour token: `--brand` (and `--brand2` for hover) at the top of tf2.css; `--btn` points to it. Used by: `.btn.p`, `.logo .fx` (the "Fex" in "Turbo<span class="fx">Fex</span>", inside `.wd`), and the F of the logo (`.mark .mf`, a CSS mask of logo-f.png over the brand colour with light shading layers logo-f-hi.png / logo-f-lo.png). The T is logo-t-light.png / logo-t-dark.png (chrome). logo-light.png and logo-dark.png (full logo) are still used for the glint mask and kept. Change the brand colour only in --brand.
+- Home: no "Explore" heading. `.hub3d` (Connection Hub) above the Get started label, `.eng3d` (Modular Plugin Engine) above the Extend it label; both pure CSS 3D at the end of tf2.css, only transform/opacity animated, still frame when reduced motion. Labels use `.group.mid` (centred); the "Coming later" label was left as it was.
+- The tab icon (favicon.png) is not recoloured.
+- Cube: `tfspin` (transform, 31 s, irregular stops), `tftumble` (rotate property, 41 s), `tffloat`.
