@@ -3,7 +3,7 @@
    .st   the stage (tilts slowly)
    .o    one object: placed with --x / --y, floats on its own (--fd speed, --fl delay)
    .t    inside an object: turns on its own (--rd speed, --ra angle, --rl delay)
-   .bx   a solid box (faces come from tf2.css), .pn a flat glass panel, .wire a line with a travelling light
+   .bx   a solid box (faces come from tf2.css), .gp a flat glass panel, .wr3 a line with a travelling light
    Only transform-type properties and opacity move. Scenes pause when off screen (tf2-scenes.js) and show a still picture for reduced motion. */
 .sc { --sch: 136px; --hc: var(--acc); position: relative; height: var(--sch); margin: 14px 0 0; perspective: 700px; -webkit-perspective: 700px; pointer-events: none; contain: layout paint; }
 .sc::before { content: ""; position: absolute; inset: 8% 14% 10%; background: radial-gradient(closest-side, rgb(var(--hc) / .15), transparent 74%); }
@@ -13,42 +13,42 @@
 .o { position: absolute; left: var(--x, 0px); top: var(--y, 0px); width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 .o > .t { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 /* flat glass panel */
-.pn { --c: var(--acc); position: absolute; left: calc(var(--pw) / -2); top: calc(var(--ph) / -2); width: var(--pw); height: var(--ph); box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; gap: 5px; border-radius: 9px; overflow: hidden; border: 1px solid rgb(var(--c) / .5); background: linear-gradient(150deg, rgb(var(--c) / .18), transparent 72%), var(--s1); box-shadow: 0 10px 22px rgb(0 0 0 / .25); -webkit-backface-visibility: hidden; backface-visibility: hidden; }
-:root[data-theme="light"] .pn { box-shadow: 0 10px 20px rgb(40 40 90 / .14); background: linear-gradient(150deg, rgb(var(--c) / .16), transparent 72%), #fff; }
+.gp { --c: var(--acc); position: absolute; left: calc(var(--pw) / -2); top: calc(var(--ph) / -2); width: var(--pw); height: var(--ph); box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; gap: 5px; border-radius: 9px; overflow: hidden; border: 1px solid rgb(var(--c) / .5); background: linear-gradient(150deg, rgb(var(--c) / .18), transparent 72%), var(--s1); box-shadow: 0 10px 22px rgb(0 0 0 / .25); -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+:root[data-theme="light"] .gp { box-shadow: 0 10px 20px rgb(40 40 90 / .14); background: linear-gradient(150deg, rgb(var(--c) / .16), transparent 72%), #fff; }
 .l3b { display: block; height: 4px; border-radius: 3px; background: rgb(var(--w) / .3); flex: none; }
 .l3b.w1 { width: 38%; } .l3b.w2 { width: 62%; } .l3b.w3 { width: 88%; }
 .l3b.k1 { background: rgb(var(--acc) / .85); } .l3b.k2 { background: rgb(var(--cyan) / .85); } .l3b.k3 { background: rgb(var(--ok) / .85); } .l3b.k4 { background: rgb(var(--ok) / .8); }
-.pn.cod { --c: var(--cyan); } .pn.out { --c: var(--ok); }
+.gp.cod { --c: var(--cyan); } .gp.out { --c: var(--ok); }
 /* ---- Install: a small server rack, a package lands in it, a terminal drifts beside it ---- */
 .s-inst { --hc: var(--sky); }
-.s-inst .rk { --x: -34px; } .s-inst .r1 { --y: -20px; --fd: 5.2s; --fl: -1s; } .s-inst .r2 { --y: -1px; --fd: 6.4s; --fl: -3s; } .s-inst .r3 { --y: 18px; --fd: 7.1s; --fl: -2s; }
-.s-inst .rk .bx { --w: 78px; --h: 15px; --d: 44px; } .s-inst .rk .bx b { border-radius: 4px; }
-.s-inst .rk .fr { display: flex; align-items: center; gap: 5px; padding: 0 6px; }
+.s-inst .rack { --x: -34px; } .s-inst .r1 { --y: -20px; --fd: 5.2s; --fl: -1s; } .s-inst .r2 { --y: -1px; --fd: 6.4s; --fl: -3s; } .s-inst .r3 { --y: 18px; --fd: 7.1s; --fl: -2s; }
+.s-inst .rack .bx { --w: 78px; --h: 15px; --d: 44px; } .s-inst .rack .bx b { border-radius: 4px; }
+.s-inst .rack .fr { display: flex; align-items: center; gap: 5px; padding: 0 6px; }
 .d3 { flex: none; width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--w) / .35); }
 .d3.g { background: rgb(var(--ok)); box-shadow: 0 0 6px rgb(var(--ok) / .9); } .d3.c { background: rgb(var(--cyan)); box-shadow: 0 0 6px rgb(var(--cyan) / .9); } .d3.v { background: rgb(var(--acc)); box-shadow: 0 0 6px rgb(var(--acc) / .9); }
 .l3 { flex: 1; height: 3px; border-radius: 2px; background: rgb(var(--w) / .2); }
-.s-inst .pk { --x: -34px; --y: -34px; } .s-inst .pkg { --w: 20px; --h: 20px; --d: 20px; } .s-inst .pkg b { border-radius: 4px; border-color: rgb(var(--sky) / .7); background: linear-gradient(145deg, rgb(var(--sky) / .85), rgb(var(--acc) / .6)); }
-.s-inst .tm { --x: 64px; --y: -4px; --fd: 5.8s; --fl: -2s; transform: translateZ(36px); } .s-inst .tm .pn { --pw: 66px; --ph: 46px; --c: var(--sky); }
+.s-inst .pkgo { --x: -34px; --y: -34px; } .s-inst .pkg { --w: 20px; --h: 20px; --d: 20px; } .s-inst .pkg b { border-radius: 4px; border-color: rgb(var(--sky) / .7); background: linear-gradient(145deg, rgb(var(--sky) / .85), rgb(var(--acc) / .6)); }
+.s-inst .tm { --x: 64px; --y: -4px; --fd: 5.8s; --fl: -2s; transform: translateZ(36px); } .s-inst .tm .gp { --pw: 66px; --ph: 46px; --c: var(--sky); }
 /* ---- Plugins: three store cards at different depths, each gets installed in turn ---- */
 .s-plug { --hc: var(--pink); --sch: 124px; }
-.s-plug .cd .pn { --pw: 54px; --ph: 68px; align-items: flex-start; }
+.s-plug .cd .gp { --pw: 54px; --ph: 68px; align-items: flex-start; }
 .s-plug .c1 { --x: -72px; --y: 2px; --fd: 6s; --fl: -1s; transform: translateZ(-14px); } .s-plug .c2 { --x: 0px; --y: -4px; --fd: 7.2s; --fl: -3s; transform: translateZ(26px); } .s-plug .c3 { --x: 72px; --y: 4px; --fd: 6.6s; --fl: -2s; transform: translateZ(-6px); }
-.s-plug .c1 .pn { --c: var(--pink); } .s-plug .c2 .pn { --c: var(--acc); } .s-plug .c3 .pn { --c: var(--cyan); }
-.ic { display: block; width: 18px; height: 18px; border-radius: 6px; flex: none; background: rgb(var(--c) / .55); border: 1px solid rgb(var(--c) / .8); }
-.pill { display: block; margin-top: auto; width: 100%; height: 9px; border-radius: 5px; background: rgb(var(--c) / .35); flex: none; }
-.ck { position: absolute; right: 5px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: rgb(var(--ok)); box-shadow: 0 0 8px rgb(var(--ok) / .8); opacity: 0; }
-.ck::after { content: ""; position: absolute; left: 4px; top: 3px; width: 4px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.s-plug .c1 .gp { --c: var(--pink); } .s-plug .c2 .gp { --c: var(--acc); } .s-plug .c3 .gp { --c: var(--cyan); }
+.ic3 { display: block; width: 18px; height: 18px; border-radius: 6px; flex: none; background: rgb(var(--c) / .55); border: 1px solid rgb(var(--c) / .8); }
+.pl3 { display: block; margin-top: auto; width: 100%; height: 9px; border-radius: 5px; background: rgb(var(--c) / .35); flex: none; }
+.ck3 { position: absolute; right: 5px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: rgb(var(--ok)); box-shadow: 0 0 8px rgb(var(--ok) / .8); opacity: 0; }
+.ck3::after { content: ""; position: absolute; left: 4px; top: 3px; width: 4px; height: 6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 /* ---- Docs: fanned pages with a code page on top ---- */
 .s-docs { --hc: var(--cyan); }
-.s-docs .sh .pn { --pw: 64px; --ph: 84px; --c: var(--cyan); }
+.s-docs .sh .gp { --pw: 64px; --ph: 84px; --c: var(--cyan); }
 .s-docs .a { --x: -38px; --y: 2px; --fd: 6.6s; --fl: -2s; transform: translateZ(-26px); } .s-docs .a .t { transform: rotateZ(-9deg); }
 .s-docs .b { --x: 0px; --y: 0px; --fd: 5.6s; --fl: -1s; transform: translateZ(0px); } .s-docs .b .t { transform: rotateZ(1deg); }
 .s-docs .c { --x: 40px; --y: 4px; --fd: 7.4s; --fl: -3s; transform: translateZ(30px); } .s-docs .c .t { transform: rotateZ(9deg); }
 .s-docs .bm { --x: 66px; --y: -40px; --fd: 4.8s; transform: translateZ(50px); } .tag3 { position: absolute; left: -5px; top: -7px; width: 10px; height: 20px; background: rgb(var(--acc)); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); box-shadow: 0 0 8px rgb(var(--acc) / .6); }
 /* ---- Playground: two code windows and a run button ---- */
 .s-play { --hc: var(--warn); }
-.s-play .w1 { --x: -30px; --y: -8px; --fd: 6.2s; --fl: -1s; } .s-play .w1 .pn { --pw: 104px; --ph: 62px; --c: var(--warn); }
-.s-play .w2 { --x: 62px; --y: 18px; --fd: 5.4s; --fl: -3s; transform: translateZ(34px); } .s-play .w2 .pn { --pw: 76px; --ph: 40px; }
+.s-play .w1 { --x: -30px; --y: -8px; --fd: 6.2s; --fl: -1s; } .s-play .w1 .gp { --pw: 104px; --ph: 62px; --c: var(--warn); }
+.s-play .w2 { --x: 62px; --y: 18px; --fd: 5.4s; --fl: -3s; transform: translateZ(34px); } .s-play .w2 .gp { --pw: 76px; --ph: 40px; }
 .s-play .rn { --x: 36px; --y: -34px; --fd: 4.6s; --fl: -2s; transform: translateZ(60px); }
 .dots3 { display: flex; gap: 4px; margin-bottom: 1px; } .dots3 i { width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--w) / .35); } .dots3 i:first-child { background: rgb(var(--bad) / .8); } .dots3 i:nth-child(2) { background: rgb(var(--warn) / .9); } .dots3 i:nth-child(3) { background: rgb(var(--ok) / .9); }
 .caret { display: block; width: 6px; height: 10px; background: rgb(var(--warn)); border-radius: 1px; flex: none; }
@@ -56,29 +56,29 @@
 .run::after { content: ""; position: absolute; left: 12px; top: 8px; border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent #fff; }
 /* ---- Developers: repo -> signed seal -> store, with a light travelling along the links ---- */
 .s-dev { --hc: var(--fuc); --sch: 124px; }
-.s-dev .nd .nb { position: absolute; left: -19px; top: -19px; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: rgb(var(--c)); border: 1px solid rgb(var(--c) / .55); background: linear-gradient(145deg, rgb(var(--c) / .26), rgb(var(--c) / .08)), var(--s1); box-shadow: 0 10px 20px rgb(0 0 0 / .25); }
-.s-dev .nd .nb svg { width: 20px; height: 20px; }
-:root[data-theme="light"] .s-dev .nd .nb { background: linear-gradient(145deg, rgb(var(--c) / .24), rgb(var(--c) / .06)), #fff; box-shadow: 0 10px 18px rgb(40 40 90 / .14); }
+.s-dev .nde .nb { position: absolute; left: -19px; top: -19px; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: rgb(var(--c)); border: 1px solid rgb(var(--c) / .55); background: linear-gradient(145deg, rgb(var(--c) / .26), rgb(var(--c) / .08)), var(--s1); box-shadow: 0 10px 20px rgb(0 0 0 / .25); }
+.s-dev .nde .nb svg { width: 20px; height: 20px; }
+:root[data-theme="light"] .s-dev .nde .nb { background: linear-gradient(145deg, rgb(var(--c) / .24), rgb(var(--c) / .06)), #fff; box-shadow: 0 10px 18px rgb(40 40 90 / .14); }
 .s-dev .n1 { --x: -78px; --y: 4px; --c: var(--fuc); --fd: 5.6s; --fl: -1s; transform: translateZ(-10px); } .s-dev .n2 { --x: 0px; --y: -6px; --c: var(--acc); --fd: 6.8s; --fl: -3s; transform: translateZ(30px); } .s-dev .n3 { --x: 78px; --y: 4px; --c: var(--cyan); --fd: 6.2s; --fl: -2s; transform: translateZ(-4px); }
-.wire { position: absolute; top: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--fuc) / .5), rgb(var(--cyan) / .5)); }
-.wire.w-a { left: -58px; width: 40px; } .wire.w-b { left: 20px; width: 40px; }
-.wire i { position: absolute; left: 0; top: -2px; width: 12px; height: 6px; border-radius: 4px; background: linear-gradient(90deg, transparent, #fff); box-shadow: 0 0 9px 2px rgb(var(--cyan) / .8); opacity: 0; }
+.wr3 { position: absolute; top: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(var(--fuc) / .5), rgb(var(--cyan) / .5)); }
+.wr3.w-a { left: -58px; width: 40px; } .wr3.w-b { left: 20px; width: 40px; }
+.wr3 i { position: absolute; left: 0; top: -2px; width: 12px; height: 6px; border-radius: 4px; background: linear-gradient(90deg, transparent, #fff); box-shadow: 0 0 9px 2px rgb(var(--cyan) / .8); opacity: 0; }
 /* ---- motion (only when the phone allows it) ---- */
 @media (prefers-reduced-motion: no-preference) {
   .st { animation: scTilt var(--td, 15s) ease-in-out infinite alternate; }
   .o { animation: scFloat var(--fd, 6s) ease-in-out var(--fl, 0s) infinite alternate; }
   .o > .t, .o .bx { animation: scTurn var(--rd, 9s) ease-in-out var(--rl, 0s) infinite alternate; }
   .s-inst .r2 .bx { --rd: 11s; --ra: 10deg; } .s-inst .r1 .bx { --rd: 8s; --rl: -2s; --ra: 12deg; } .s-inst .r3 .bx { --rd: 13s; --rl: -4s; --ra: 9deg; }
-  .s-inst .pk { animation: scPkg 6s ease-in infinite; } .s-inst .pk .bx { --rd: 3s; --ra: 60deg; }
+  .s-inst .pkgo { animation: scPkg 6s ease-in infinite; } .s-inst .pkgo .bx { --rd: 3s; --ra: 60deg; }
   .s-inst .tm .t { --rd: 8s; --ra: 14deg; --rl: -3s; }
   .s-inst .r1 .d3.g { animation: scLed 6s ease-out infinite; }
   .s-plug .t { --rd: 8s; --ra: 16deg; } .s-plug .c2 .t { --rd: 10s; --rl: -4s; } .s-plug .c3 .t { --rd: 7s; --rl: -2s; }
-  .s-plug .c1 .ck { animation: scCk 9s ease-out infinite; } .s-plug .c2 .ck { animation: scCk 9s ease-out 3s infinite; } .s-plug .c3 .ck { animation: scCk 9s ease-out 6s infinite; }
+  .s-plug .c1 .ck3 { animation: scCk 9s ease-out infinite; } .s-plug .c2 .ck3 { animation: scCk 9s ease-out 3s infinite; } .s-plug .c3 .ck3 { animation: scCk 9s ease-out 6s infinite; }
   .s-docs .t { animation: scTurn var(--rd, 9s) ease-in-out var(--rl, 0s) infinite alternate; --ra: 10deg; } .s-docs .a .t { animation: scTurnA 9s ease-in-out -2s infinite alternate; } .s-docs .c .t { animation: scTurnC 11s ease-in-out -5s infinite alternate; }
   .s-play .w1 .t { --rd: 10s; --ra: 12deg; } .s-play .w2 .t { --rd: 7s; --ra: 18deg; --rl: -2s; } .s-play .rn .t { --rd: 5s; --ra: 40deg; }
   .s-play .run { animation: scPulse 2.2s ease-in-out infinite; } .caret { animation: scBlink 1s steps(2) infinite; }
   .s-dev .t { --rd: 8s; --ra: 14deg; } .s-dev .n2 .t { --rd: 6s; --rl: -2s; } .s-dev .n3 .t { --rd: 9s; --rl: -4s; }
-  .wire.w-a i { animation: scRunA 4.8s linear infinite; } .wire.w-b i { animation: scRunB 4.8s linear infinite; }
+  .wr3.w-a i { animation: scRunA 4.8s linear infinite; } .wr3.w-b i { animation: scRunB 4.8s linear infinite; }
   .s-dev .n2 .nb { animation: scNode 4.8s ease-out infinite; } .s-dev .n3 .nb { animation: scNode 4.8s ease-out 2.4s infinite; }
 }
 @keyframes scTilt { from { transform: rotateX(10deg) rotateY(-14deg); } to { transform: rotateX(2deg) rotateY(12deg); } }

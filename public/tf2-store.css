@@ -108,3 +108,4 @@
 .dsec { padding: 0; border: 0; border-radius: 0; background: none; }
 .dsec h2 { margin-bottom: 10px; }
 @media (min-width: 700px) { .dsec { padding: 0; } }
+.pc:not(.tile) .pmain { align-items: flex-start; } .pc:not(.tile) .pmain .picon { margin-top: 2px; }

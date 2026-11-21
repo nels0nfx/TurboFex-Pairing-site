@@ -259,44 +259,44 @@ html { background: var(--bg); }
 /* v3.19.0: a floating WhatsApp conversation between Explore and Open source. Plain elements, drawn once; only transform-type properties and opacity move, so it stays smooth on phones. Shown fully (still) when the phone asks for reduced motion. */
 .chat3d { position: relative; height: 282px; margin-top: 14px; perspective: 900px; -webkit-perspective: 900px; overflow: hidden; border-radius: var(--r); border: 1px solid var(--line); background: radial-gradient(120% 90% at 50% 0%, rgb(var(--acc) / .10), transparent 60%), var(--s1); }
 .cscene { position: absolute; inset: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transform: rotateX(8deg) rotateY(-10deg); will-change: transform; }
-.cb { position: absolute; padding: 9px 12px 10px; border-radius: 14px; border: 1px solid rgb(var(--w) / .16); font-size: 14px; line-height: 1.35; color: var(--t); -webkit-backface-visibility: hidden; backface-visibility: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
-.cb p { margin: 0; }
-.cn { display: block; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.chb { position: absolute; padding: 9px 12px 10px; border-radius: 14px; border: 1px solid rgb(var(--w) / .16); font-size: 14px; line-height: 1.35; color: var(--t); -webkit-backface-visibility: hidden; backface-visibility: hidden; box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
+.chb p { margin: 0; }
+.chn { display: block; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
 .cme { left: 5%; top: 7%; width: 58%; transform: translateZ(46px); background: rgb(var(--w) / .08); border-bottom-left-radius: 4px; }
-.cme .cn { color: rgb(var(--cyan)); }
-.cme .tk { position: absolute; right: 9px; bottom: 6px; width: 17px; height: 17px; color: rgb(var(--cyan)); }
+.cme .chn { color: rgb(var(--cyan)); }
+.cme .chtk { position: absolute; right: 9px; bottom: 6px; width: 17px; height: 17px; color: rgb(var(--cyan)); }
 .cme p { padding-right: 18px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 .cbo { right: 5%; top: 38%; width: 66%; min-height: 62px; transform: translateZ(14px); background: rgb(var(--acc) / .16); border-color: rgb(var(--acc) / .38); border-bottom-right-radius: 4px; }
-.cbo .cn { color: rgb(var(--acc)); }
-.dots { position: absolute; left: 12px; bottom: 14px; display: none; gap: 4px; }
-.dots i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--acc)); }
-.chips { position: absolute; left: 4%; right: 4%; top: 77%; display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px; transform: translateZ(34px); }
-.chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-size: 11.5px; font-weight: 500; border: 1px solid; background: var(--s1); }
-.chip svg { width: 12px; height: 12px; }
+.cbo .chn { color: rgb(var(--acc)); }
+.chdots { position: absolute; left: 12px; bottom: 14px; display: none; gap: 4px; }
+.chdots i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--acc)); }
+.chchips { position: absolute; left: 4%; right: 4%; top: 77%; display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px; transform: translateZ(34px); }
+.chchip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-size: 11.5px; font-weight: 500; border: 1px solid; background: var(--s1); }
+.chchip svg { width: 12px; height: 12px; }
 .cv { color: rgb(var(--acc)); border-color: rgb(var(--acc) / .45); }
 .cc { color: rgb(var(--cyan)); border-color: rgb(var(--cyan) / .45); }
 .cg { color: rgb(var(--ok)); border-color: rgb(var(--ok) / .5); }
-.spin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgb(var(--cyan) / .3); border-top-color: rgb(var(--cyan)); }
+.chspin { width: 11px; height: 11px; border-radius: 50%; border: 2px solid rgb(var(--cyan) / .3); border-top-color: rgb(var(--cyan)); }
 .cline { position: absolute; left: 24%; top: 30%; width: 2px; height: 22%; transform: translateZ(30px); background: linear-gradient(rgb(var(--cyan) / .6), rgb(var(--acc) / .6)); border-radius: 2px; }
 .cline i { position: absolute; left: -2px; top: 0; width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--ok)); box-shadow: 0 0 10px rgb(var(--ok) / .8); }
 .orb { position: absolute; border-radius: 50%; filter: blur(18px); pointer-events: none; }
 .o1 { left: 62%; top: 6%; width: 90px; height: 90px; background: rgb(var(--acc) / .35); transform: translateZ(-70px); }
 .o2 { left: 6%; top: 52%; width: 80px; height: 80px; background: rgb(var(--cyan) / .28); transform: translateZ(-50px); }
-:root[data-theme="light"] .cb { box-shadow: 0 10px 26px rgb(40 40 80 / .12); border-color: rgb(var(--w) / .14); }
+:root[data-theme="light"] .chb { box-shadow: 0 10px 26px rgb(40 40 80 / .12); border-color: rgb(var(--w) / .14); }
 :root[data-theme="light"] .cme { background: rgb(255 255 255 / .75); }
-@media (min-width: 640px) { .chat3d { height: 290px; } .cb { font-size: 15px; } .cme { width: 46%; } .cbo { width: 52%; top: 36%; } .chips { top: 76%; } }
+@media (min-width: 640px) { .chat3d { height: 290px; } .chb { font-size: 15px; } .cme { width: 46%; } .cbo { width: 52%; top: 36%; } .chchips { top: 76%; } }
 @media (prefers-reduced-motion: no-preference) {
   .cscene { animation: tcsway 14s ease-in-out infinite alternate; }
   .cme { animation: tcpop 11s ease-out infinite both, tcfloat 6s ease-in-out infinite alternate; }
   .cbo { animation: tcpop2 11s ease-out infinite both, tcfloat 7s ease-in-out -2s infinite alternate; }
-  .chips { animation: tcfloat 8s ease-in-out -1s infinite alternate; }
-  .chip.cv { animation: tcshow1 11s ease-out infinite both; }
-  .chip.cc { animation: tcshow2 11s ease-out infinite both; }
-  .chip.cg { animation: tcshow3 11s ease-out infinite both; }
-  .cbo .rep { animation: tcrep 11s ease-out infinite both; }
-  .dots { display: flex; animation: tcdots 11s linear infinite both; }
-  .dots i { animation: tcdot 1s ease-in-out infinite; } .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
-  .spin { animation: tcspin .9s linear infinite; }
+  .chchips { animation: tcfloat 8s ease-in-out -1s infinite alternate; }
+  .chchip.cv { animation: tcshow1 11s ease-out infinite both; }
+  .chchip.cc { animation: tcshow2 11s ease-out infinite both; }
+  .chchip.cg { animation: tcshow3 11s ease-out infinite both; }
+  .cbo .chrep { animation: tcrep 11s ease-out infinite both; }
+  .chdots { display: flex; animation: tcdots 11s linear infinite both; }
+  .chdots i { animation: tcdot 1s ease-in-out infinite; } .chdots i:nth-child(2) { animation-delay: .15s; } .chdots i:nth-child(3) { animation-delay: .3s; }
+  .chspin { animation: tcspin .9s linear infinite; }
   .cline i { animation: tcrun 11s ease-in-out infinite both; }
   .o1 { animation: tcorb 9s ease-in-out infinite alternate; } .o2 { animation: tcorb 11s ease-in-out -3s infinite alternate; }
 }
@@ -332,7 +332,7 @@ html { background: var(--bg); }
 
 /* v3.21.0: section labels centred; the two section animations (Connection Hub, Modular Plugin Engine). Plain elements; only transform-type properties and opacity move. */
 .group.mid { text-align: center; margin-top: 6px; }
-.hub3d, .eng3d { position: relative; height: 176px; perspective: 700px; -webkit-perspective: 700px; margin-top: 4px; }
+.hub3d, .eng3d { position: relative; height: 152px; perspective: 700px; -webkit-perspective: 700px; margin-top: 4px; }
 .hs, .es { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 .hub3d::before, .eng3d::before { content: ""; position: absolute; inset: 14% 12%; background: radial-gradient(closest-side, rgb(var(--acc) / .14), transparent 72%); pointer-events: none; }
 .bx, .mb, .core { position: relative; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
@@ -377,7 +377,7 @@ html { background: var(--bg); }
 :root[data-theme="light"] .bx b, :root[data-theme="light"] .mb b.bk, :root[data-theme="light"] .mb b.lf, :root[data-theme="light"] .mb b.rt, :root[data-theme="light"] .mb b.tp, :root[data-theme="light"] .mb b.bt { background: linear-gradient(150deg, #ffffff, #e2e2ec); border-color: rgb(var(--w) / .22); }
 :root[data-theme="light"] .scr i { background: rgb(var(--w) / .28); } :root[data-theme="light"] .un { background: rgb(var(--w) / .06); }
 :root[data-theme="light"] .md .mb b.fr { background: linear-gradient(145deg, rgb(var(--c) / .28), rgb(var(--c) / .1)), #fff; }
-@media (min-width: 640px) { .hub3d, .eng3d { height: 200px; } .ob.ph { left: -120px; } .ob.sv { left: 120px; } .beam { left: -90px; width: 140px; } .md.m1 { --ox: -130px; --ix: -30px; } .md.m2 { --ox: 130px; --ix: 30px; } .md.m3 { --ox: -124px; --ix: -30px; } .md.m4 { --ox: 126px; --ix: 30px; } }
+@media (min-width: 640px) { .hub3d, .eng3d { height: 184px; } .ob.ph { left: -120px; } .ob.sv { left: 120px; } .beam { left: -90px; width: 140px; } .md.m1 { --ox: -130px; --ix: -30px; } .md.m2 { --ox: 130px; --ix: 30px; } .md.m3 { --ox: -124px; --ix: -30px; } .md.m4 { --ox: 126px; --ix: 30px; } }
 @media (prefers-reduced-motion: no-preference) {
   .hs { animation: hubtilt 12s ease-in-out infinite alternate; }
   .ob.ph { animation: hubfloat 5.5s ease-in-out infinite alternate; } .ob.sv { animation: hubfloat 6.5s ease-in-out -2s infinite alternate; }
@@ -423,3 +423,8 @@ a.row .go { transition: transform .2s ease, color .2s ease; } a.row:hover .go, a
 @keyframes tfmenuin { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes tfmenuout { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px) scale(.97); } }
 @keyframes tfpanelin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* v3.22.1: tighter space around the two Home animations; solid sides of the small modules take the module's own colour (so they read as thickness, not as pale slivers) */
+.hub3d { margin-top: -22px; } .eng3d { margin-top: -8px; }
+.md .mb b.bk, .md .mb b.lf, .md .mb b.rt, .md .mb b.tp, .md .mb b.bt { background: rgb(var(--c) / .5); border-color: rgb(var(--c) / .6); }
+:root[data-theme="light"] .md .mb b.bk, :root[data-theme="light"] .md .mb b.lf, :root[data-theme="light"] .md .mb b.rt, :root[data-theme="light"] .md .mb b.tp, :root[data-theme="light"] .md .mb b.bt { background: rgb(var(--c) / .45); border-color: rgb(var(--c) / .6); }

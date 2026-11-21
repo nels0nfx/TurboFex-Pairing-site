@@ -347,3 +347,13 @@ test('3D scenes (v3.22.0): the right pages have one, they are decoration only, s
     assert.strictEqual((await fetch(t.base + '/admin.html')).status, 404);
   } finally { t.close(); }
 });
+
+test('class names of the scene kit and the Home chat do not clash with the Pair page or the doc pages', () => {
+  const pub = path.join(root, 'public');
+  const own = fs.readFileSync(path.join(pub, 'tf2-scenes.css'), 'utf8') + fs.readFileSync(path.join(pub, 'tf2.css'), 'utf8').slice(fs.readFileSync(path.join(pub, 'tf2.css'), 'utf8').indexOf('/* v3.19.0'));
+  const used = (f) => new Set([...fs.readFileSync(path.join(pub, f), 'utf8').matchAll(/\.([a-z][\w-]*)/g)].map((m) => m[1]));
+  const defined = new Set([...own.matchAll(/(?:^|[\s,>{])\.([a-z][\w-]*)(?=[\s,.:{>[)])/gm)].map((m) => m[1]));
+  for (const bad of ['chips', 'chip', 'spin', 'wire', 'pn', 'rk', 'pk', 'ic', 'pill', 'ck', 'cb', 'dots', 'rep']) assert.ok(!defined.has(bad), 'scene/chat styles must not define .' + bad);
+  const pairCss = used('tf2-pair.css');
+  for (const k of ['chips', 'spin', 'wire']) assert.ok(pairCss.has(k), 'sanity: the Pair page really uses .' + k);
+});

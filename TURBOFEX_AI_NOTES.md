@@ -586,3 +586,6 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Scenes live in the page header of Install, Plugins, Plugin Guide, Playground and Developer Centre. NOT on: Pair (only the existing icons float), About/Terms/Privacy/Rules/Support (informational), admin (own style, left alone). The old Status/Bot pages no longer exist, so they have none.
 - To add a scene: copy one of the five in a page, give it a new `s-xxx` class in tf2-scenes.css, keep all motion inside the `prefers-reduced-motion: no-preference` block.
 - Interface motion (tf2.css end + tf2.js): menu fade open/close (the menu now closes after 140 ms; code uses aria-expanded, not `panel.hidden`), card icon hover, panel fade-in.
+
+## v3.22.1 - class name clashes
+- Lesson: never reuse short class names across stylesheets (the Pair page already has .chips, .spin, .wire, the doc pages .pn, .rk). Chat visual classes are now `ch*` (chchips, chchip, chspin, chdots, chrep, chtk, chn, chb). Scene kit renamed: gp (panel), rack, pkgo, wr3, nde, ic3, pl3, ck3. New classes should get a unique prefix.
