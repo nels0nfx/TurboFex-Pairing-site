@@ -16,6 +16,23 @@
     d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { setMenu(false); btn.focus(); } });
   }
 
+  // dark / light switch (the saved choice is applied earlier by tf2-theme.js)
+  var tg = d.getElementById('ttheme');
+  function paintToggle() {
+    var light = d.documentElement.getAttribute('data-theme') === 'light';
+    if (tg) { tg.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode'); tg.setAttribute('aria-pressed', light ? 'true' : 'false'); }
+    var m = d.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', light ? '#f6f6f9' : '#050506');
+  }
+  if (tg) {
+    paintToggle();
+    tg.addEventListener('click', function () {
+      var next = d.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      d.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('tfx-theme', next); } catch (e) { /* cannot save: it still works for this visit */ }
+      paintToggle();
+    });
+  }
+
   // mark where you are
   var here = location.pathname.replace(/\/+$/, '') || '/';
   [].forEach.call(d.querySelectorAll('.menu a'), function (a) {

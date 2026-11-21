@@ -6,6 +6,11 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
+## v3.16.0 - Dark/light switch, colourful landing icons, Bot/Community/Status pages removed (new site)
+- Theme: html[data-theme="light"|"dark"], set early by public/tf2-theme.js (in every new page head), saved in localStorage "tfx-theme", default dark. Button #ttheme is in partials/head2.html, wired in tf2.js. Light colours are the block at the end of tf2.css; all white overlays use rgb(var(--w) / x), so keep using that instead of rgba(255,255,255,x).
+- Removed from the NEW site only: /new/bot, /new/community, /new/status (files and links). The old live site was not touched. The footer "Server online" light (sitestatus) stays.
+- Landing icon colours: .sky .pink .cyan .fuc .t-ok .t-warn on .ico.
+
 ## v3.15.0 - Pair page LIVE + Plugins page new look (preview)
 - /pair now serves public/pair.html (the redesigned page, was new-pair.html). The old page is public/index.html at /pair-classic (rollback: point PAGES['/pair'] back to 'index.html' in server.js). The live pair page header/footer link to /new/* pages for now.
 - Plugins redesign is a PREVIEW at /new/plugins: public/new-plugins.html + tf2-plugins.js (forked from plugins.js, which is still used by the live /plugins) + tf2-store.css (loaded after tf2-plugins.css, which still styles the rating form). Do not switch live /plugins without the owner's approval.

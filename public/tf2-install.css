@@ -14,7 +14,7 @@
 .steps .btn { height: 42px; font-size: 14px; flex: 1 1 auto; white-space: nowrap; }
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
 .tabs button { height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--m); cursor: pointer; font-size: 14px; }
-.tabs button[aria-selected="true"] { background: rgba(255, 255, 255, .07); color: var(--t); border-color: var(--line2); }
+.tabs button[aria-selected="true"] { background: rgb(var(--w) / .07); color: var(--t); border-color: var(--line2); }
 .code { margin-top: 12px; border: 1px solid var(--line2); border-radius: var(--r); background: #08080a; overflow: hidden; }
 .code[hidden] { display: none; }
 .code .bar2 { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--m); }

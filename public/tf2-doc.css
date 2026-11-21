@@ -30,7 +30,7 @@
 /* link buttons at the end of a section */
 .prose .cl { display: flex; flex-wrap: wrap; gap: 10px; }
 .prose .link2 { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--rc); border: 1px solid var(--line2); background: var(--s2); color: var(--t); font-size: 14px; }
-.prose .link2:hover { background: rgba(255, 255, 255, .05); }
+.prose .link2:hover { background: rgb(var(--w) / .05); }
 
 /* Support: questions */
 .qsearch { margin-top: 12px; }
@@ -95,7 +95,7 @@
 .pgin:focus-visible, .pgcode:focus-visible { outline: 2px solid rgb(var(--acc)); outline-offset: 1px; }
 .pgout { margin: 12px 0 0; min-height: 90px; padding: 14px; border-radius: var(--rc); border: 1px solid var(--line); background: var(--s1); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 var(--mono); color: var(--t); }
 .pgrow:has(.dbtn) { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.dbtn { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 18px; border-radius: var(--rc); border: 1px solid var(--btn); background: var(--btn); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); font: inherit; font-weight: 500; font-size: 15px; cursor: pointer; flex: 1 1 auto; }
+.dbtn { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 18px; border-radius: var(--rc); border: 1px solid var(--btn); background: var(--btn); color: #fff; box-shadow: inset 0 1px 0 rgb(var(--w) / .18); font: inherit; font-weight: 500; font-size: 15px; cursor: pointer; flex: 1 1 auto; }
 .dbtn.ghost { background: var(--s2); color: var(--t); border-color: var(--line2); box-shadow: none; }
 .dbtn:disabled { opacity: .55; cursor: progress; }
 .dmuted { color: var(--m); font-size: 14px; }

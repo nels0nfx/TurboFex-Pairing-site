@@ -29,7 +29,7 @@
 .pempty { margin-top: 24px; padding: 28px 18px; text-align: center; border: 1px dashed var(--line2); border-radius: var(--r); color: var(--m); }
 
 /* a plugin card */
-.pcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+.pcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgb(var(--w) / .04); }
 .pcard:hover { border-color: var(--line2); }
 .pcard.feat { border-color: rgb(var(--acc) / .35); }
 .pmain { display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 12px; border-radius: var(--r) var(--r) 0 0; }
@@ -75,7 +75,7 @@
 .backlnk { display: inline-flex; align-items: center; gap: 8px; height: 40px; color: var(--b); font-size: 14px; }
 .backlnk:hover { color: var(--t); } .backlnk svg { transform: rotate(180deg); width: 16px; height: 16px; }
 .pl .pdhead.glow { position: static; left: auto; bottom: auto; width: auto; height: auto; transform: none; filter: none; pointer-events: auto; border-radius: var(--r); }
-.pdhead { margin-top: 8px; padding: 18px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+.pdhead { margin-top: 8px; padding: 18px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--s1); box-shadow: inset 0 1px 0 rgb(var(--w) / .04); }
 .pdrow { display: flex; align-items: center; gap: 14px; }
 .pdrow .picon { width: 56px; height: 56px; font-size: 24px; }
 .pdtx { min-width: 0; } .pdtx h1 { font-size: 24px; line-height: 1.15; letter-spacing: -.02em; font-weight: 600; color: var(--t); }
@@ -122,7 +122,7 @@ select.ptext { height: 48px; padding: 0 12px; }
 
 /* buttons that plugins.js builds: gold = main, ghost = secondary */
 .pl .btn { display: inline-flex; width: auto; height: 44px; padding: 0 16px; font-size: 14px; }
-.pl .btn-gold { background: var(--btn); border-color: var(--btn); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); } .pl .btn-gold:hover { background: var(--btn2); border-color: var(--btn2); }
+.pl .btn-gold { background: var(--btn); border-color: var(--btn); color: #fff; box-shadow: inset 0 1px 0 rgb(var(--w) / .18); } .pl .btn-gold:hover { background: var(--btn2); border-color: var(--btn2); }
 .pl .btn-ghost { background: var(--s2); border-color: var(--line2); color: var(--t); }
 .pl .prev > .btn-ghost { background: transparent; border-color: transparent; color: var(--m); justify-self: start; padding: 0 4px; } .pl .prev > .btn-ghost:hover { color: var(--t); }
 .pl .pinstall .pcopy { background: var(--btn); border-color: var(--btn); color: #fff; height: 40px; } .pl .pinstall .pcopy:hover { background: var(--btn2); }

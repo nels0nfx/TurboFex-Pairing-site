@@ -88,24 +88,6 @@ test('footer and menu only link to pages that exist', async () => {
   } finally { t.close(); }
 });
 
-test('Bot page: numbers, every category and its count, examples and protection names all come from the real command list', async () => {
-  const t = await boot();
-  try {
-    const r = await fetch(t.base + '/new/bot'); assert.strictEqual(r.status, 200);
-    const h = await r.text();
-    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
-    assert.ok(h.includes(`${snap.bot.commands} commands in ${snap.bot.categories} categories`));
-    const rows = h.match(/<details class="cat tone-[a-z]+"/g) || [];
-    assert.strictEqual(rows.length, snap.categories.length, 'one compact row per category');
-    for (const c of snap.categories) assert.ok(h.includes(`<b>${c.title}</b><span class="n">${c.count}</span>`), c.title + ' with its real count');
-    const all = new Set(snap.categories.flatMap((c) => c.commands.map((x) => x.name)));
-    for (const m of h.matchAll(/<li><code>([^<]+)<\/code>/g)) assert.ok(all.has(m[1]), 'listed command exists: ' + m[1]);
-    for (const m of h.matchAll(/class="ex">([^<]+)</g)) for (const n of m[1].split(' · ')) assert.ok(all.has(n), 'example exists: ' + n);
-    for (const m of h.matchAll(/class="chip">([^<]+)</g)) assert.ok(all.has(m[1]), 'protection command exists: ' + m[1]);
-    assert.ok(snap.ownerCommands.includes('mode') && snap.ownerCommands.includes('plugin'), '.mode and .plugin exist');
-    assert.ok(h.includes('href="/new/install"') && h.includes('class="foot"') && h.includes('id="sitestatus"'));
-  } finally { t.close(); }
-});
 
 test('Install page: honest WhatsApp warning, three steps, six ways to run it with a Copy button', async () => {
   const t = await boot();
@@ -122,13 +104,33 @@ test('Install page: honest WhatsApp warning, three steps, six ways to run it wit
   } finally { t.close(); }
 });
 
-test('Home, menu and footer send people to the new Bot and Install pages', () => {
+test('Home, menu and footer send people to Install; the Bot, Community and Status pages are gone', async () => {
   for (const f of ['partials/head2.html', 'partials/foot2.html']) {
-    const s = fs.readFileSync(path.join(root, f), 'utf8');
-    assert.ok(s.includes('href="/new/bot"') && s.includes('href="/new/install"'), f);
+    const x = fs.readFileSync(path.join(root, f), 'utf8');
+    assert.ok(x.includes('href="/new/install"'), f);
+    for (const gone of ['/new/bot', '/new/community', '/new/status']) assert.ok(!x.includes('href="' + gone + '"'), f + ' no longer links to ' + gone);
   }
   const home = fs.readFileSync(path.join(root, 'public', 'new-home.html'), 'utf8');
-  assert.ok(home.includes('href="/new/bot"') && home.includes('href="/new/install"'));
+  assert.ok(home.includes('href="/new/install"') && !/href="\/new\/(bot|community|status)"/.test(home));
+  for (const f of fs.readdirSync(path.join(root, 'public')).filter((n) => /\.html$/.test(n) && n !== 'admin.html')) assert.ok(!/href="\/new\/(bot|community|status)\/?"/.test(fs.readFileSync(path.join(root, 'public', f), 'utf8')), f + ' has no link to a removed page');
+  const t = await boot();
+  try { for (const n of ['bot', 'community', 'status']) assert.strictEqual((await fetch(t.base + '/new/' + n)).status, 404, n); } finally { t.close(); }
+});
+
+test('dark / light switch: every new page sets the mode before drawing, has the button, and light colours exist', async () => {
+  const t = await boot();
+  try {
+    for (const n of ['', '/pair', '/install', '/plugins', '/docs', '/developers', '/about', '/support', '/playground', '/privacy', '/terms', '/rules']) {
+      const h = await (await fetch(t.base + '/new' + n)).text();
+      assert.ok(h.includes('src="/tf2-theme.js"') && h.indexOf('tf2-theme.js') < h.indexOf('tf2.css'), n + ' sets the mode first');
+      assert.ok(h.includes('id="ttheme"'), n + ' has the switch');
+    }
+    assert.ok((await (await fetch(t.base + '/pair')).text()).includes('id="ttheme"'), 'live /pair has the switch');
+    const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
+    assert.ok(css.includes(':root[data-theme="light"]') && !/data:|url\(/.test(css));
+    const js = fs.readFileSync(path.join(root, 'public', 'tf2-theme.js'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'tf2.js'), 'utf8');
+    assert.ok(js.includes("'tfx-theme'") && !/innerHTML/.test(js));
+  } finally { t.close(); }
 });
 
 test('Pair preview: every id the pairing script needs is on the page, no id appears twice, same script as the live pairing page', async () => {
@@ -143,7 +145,7 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
     const ids = [...h.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
     assert.deepStrictEqual(ids.filter((x, i) => ids.indexOf(x) !== i), [], 'no duplicate ids');
     assert.ok(h.includes('src="/app.js"') && h.includes('src="/countries.js"') && h.includes('src="/pair.js"'));
-    assert.ok(!h.includes('notice.js') && !h.includes('shell.js') && !h.includes('theme.js'), 'no old header scripts (they would fight the new header)');
+    assert.ok(!h.includes('notice.js') && !h.includes('shell.js') && !h.includes('src="/theme.js"'), 'no old header scripts (they would fight the new header)');
     assert.ok(h.includes('unofficial WhatsApp Web connection'), 'honest warning in the safety answers');
     assert.ok(h.includes('class="foot min"') && !h.includes('class="fg"'), 'the pairing page has the small footer, not the full homepage one');
     const live = await (await fetch(t.base + '/pair')).text();
@@ -153,38 +155,23 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
   } finally { t.close(); }
 });
 
-test('Status page: only real server answers, no made-up numbers', async () => {
-  const t = await boot();
-  try {
-    const r = await fetch(t.base + '/new/status'); assert.strictEqual(r.status, 200);
-    const h = await r.text();
-    assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h));
-    assert.ok(h.includes('data-k="site"') && h.includes('data-k="pair"') && h.includes('data-k="store"'));
-    assert.ok(!/uptime|\d+(\.\d+)?%|all systems|incident|users|linked today/i.test(h.replace(/<svg[^>]*class="sr"[\s\S]*?<\/svg>/, '').replace(/#i-[a-z]+/g, '')), 'no invented stats or fixed claims');
-    const js = fs.readFileSync(path.join(root, 'public', 'tf2-status.js'), 'utf8');
-    assert.ok(js.includes("'/health'") && js.includes("'/api/status'") && js.includes("'/api/plugins'") && !/innerHTML/.test(js), 'reads real endpoints, writes text only');
-    assert.strictEqual((await fetch(t.base + '/tf2-status.js')).status, 200);
-    assert.strictEqual((await fetch(t.base + '/tf2-pair.css')).status, 200);
-    assert.strictEqual((await fetch(t.base + '/new/status/')).status, 200);
-  } finally { t.close(); }
-});
 
-test('NEW_SITE=off hides Pair and Status previews too', async () => {
+test('NEW_SITE=off hides the Pair preview too', async () => {
   const t = await boot({ NEW_SITE: 'off' });
-  try { for (const p of ['/new/pair', '/new/status', '/new-pair.html', '/new-status.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
+  try { for (const p of ['/new/pair', '/new-pair.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
 });
 
 test('text pages: same wording as the live pages, new look, footer, no inline code', async () => {
   const t = await boot();
   const text = (h) => (h.match(/<article[^>]*class="prose"[^>]*>([\s\S]*?)<\/article>/) || [, ''])[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   try {
-    for (const n of ['about', 'terms', 'privacy', 'rules', 'community', 'support']) {
+    for (const n of ['about', 'terms', 'privacy', 'rules', 'support']) {
       const r = await fetch(t.base + '/new/' + n); assert.strictEqual(r.status, 200, n);
       const h = await r.text();
       assert.ok(!h.includes('<!--tfx:') && !/ style=|<style|<script>/.test(h), n + ' has no inline code');
       assert.ok(h.includes('tf2.css') && h.includes('tf2-doc.css') && !h.includes('tfx.css') && h.includes('class="foot"') && h.includes('noindex'), n);
       const live = await (await fetch(t.base + '/' + n)).text();
-      if (n !== 'community') assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(live).replace(/\s?\/ ?/g, ''), n + ' wording is unchanged');
+      assert.strictEqual(text(h).replace(/\s?\/ ?/g, ''), text(live).replace(/ Community(?= Plugins and developers)/, '').replace(/\s?\/ ?/g, ''), n + ' wording is unchanged (apart from the removed Community link)');
       assert.strictEqual((await fetch(t.base + '/new/' + n + '/')).status, 200);
     }
     const priv = await (await fetch(t.base + '/new/privacy')).text();
@@ -219,20 +206,21 @@ test('Docs and Playground previews: same wording, same ids and scripts, Playgrou
 
 test('NEW_SITE=off hides the text page previews', async () => {
   const t = await boot({ NEW_SITE: 'off' });
-  try { for (const n of ['about', 'terms', 'privacy', 'rules', 'community', 'support', 'docs', 'playground']) for (const p of ['/new/' + n, '/new-' + n + '.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
+  try { for (const n of ['about', 'terms', 'privacy', 'rules', 'support', 'docs', 'playground']) for (const p of ['/new/' + n, '/new-' + n + '.html']) assert.strictEqual((await fetch(t.base + p)).status, 404, p); } finally { t.close(); }
 });
 
 test('colour system: every category has a colour family, one family per category everywhere, four button looks, icons come from the sprite', async () => {
   const t = await boot();
   try {
     const snap = JSON.parse(fs.readFileSync(path.join(root, 'public', 'commands.json'), 'utf8'));
-    const bot = await (await fetch(t.base + '/new/bot')).text();
-    for (const c of snap.categories) assert.ok(new RegExp('class="cat tone-(vio|sky|cyan|pink|fuc)"[^>]*>\\s*<summary><b>' + c.title + '<').test(bot), c.key + ' has a colour');
-    const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8') + fs.readFileSync(path.join(root, 'public', 'tf2-bot.css'), 'utf8');
-    for (const f of ['vio', 'sky', 'cyan', 'pink', 'fuc']) assert.ok(css.includes('.tone-' + f), f + ' is styled');
+    const home = await (await fetch(t.base + '/new')).text();
+    const tones = new Set([...home.matchAll(/class="row[^"]*"[^>]*><span class="ico ([a-z-]+)"/g)].map((m) => m[1]));
+    assert.ok(tones.size >= 5, 'the landing icons use at least five different colours: ' + [...tones]);
+    const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
+    for (const f of ['vio', 'sky', 'cyan', 'pink', 'fuc', 't-ok', 't-warn']) assert.ok(css.includes('.' + f + ' {'), f + ' is styled');
     for (const b of ['.btn.p', '.btn.q', '.btn.d']) assert.ok(css.includes(b + ' {') || css.includes(b + ','), b + ' exists');
     assert.ok(!/\.btn\.p \{[^}]*#f4f4f6/.test(css), 'the main button is violet, not white');
-    for (const n of ['', '/bot', '/install', '/pair', '/status', '/about', '/plugins', '/docs']) {
+    for (const n of ['', '/install', '/pair', '/about', '/plugins', '/docs']) {
       const h = await (await fetch(t.base + '/new' + n)).text();
       assert.ok(h.includes('symbol id="i-key"'), n + ' has the icon sprite');
       const ids = [...h.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
