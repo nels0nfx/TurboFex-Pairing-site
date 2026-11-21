@@ -145,7 +145,7 @@ test('Pair preview: every id the pairing script needs is on the page, no id appe
     assert.ok(h.includes('src="/app.js"') && h.includes('src="/countries.js"') && h.includes('src="/pair.js"'));
     assert.ok(!h.includes('notice.js') && !h.includes('shell.js') && !h.includes('theme.js'), 'no old header scripts (they would fight the new header)');
     assert.ok(h.includes('unofficial WhatsApp Web connection'), 'honest warning in the safety answers');
-    assert.ok(h.includes('class="foot"'));
+    assert.ok(h.includes('class="foot min"') && !h.includes('class="fg"'), 'the pairing page has the small footer, not the full homepage one');
     const live = await (await fetch(t.base + '/pair')).text();
     assert.ok(live.includes('src="/app.js"') && live.includes('tfx.css'), 'the live pairing page is untouched');
   } finally { t.close(); }

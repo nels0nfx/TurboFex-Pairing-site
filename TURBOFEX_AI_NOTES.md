@@ -6,6 +6,11 @@
 Last updated: 2026-11-01 (pair site v2.9.1)
 Where this file lives: inside the pairing site project (the repo root of `nels0nfx/TurboFex-Pairing-site`, next to `server.js`). It is NOT in `public/`, so visitors cannot open it. Keep it inside the site zip every time, so it always travels with the project.
 
+## v3.14.0 - Pairing page new look (PREVIEW at /new/pair, live /pair untouched)
+- Only public/new-pair.html and public/tf2-pair.css changed (redesign block at the end of the css). app.js/pair.js/server.js untouched; every id app.js needs is still on the page (test checks this).
+- Layout: heading + status chips, one panel (progress, Pairing code/QR switch, form or step), privacy facts, 5 troubleshooting answers, small footer (class "foot min").
+- Rollback: restore the v3.13.0 ZIP. Do not switch live /pair without the owner's approval.
+
 ## 1. Who the owner is and how to talk to them
 - Developer of **TurboFex**, a WhatsApp group-management bot (Node.js, Baileys 7.0.0-rc14) used by other people.
 - Works **from a phone with Termux**. Hosts the bot on a **Spaceify panel**. Not a beginner but wants **plain, non-technical explanations**. No jargon, short sentences.
