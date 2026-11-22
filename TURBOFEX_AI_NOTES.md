@@ -601,3 +601,9 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - To animate a new icon: add its drawing start to `SIG` in tf2-icons.js and a track for its name in the table, then run `python3 tools/make-icon-css.py` to rebuild the CSS. Keep new class names unique (see the class-name guard test).
 - Not covered on purpose: the 3D scenes (own kit), the logo, the blue verified mark, chevrons marked `.go` (own hover rule), the phone icon and the success tick on Pair (own animations).
 
+
+## v3.25.0 - loading system and admin fix
+- Kit: `public/tf2-load.js` (blocking, in head, also holds the one-time start-up splash) and `tf2-load.css` (linked before the script). API on `window.TFLoad`: `fetch` (time limit), `latest` (cancels older request with same key), `busy`/`run` (button label, double-press guard), `skeleton`/`mount`, `state` (error/unavailable/empty with Try again), `why`, `bar` (indeterminate unless real progress is given).
+- Rules: honest progress only, never hide content already showing, never replace a QR/code with a loader, no inline style attributes (CSP), motion only under no-preference. Class prefixes `ld-`, `tb-`, `skel`.
+- Site facts: no Status or Bot-management page exists; Install and Docs are static; plugin install is a copy command (the bot installs), so no install progress bar.
+- Admin fix: the scene kit's `.st` is now `.sc > .st` and the admin ring class is `gpv`. Lesson again: never share short class names between kits.

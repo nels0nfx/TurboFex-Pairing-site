@@ -37,19 +37,21 @@
   var show = function () { $('pg-out').textContent = lines.join('\n'); };
 
   async function run() {
-    var btn = $('pg-run'); btn.disabled = true; lines = []; $('pg-out').textContent = ''; $('pg-status').textContent = 'Checking the files…';
+    var btn = $('pg-run'), done = TFLoad.busy(btn, 'Checking…'); if (!done) return;   // a second press while it works is ignored
+    lines = []; $('pg-out').textContent = ''; $('pg-status').textContent = 'Checking the files…';
     try {
-      var chk = await fetch('/api/playground/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ manifest: $('pg-man').value, code: $('pg-code').value }) });
+      var chk = await TFLoad.fetch('/api/playground/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ manifest: $('pg-man').value, code: $('pg-code').value }) }, 15000);
       var cj = await chk.json().catch(function () { return {}; });
       if (!chk.ok) { $('pg-status').textContent = cj.error || 'The check could not be done. Try again in a minute.'; return; }
       if (!cj.ok) { say('⚠️ ', 'The files have problems:'); (cj.errors || []).forEach(function (e) { say('   - ', e); }); $('pg-status').textContent = ''; show(); return; }
       var m = cj.manifest; var what = $('pg-what').value.split(':'); var kind = what[0], name = what.slice(1).join(':');
       if (!kind) { $('pg-status').textContent = 'There is nothing to run.'; return; }
       say('✅ ', 'Files are fine: ' + m.name + ' ' + m.version + ' (asks for: ' + (m.permissions.join(', ') || 'nothing special') + ')');
-      $('pg-status').textContent = 'Running…';
+      $('pg-status').textContent = 'Running…'; var lbl = btn.querySelector('.ld-lbl'); if (lbl) lbl.textContent = 'Running…';
       await runInSandbox(m, $('pg-code').value, kind, name);
-    } catch (e) { say('⚠️ ', 'Could not run: ' + (e && e.message || e)); }
-    finally { show(); btn.disabled = false; }
+      if ($('pg-status').textContent === 'Running…') $('pg-status').textContent = 'Finished.';   // only said once the run really ended
+    } catch (e) { say('⚠️ ', 'Could not run: ' + (e && e.timeout ? 'the check took too long, please try again' : (e && e.message || e))); $('pg-status').textContent = 'Stopped with an error.'; }
+    finally { show(); done(); }
   }
 
   // small synchronous SHA-256 (the browser's own one is asynchronous, the broker needs an answer right away)

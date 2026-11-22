@@ -1,0 +1,76 @@
+/* TurboFex loading kit (v3.25.0).
+   Level A: the start-up screen (first visit of a browser session only).
+   Level B: placeholders for one list, card or table that is waiting for data (.skel, .ld-*).
+   Level C: a small indicator inside a button that is working (.ld-busy) and a small progress bar (.ld-bar).
+   All colours come from the site tokens, so light and dark both work. Motion is inside the no-preference block. */
+
+/* ---- Level A: start-up ---- */
+html.tf-boot { overflow: hidden; }
+#tfboot { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 26px; background: #050506; opacity: 1; transition: opacity .3s ease; }
+html[data-theme="light"] #tfboot { background: #f6f6f9; }
+#tfboot.out { opacity: 0; pointer-events: none; }
+#tfboot .tb-halo { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: radial-gradient(closest-side, rgba(108, 92, 231, .34), rgba(108, 92, 231, 0)); pointer-events: none; }
+html[data-theme="light"] #tfboot .tb-halo { background: radial-gradient(closest-side, rgba(108, 92, 231, .22), rgba(108, 92, 231, 0)); }
+#tfboot .tb-logo { position: relative; width: 132px; height: 91px; }
+#tfboot .tb-logo img { display: block; width: 100%; height: 100%; }
+#tfboot .tb-glint { position: absolute; inset: 0; opacity: 0; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .9) 50%, transparent 62%) 160% 0 / 220% 100% no-repeat; -webkit-mask: url(/logo-brand-dark.png) center / contain no-repeat; mask: url(/logo-brand-dark.png) center / contain no-repeat; }
+html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(105deg, transparent 38%, rgba(108, 92, 231, .55) 50%, transparent 62%); -webkit-mask-image: url(/logo-brand-light.png); mask-image: url(/logo-brand-light.png); }
+#tfboot .tb-bar { position: relative; width: 96px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(128, 128, 160, .22); }
+#tfboot .tb-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 40%; border-radius: 3px; background: #6c5ce7; }
+
+/* ---- Level B: placeholders ---- */
+.skel, .ld-sk { display: block; border-radius: var(--r, 14px); background-color: rgb(var(--w, 128 128 160) / .07); background-image: linear-gradient(100deg, transparent 30%, rgb(var(--acc, 108 92 231) / .16) 50%, transparent 70%); background-size: 220% 100%; background-position: 160% 0; background-repeat: no-repeat; }
+.skel.pk { height: 150px; border-radius: 16px; border: 1px solid var(--line, rgba(128,128,160,.25)); margin: 0 0 12px; }
+.ld-line { height: 12px; border-radius: 6px; margin: 8px 0; }
+.ld-line.w1 { width: 92%; } .ld-line.w2 { width: 70%; } .ld-line.w3 { width: 46%; }
+.ld-row { height: 64px; border-radius: 14px; margin: 0 0 10px; }
+.ld-card { height: 150px; }
+.ld-wrap { display: grid; gap: 12px; }
+.ld-wrap.cols { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* a plain, honest message in place of a list: it could not load, it is unavailable, or there is nothing to show */
+.ld-state { grid-column: 1 / -1; display: grid; justify-items: center; gap: 8px; margin: 22px auto; padding: 22px 18px; max-width: 420px; text-align: center; border: 1px solid var(--line, rgb(128 128 160 / .25)); border-radius: var(--r, 16px); background: var(--s1, transparent); }
+.ld-state .ld-ti { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; color: rgb(var(--acc, 108 92 231)); background: rgb(var(--acc, 108 92 231) / .14); }
+.ld-state.bad .ld-ti { color: rgb(var(--bad, 248 113 113)); background: rgb(var(--bad, 248 113 113) / .14); }
+.ld-state.warn .ld-ti { color: rgb(var(--warn, 245 166 35)); background: rgb(var(--warn, 245 166 35) / .14); }
+.ld-state svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ld-state b { font-size: 16px; font-weight: 600; }
+.ld-state p { margin: 0; color: var(--m, #888); font-size: 14px; line-height: 1.5; }
+.ld-state .btn { margin-top: 6px; min-width: 140px; }
+
+/* ---- Level C: inside a button ---- */
+.ld-busy { cursor: progress; }
+.ld-busy::before, .ld-spin { content: ""; display: inline-block; flex: none; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; opacity: .85; box-sizing: border-box; }
+.ld-spin { margin-right: 0; }
+.ld-bar { position: relative; height: 4px; border-radius: 4px; overflow: hidden; background: rgb(var(--w, 128 128 160) / .14); }
+.ld-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 4px; background: var(--brand, #6c5ce7); transition: width .25s ease; }
+.ld-bar.ld-ind i { width: 38%; }
+.ld-bar.bad i { width: 100%; background: rgb(var(--bad, 248 113 113)); }
+.ld-bar.ok i { width: 100%; background: rgb(var(--ok, 52 211 153)); }
+.ld-hide { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  #tfboot .tb-logo { animation: tbIn .8s cubic-bezier(.2, .8, .2, 1) both; }
+  #tfboot .tb-halo { animation: tbHalo 1.6s ease-out both; }
+  #tfboot .tb-glint { animation: tbGlint 1s ease-in-out .55s both; }
+  #tfboot .tb-bar { animation: tbFade .4s ease .3s both; }
+  #tfboot .tb-bar i { animation: tbBar 1.1s ease-in-out infinite; }
+  .skel, .ld-sk { animation: ldShim 1.5s linear infinite; }
+  .ld-busy::before, .ld-spin { animation: ldSpin .75s linear infinite; }
+  .ld-bar.ld-ind i { animation: ldBar 1.2s ease-in-out infinite; }
+  .ld-state { animation: ldIn .3s ease both; }
+}
+@keyframes tbIn { from { opacity: 0; transform: translateY(6px) scale(.84); filter: blur(10px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes tbHalo { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes tbGlint { 0% { opacity: 1; background-position: 160% 0; } 100% { opacity: 1; background-position: -60% 0; } }
+@keyframes tbFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tbBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+@keyframes ldShim { to { background-position: -60% 0; } }
+@keyframes ldSpin { to { transform: rotate(360deg); } }
+@keyframes ldBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(270%); } }
+@keyframes ldIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* small "check again" button and a waiting dot for status boxes */
+.ld-mini.btn { height: 32px; padding: 0 12px; font-size: 13px; margin-left: auto; min-width: 0; }
+.ld-wait b::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; opacity: .7; box-sizing: border-box; }
+@media (prefers-reduced-motion: no-preference) { .ld-wait b::before { animation: ldSpin .8s linear infinite; } }

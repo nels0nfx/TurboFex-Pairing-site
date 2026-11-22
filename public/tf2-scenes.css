@@ -9,7 +9,7 @@
 .sc::before { content: ""; position: absolute; inset: 8% 14% 10%; background: radial-gradient(closest-side, rgb(var(--hc) / .15), transparent 74%); }
 .sc::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 150px; height: 16px; margin-left: -75px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .4), transparent); filter: blur(5px); opacity: .55; }
 :root[data-theme="light"] .sc::after { background: radial-gradient(closest-side, rgb(40 40 90 / .25), transparent); }
-.st { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transform: rotateX(8deg) rotateY(-10deg); }
+.sc > .st { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transform: rotateX(8deg) rotateY(-10deg); }
 .o { position: absolute; left: var(--x, 0px); top: var(--y, 0px); width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 .o > .t { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; }
 /* flat glass panel */
@@ -65,7 +65,7 @@
 .wr3 i { position: absolute; left: 0; top: -2px; width: 12px; height: 6px; border-radius: 4px; background: linear-gradient(90deg, transparent, #fff); box-shadow: 0 0 9px 2px rgb(var(--cyan) / .8); opacity: 0; }
 /* ---- motion (only when the phone allows it) ---- */
 @media (prefers-reduced-motion: no-preference) {
-  .st { animation: scTilt var(--td, 15s) ease-in-out infinite alternate; }
+  .sc > .st { animation: scTilt var(--td, 15s) ease-in-out infinite alternate; }
   .o { animation: scFloat var(--fd, 6s) ease-in-out var(--fl, 0s) infinite alternate; }
   .o > .t, .o .bx { animation: scTurn var(--rd, 9s) ease-in-out var(--rl, 0s) infinite alternate; }
   .s-inst .r2 .bx { --rd: 11s; --ra: 10deg; } .s-inst .r1 .bx { --rd: 8s; --rl: -2s; --ra: 12deg; } .s-inst .r3 .bx { --rd: 13s; --rl: -4s; --ra: 9deg; }

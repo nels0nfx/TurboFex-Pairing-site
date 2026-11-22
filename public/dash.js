@@ -12,8 +12,8 @@
 
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function ico(id) { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '#i-' + id); s.appendChild(u); return s; }
-  function post(url, body) {
-    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'tfx' }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); });
+  function post(url, body, ms) {   // every request gives up after a time limit, so a button can never wait forever
+    return TFLoad.fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'tfx' }, body: JSON.stringify(body || {}) }, ms || 30000).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); });
   }
   function say(text, problems) {
     msg.classList.remove('ok'); msg.hidden = !text; msg.textContent = text || ''; prob.textContent = ''; prob.hidden = !(problems && problems.length);
@@ -141,21 +141,26 @@
       var acts = el('div', 'dacts'), tout = el('p', 'dmuted dcode', '');
       var canReply = s.status === 'pending' || s.status === 'changes' || s.status === 'rejected';
       if (g.waiting) acts.appendChild(action('Test code', 'ghost', function (b) {
-        b.disabled = true; post('/api/dev/testcode', { id: s.id }).then(function (x) {
-          b.disabled = false;
+        var done = TFLoad.busy(b, 'Making a code…'); if (!done) return;
+        post('/api/dev/testcode', { id: s.id }).then(function (x) {
+          done();
           if (x.ok) tout.textContent = 'Code: ' + x.j.code + ' (works once, for one hour). On YOUR bot, as owner, send: .plugin test ' + x.j.code; else tout.textContent = (x.j && x.j.error) || 'Could not make a code.';
-        }, function () { b.disabled = false; tout.textContent = 'The site could not be reached.'; });
+        }, function (e) { done(); tout.textContent = e && e.timeout ? 'This is taking too long. Please try again.' : 'The site could not be reached.'; });
       }));
       var box = el('div', 'dreply'); box.hidden = true;
       if (canReply) {
         var rt = el('textarea', 'dreplybox'); rt.maxLength = 500; rt.rows = 3; rt.placeholder = 'Write to the reviewer'; rt.setAttribute('aria-label', 'Message to the reviewer');
         var rb = el('button', 'btn sm ghost', 'Send'); rb.type = 'button';
-        rb.addEventListener('click', function () { rb.disabled = true; post('/api/dev/reply', { id: s.id, text: rt.value }).then(function (x) { if (x.ok) load(); else { rb.disabled = false; rb.textContent = (x.j && x.j.error) || 'Could not send'; } }); });
+        rb.addEventListener('click', function () {
+          var done = TFLoad.busy(rb, 'Sending…'); if (!done) return;
+          post('/api/dev/reply', { id: s.id, text: rt.value }).then(function (x) { if (x.ok) load(); else { done(); rb.textContent = (x.j && x.j.error) || 'Could not send'; } }, function () { done(); rb.textContent = 'Could not send. Try again.'; });
+        });
         box.appendChild(rt); box.appendChild(rb);
         acts.appendChild(action('Message', 'ghost', function () { box.hidden = !box.hidden; if (!box.hidden) rt.focus(); }));
       }
       if (s.status === 'pending' || s.status === 'approved') acts.appendChild(action('Withdraw', 'danger', function (b) {
-        b.disabled = true; post('/api/dev/withdraw', { id: s.id }).then(function (x) { if (x.ok) load(); else { b.disabled = false; b.textContent = (x.j && x.j.error) || 'Could not withdraw'; } });
+        var done = TFLoad.busy(b, 'Withdrawing…'); if (!done) return;
+        post('/api/dev/withdraw', { id: s.id }).then(function (x) { if (x.ok) load(); else { done(); b.textContent = (x.j && x.j.error) || 'Could not withdraw'; } }, function () { done(); b.textContent = 'Could not withdraw. Try again.'; });
       }));
       if (live) { var lk = el('a', 'btn sm quiet', 'In store'); lk.href = '/plugins#' + encodeURIComponent(s.pluginId); acts.appendChild(lk); }
       if (acts.childNodes.length) card.appendChild(acts);
@@ -200,7 +205,7 @@
       var c = el('div', 'dhook'); var tx = el('div', 'tx'); tx.appendChild(el('b', null, h.repo.replace('https://github.com/', '') + (h.folder ? ' / ' + h.folder : '')));
       tx.appendChild(el('small', null, h.last ? 'Last: ' + h.last.tag + ' - ' + h.last.text + ' (' + ago(h.last.at) + ')' : 'Nothing received yet.')); c.appendChild(tx);
       var rb = el('button', 'btn sm ghost', 'Remove'); rb.type = 'button';
-      rb.addEventListener('click', function () { rb.disabled = true; post('/api/dev/hooks', { action: 'remove', repo: h.repo }).then(function (x) { if (x.ok) drawHooks(x.j.hooks || []); else rb.disabled = false; }); });
+      rb.addEventListener('click', function () { var done = TFLoad.busy(rb, 'Removing…'); if (!done) return; post('/api/dev/hooks', { action: 'remove', repo: h.repo }).then(function (x) { if (x.ok) drawHooks(x.j.hooks || []); else done(); }, function () { done(); }); });
       c.appendChild(rb); box.appendChild(c);
     });
   }
@@ -212,7 +217,9 @@
     document.getElementById('dhnew').addEventListener('click', function () { if (!confirm('Make a new secret? The old one stops working, so you must paste the new one into GitHub.')) return; post('/api/dev/hooks', { action: 'rotate' }).then(showInfo); });
     document.getElementById('dhookadd').addEventListener('submit', function (ev) {
       ev.preventDefault(); hsay('');
-      post('/api/dev/hooks', { action: 'add', repo: document.getElementById('dhrepo').value, folder: document.getElementById('dhfolder').value }).then(function (x) { if (x.ok) { document.getElementById('dhrepo').value = ''; document.getElementById('dhfolder').value = ''; drawHooks(x.j.hooks || []); } else hsay((x.j && x.j.error) || 'Could not add that.'); });
+      var addBtn = ev.target.querySelector('button[type="submit"],button:not([type])'), addDone = addBtn ? TFLoad.busy(addBtn, 'Adding…') : function () {};
+      if (!addDone) return;
+      post('/api/dev/hooks', { action: 'add', repo: document.getElementById('dhrepo').value, folder: document.getElementById('dhfolder').value }).then(function (x) { if (x.ok) { document.getElementById('dhrepo').value = ''; document.getElementById('dhfolder').value = ''; drawHooks(x.j.hooks || []); } else hsay((x.j && x.j.error) || 'Could not add that.'); addDone(); }, function (e) { addDone(); hsay(e && e.timeout ? 'This is taking too long. Please try again.' : 'The site could not be reached. Please try again.'); });
     });
   }
 
@@ -233,23 +240,26 @@
     var ac = document.getElementById('acct'); ac.textContent = ''; var v = el('span', 'vbadge'); v.appendChild(el('b', null, j.user.login)); if (j.user.verified) { v.appendChild(vmark()); } else { v.appendChild(el('b', 'dmuted', ' · Developer')); } ac.appendChild(v);
     show(location.hash.slice(1));
   }
+  var firstLoad = true;
   function load() {
-    return fetch('/api/dev/me', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (j) {
+    if (firstLoad && !stateBox.hidden) TFLoad.mount(stateBox, 'lines', 3);   // placeholders only on the first look, never over content that is already showing
+    firstLoad = false;
+    return TFLoad.fetch('/api/dev/me', { headers: { Accept: 'application/json' } }, 15000).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.configured || !j.user) return signedOut(j);
       signedIn(j);
-    }).catch(function () { pub.hidden = false; dash.hidden = true; tabs.hidden = true; stateBox.textContent = ''; stateBox.appendChild(el('p', 'dmuted', 'The Developer Centre cannot be loaded right now. Please try again in a moment.')); });
+    }).catch(function (e) { pub.hidden = false; dash.hidden = true; tabs.hidden = true; TFLoad.state(stateBox, { kind: 'error', title: 'The Developer Centre cannot be loaded', text: TFLoad.why(e, 'The Developer Centre could not be loaded.'), retry: load }); });
   }
-  document.getElementById('dout').addEventListener('click', function () { post('/api/dev/logout').then(function () { try { history.replaceState(null, '', '/developers'); } catch (x) { /* fine */ } load(); }); });
+  document.getElementById('dout').addEventListener('click', function (ev) { var b = ev.currentTarget, done = TFLoad.busy(b, 'Signing out…'); if (!done) return; post('/api/dev/logout').then(function () { try { history.replaceState(null, '', '/developers'); } catch (x) { /* fine */ } done(); load(); }, function () { done(); }); });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault(); say('');
     var body = { repo: document.getElementById('drepo').value, tag: document.getElementById('dtag').value, folder: document.getElementById('dfolder').value };
     if (!body.repo.trim() || !body.tag.trim()) return say('Fill in the repository address and the release tag.');
-    var label = go.querySelector('span'); go.disabled = true; label.textContent = 'Checking…';
-    post('/api/dev/submit', body).then(function (x) {
-      go.disabled = false; label.textContent = 'Send for review';
+    var done = TFLoad.busy(go, 'Validating…'); if (!done) return;   // the form keeps what was typed; a second press is ignored
+    post('/api/dev/submit', body, 60000).then(function (x) {
+      done();
       if (!x.ok) return say((x.j && x.j.error) || 'Something went wrong.', x.j && x.j.problems);
       form.reset(); load().then(function () { show('plugins', true); });
-    }, function () { go.disabled = false; label.textContent = 'Send for review'; say('The site could not be reached. Please try again.'); });
+    }, function (e) { done(); say(e && e.timeout ? 'This is taking too long. Your form is still filled in, so you can try again.' : 'The site could not be reached. Please try again.'); });
   });
   load();
 })();

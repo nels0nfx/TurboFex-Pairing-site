@@ -167,6 +167,18 @@ h1.page { margin: 0; font-size: 26px; letter-spacing: -.02em; text-align: center
 #connect[data-step="3"] .lnk .nd { border-color: rgb(var(--ok) / .55); color: rgb(var(--ok)); }
 @keyframes tfwire { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #connect[data-step="2"] .wire i { animation: none; } }
+/* v3.25.0: the phone and TurboFex picture follows what is really happening.
+   Connecting (the request is running): violet dots travel along the wire. Waiting for WhatsApp: cyan (above). Linked: green (above).
+   Ended or failed: red and still. */
+#connect.ldb .wire i { background: rgb(var(--acc)); animation: tfwire 1s ease-in-out infinite; }
+#connect.ldb .wire i:nth-child(2) { animation-delay: .12s; } #connect.ldb .wire i:nth-child(3) { animation-delay: .24s; }
+#connect.ldb .wire i:nth-child(4) { animation-delay: .36s; } #connect.ldb .wire i:nth-child(5) { animation-delay: .48s; }
+#connect.ldb .lnk .nd { border-color: rgb(var(--acc) / .55); }
+#connect.ldb .lnk .nd.bot { animation: tfpulse 1.6s ease-in-out infinite; }
+#connect.ldx[data-step] .wire i { background: rgb(var(--bad)); animation: none; }
+#connect.ldx[data-step] .lnk .nd { border-color: rgb(var(--bad) / .55); color: rgb(var(--bad)); }
+@keyframes tfpulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--acc) / .0); } 50% { box-shadow: 0 0 0 6px rgb(var(--acc) / .16); } }
+@media (prefers-reduced-motion: reduce) { #connect.ldb .wire i, #connect.ldb .lnk .nd.bot { animation: none; } }
 
 /* method tiles */
 .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0; border: 0; background: none; }

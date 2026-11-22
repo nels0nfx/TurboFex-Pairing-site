@@ -35,7 +35,7 @@
 /* ---- sign-in page ---- */
 .adm .lg { background: radial-gradient(60% 40% at 50% 0%, rgb(var(--acc) / .14), transparent 70%), var(--bg); gap: 14px; align-content: center; }
 .adm .lg-art { display: block; width: 100%; max-width: 420px; }
-.adm .lg-art .sc { --sch: 128px; margin: 0; }
+.adm .lg-art .sc { --sch: 150px; margin: 0; }
 .adm .lg-note { display: none; margin: 0; color: var(--muted); font-size: 16px; text-align: center; }
 .adm .lg-box { max-width: 420px; padding: 24px 22px 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 24px 60px -30px rgba(0, 0, 0, .6); }
 .adm .lg-box::before { display: none; }
@@ -68,3 +68,10 @@
 }
 @keyframes scBlink2 { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 @keyframes scBar { from { transform: scaleY(.75); } to { transform: scaleY(1); } } .bars i { transform-origin: bottom; }
+
+/* v3.25.0: on phones the status tag in a list row (site.visit, login ...) had a zero-width cell and stuck out of the card, which made the whole page wider than the screen. The cell now fits its tag. */
+@media (max-width: 759px) {
+  .adm .td.st { min-width: max-content; max-width: 46vw; }
+  .adm .td.st .tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+/* v3.25.0: two class names were shared between the admin and the 3D scene kit (st = status cell, gp = ring number). That pushed the status tags out of the cards and shifted the sign-in scene. The admin ring number is now gpv and the scene stage is only .sc > .st. */

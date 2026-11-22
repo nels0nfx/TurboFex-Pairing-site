@@ -3,9 +3,19 @@
   var d = document, box = d.getElementById('sb-pair'), q = d.getElementById('qs'), none = d.getElementById('qnone');
   if (box) {
     var b = box.querySelector('b');
-    fetch('/api/status', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (s) {
-      var off = s && s.maintenance && s.maintenance.on; b.textContent = off ? 'Paused for maintenance' : 'Online'; box.className = 'sbox ' + (off ? 'bad' : 'ok');
-    }).catch(function () { b.textContent = 'Status unavailable'; box.className = 'sbox bad'; });
+    // the pairing status: a waiting state, a 10 second limit, and a Check again button if it cannot be reached
+    var again = function () {
+      box.className = 'sbox ld-wait'; b.textContent = 'Checking…'; var old = box.querySelector('.ld-mini'); if (old) old.remove();
+      return TFLoad.fetch('/api/status', { headers: { Accept: 'application/json' } }, 10000).then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); }).then(function (s) {
+        var off = s && s.maintenance && s.maintenance.on; b.textContent = off ? 'Paused for maintenance' : 'Online'; box.className = 'sbox ' + (off ? 'bad' : 'ok');
+      }).catch(function () {
+        b.textContent = 'Status unavailable'; box.className = 'sbox bad';
+        var r = d.createElement('button'); r.type = 'button'; r.className = 'btn ld-mini'; r.textContent = 'Check again';
+        r.addEventListener('click', function () { var done = TFLoad.busy(r, 'Checking…'); again().then(function () { if (done) done(); }); });
+        box.appendChild(r);
+      });
+    };
+    again();
   }
   if (!q) return;
   var items = [].slice.call(d.querySelectorAll('#faq details')), groups = [].slice.call(d.querySelectorAll('.faqgroup'));

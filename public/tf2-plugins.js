@@ -197,11 +197,15 @@
     perms.appendChild(ul); if (p.domains.length) perms.appendChild(el('p', 'fine', 'Connects to: ' + p.domains.join(', '))); detail.appendChild(perms);
 
     function docBlock(kind, title, open, folded) {
-      var s = folded ? fold(title, open) : section(title), out = el('pre', 'pdoc'); out.tabIndex = 0; out.textContent = 'Loading…'; s.appendChild(out);
-      fetch('/api/plugin-doc?id=' + encodeURIComponent(p.id) + '&v=' + encodeURIComponent(p.version) + '&f=' + kind, { headers: { accept: 'application/json' } })
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-        .then(function (x) { out.textContent = x.ok && typeof x.j.text === 'string' ? x.j.text : 'This could not be loaded right now.'; })
-        .catch(function () { out.textContent = 'This could not be loaded right now.'; });
+      var s = folded ? fold(title, open) : section(title), out = el('pre', 'pdoc'); out.tabIndex = 0; s.appendChild(out);
+      function load() {
+        out.textContent = ''; out.appendChild(TFLoad.skeleton('lines', 4)); out.setAttribute('aria-busy', 'true');
+        return TFLoad.latest('pdoc-' + kind, '/api/plugin-doc?id=' + encodeURIComponent(p.id) + '&v=' + encodeURIComponent(p.version) + '&f=' + kind, { headers: { accept: 'application/json' } }, 15000)
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (x) { out.removeAttribute('aria-busy'); if (x.ok && typeof x.j.text === 'string') out.textContent = x.j.text; else TFLoad.state(out, { kind: 'error', title: 'This could not be loaded', text: 'Please try again in a moment.', retry: load }); })
+          .catch(function (e) { if (TFLoad.isCancel(e)) return; TFLoad.state(out, { kind: 'error', title: 'This could not be loaded', text: TFLoad.why(e), retry: load }); });
+      }
+      load();
       return s;
     }
     if (p.docs && p.docs.readme) detail.appendChild(docBlock('readme', 'About'));
@@ -244,11 +248,18 @@
   d.getElementById('psort').addEventListener('change', function (e) { sortBy = e.target.value; render(); });
   addEventListener('hashchange', route);
 
-  fetch('/api/plugins', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (x) {
-    if (!x.ok) throw new Error(x.j && x.j.error);
-    list.textContent = '';
-    if (x.j.paused) { count.textContent = ''; return say('The plugin store is paused for a little while. Please check back soon.'); }
-    all = x.j.plugins || []; cols = x.j.collections || []; search.disabled = false;
-    return fetch('/api/dev/me', { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (m) { me = m; }, function () { me = null; }).then(function () { loaded = true; drawFilters(); drawCols(); render(); route(); });
-  }).catch(function (e) { list.textContent = ''; count.textContent = ''; say((e && e.message) || 'The plugin list cannot be loaded right now. Please try again in a moment.'); });
+  function skeletons() { list.textContent = ''; for (var k = 0; k < 6; k++) list.appendChild(el('div', 'skel pk')); list.setAttribute('aria-busy', 'true'); }
+  // the store: placeholders while it loads, a clear message when it is paused or cannot be reached, and a Try again button
+  function loadStore() {
+    say(''); count.textContent = 'Loading…'; skeletons();
+    return TFLoad.fetch('/api/plugins', { headers: { Accept: 'application/json' } }, 15000).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); }).then(function (x) {
+      list.removeAttribute('aria-busy');
+      if (!x.ok) { list.textContent = ''; count.textContent = ''; return TFLoad.state(list, { kind: 'unavailable', title: 'The plugin store is not available', text: (x.j && x.j.error) || 'It will be back soon. Please try again in a moment.', retry: loadStore }); }
+      list.textContent = '';
+      if (x.j.paused) { count.textContent = ''; return say('The plugin store is paused for a little while. Please check back soon.'); }
+      all = x.j.plugins || []; cols = x.j.collections || []; search.disabled = false;
+      return TFLoad.fetch('/api/dev/me', { headers: { Accept: 'application/json' } }, 10000).then(function (r) { return r.json(); }).then(function (m) { me = m; }, function () { me = null; }).then(function () { loaded = true; drawFilters(); drawCols(); render(); route(); });
+    }, function (e) { list.removeAttribute('aria-busy'); list.textContent = ''; count.textContent = ''; TFLoad.state(list, { kind: 'error', title: 'Could not load the plugins', text: TFLoad.why(e, 'The plugin list could not be loaded.'), retry: loadStore }); });
+  }
+  loadStore();
 })();

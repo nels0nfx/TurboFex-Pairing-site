@@ -385,3 +385,35 @@ test('icon motion (v3.24.0): one shared kit on every page, only the drawing move
     assert.ok(adm.includes('/tf2-icons.css') && adm.includes('/tf2-icons.js'), 'the admin loads the same kit');
   } finally { t.close(); }
 });
+
+test('admin (v3.25.0): no Live/updated tag, and the admin and the scene kit share no class names', () => {
+  const pub = path.join(root, 'public');
+  const js = fs.readFileSync(path.join(pub, 'admin.js'), 'utf8');
+  assert.ok(!/liveBadge|class: 'live'|'Updated ' \+/.test(js), 'the Live / Updated tag is gone');
+  assert.ok(/REFRESH\[tab\]\) load\(false\)/.test(js), 'the quiet automatic refresh still runs');
+  const scenes = fs.readFileSync(path.join(pub, 'tf2-scenes.css'), 'utf8');
+  assert.ok(!/^\s*\.st \{/m.test(scenes), 'the scene stage is only .sc > .st, so the admin status cell (.td.st) is not hit');
+  assert.ok(!/class: 'gp'/.test(js), 'the admin ring number does not use the scene panel class');
+  const a3 = fs.readFileSync(path.join(pub, 'admin3.css'), 'utf8');
+  assert.ok(!/^\.adm \.gp \{/m.test(a3), 'admin css does not restyle the scene panel class');
+});
+
+test('loading system (v3.25.0): kit linked once everywhere, motion respects reduced motion, no inline styles', async () => {
+  const pub = path.join(root, 'public');
+  const css = fs.readFileSync(path.join(pub, 'tf2-load.css'), 'utf8');
+  const js = fs.readFileSync(path.join(pub, 'tf2-load.js'), 'utf8');
+  assert.ok(!/\.setAttribute\(\s*['"]style['"]/.test(js) && !/style=/.test(js), 'the script never writes an inline style attribute');
+  assert.ok(/prefers-reduced-motion/.test(css), 'the styles know about reduced motion');
+  const outside = css.replace(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*$/, '');
+  assert.ok(!/animation\s*:/.test(outside), 'animation only lives in the no-preference block');
+  for (const sel of [...css.matchAll(/^\s*\.([a-z0-9-]+)[ ,{.:]/gm)].map((m) => m[1])) assert.ok(/^(ld|tb|skel|pk)/.test(sel) || sel === 'sk', 'class ' + sel + ' has a safe prefix');
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    for (const p of ['/', '/install', '/pair', '/plugins', '/docs', '/playground', '/developers', '/support']) {
+      const h = await (await fetch(t.base + p)).text();
+      assert.strictEqual((h.match(/\/tf2-load\.js/g) || []).length, 1, p + ' loads the loading script once');
+      assert.strictEqual((h.match(/\/tf2-load\.css/g) || []).length, 1, p + ' loads the loading styles once');
+    }
+    for (const f of ['/tf2-load.css', '/tf2-load.js']) assert.strictEqual((await fetch(t.base + f)).status, 200);
+  } finally { t.close(); }
+});

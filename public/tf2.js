@@ -90,7 +90,7 @@
     d.body.insertBefore(box, d.body.firstChild);
   }
   function seen(id) { try { return sessionStorage.getItem('tfx-notice') === id; } catch (e) { return false; } }
-  function get(url) { return fetch(url, { cache: 'no-store', credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); }); }
+  function get(url) { return (window.TFLoad ? TFLoad.fetch(url, { cache: 'no-store', credentials: 'omit' }, 10000) : fetch(url, { cache: 'no-store', credentials: 'omit' })).then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); }); }
   Promise.all([get('/health'), get('/api/status')]).then(function (res) {
     var health = res[0], st = res[1];
     if (!health || health.ok !== true) { setStatus('down', 'Status unavailable'); pairLive('down', 'The pairing service cannot be reached right now.'); return; }

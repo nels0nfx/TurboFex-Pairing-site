@@ -29,7 +29,7 @@
   function api(method, url, body) {
     var o = { method: method, credentials: 'same-origin', headers: {}, cache: 'no-store' };
     if (method !== 'GET') { o.headers['content-type'] = 'application/json'; o.headers['x-csrf-token'] = csrf; o.body = JSON.stringify(body || {}); }
-    return fetch('/admin/api/' + url, o).then(function (r) {
+    return TFLoad.fetch('/admin/api/' + url, o, 20000).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (r.status === 401 && url !== 'login' && url !== '2fa') { showLogin(me ? 'Your session ended. Please sign in again.' : ''); throw new Error('signed out'); }
         if (!r.ok) { var e = new Error(j.error || 'Something went wrong.'); e.status = r.status; throw e; }
@@ -42,8 +42,10 @@
   function fail(e) { if (e && e.message !== 'signed out') toast(e.message || 'Something went wrong.', true); }
   function can(p) { return !!me && me.perms.indexOf(p) >= 0; }
   function act(btn, fn, okMsg, after) {
-    if (btn.disabled) return; btn.disabled = true;
-    fn().then(function () { if (okMsg) toast(okMsg); if (after) after(); }, fail).then(function () { btn.disabled = false; });
+    // the button shows a clear busy label and ignores a second press; success is shown only after the server said yes
+    var tx = (btn.textContent || '').trim(), lab = /^(save|apply|update)/i.test(tx) ? 'Saving…' : /^(restart)/i.test(tx) ? 'Restarting…' : /^(refresh|reload)/i.test(tx) ? 'Refreshing…' : /^(publish|approve)/i.test(tx) ? 'Publishing…' : /^(delete|remove|revoke)/i.test(tx) ? 'Removing…' : 'Working…';
+    var done = TFLoad.busy(btn, lab); if (!done) return;
+    fn().then(function () { if (okMsg) toast(okMsg); if (after) after(); }, function (e) { fail(e && e.timeout ? new Error('This is taking too long. Please try again.') : e); }).then(done);
   }
 
   // ---------- sign in ----------
@@ -61,13 +63,13 @@
     try { f.submit(); } catch (e) { go(); }
   }
   $('f-login').addEventListener('submit', function (e) {
-    e.preventDefault(); var b = $('b-login'); if (b.disabled) return; b.disabled = true; $('lg-err').textContent = '';
+    e.preventDefault(); var b = $('b-login'), bdone = TFLoad.busy(b, 'Signing in…'); if (!bdone) return; $('lg-err').textContent = '';
     var code = $('c').value.replace(/\s/g, '');
     api('POST', 'login', { user: $('u').value, password: $('p').value }).then(function (j) {
       if (j.trusted) return finishLogin();
       if (!code) { ticket = j.ticket; $('lg-err').textContent = 'Enter the 6-digit code from your authenticator app, then press Sign in again.'; $('c').focus(); return null; }
       return api('POST', '2fa', { ticket: j.ticket, code: code, trust: $('trust').checked }).then(function () { finishLogin(); });
-    }).catch(function (er) { $('lg-err').textContent = er.message; if (/code is not right/.test(er.message)) { $('c').value = ''; $('c').focus(); } }).then(function () { b.disabled = false; });
+    }).catch(function (er) { $('lg-err').textContent = er.message; if (/code is not right/.test(er.message)) { $('c').value = ''; $('c').focus(); } }).then(bdone);
   });
   $('out').addEventListener('click', function () { confirmThen('Sign out of the admin dashboard?', function () { api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); }, 'Sign out'); });
 
@@ -183,20 +185,13 @@
 
   var lastLoad = 0;
   function skeleton() { return h('div', { class: 'askel', 'aria-label': 'Loading' }, h('i', { class: 'sk t' }), h('i', { class: 'sk s' }), h('div', { class: 'sk-g' }, h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' }), h('i', { class: 'sk k' })), h('i', { class: 'sk p' })); }
-  function liveBadge() {
-    if (!REFRESH[tab]) return null;
-    var t = h('span', { class: 'lt', text: 'Live' });
-    var b = h('button', { type: 'button', class: 'live', 'aria-label': 'Refresh now', onclick: function () { b.classList.add('spin'); load(false).then(function () { b.classList.remove('spin'); }); } }, h('i', { class: 'dot' }), t);
-    b._t = t; return b;
-  }
-  setInterval(function () { var l = document.querySelector('.live .lt'); if (l && lastLoad) { var sec = Math.round((Date.now() - lastLoad) / 1000); l.textContent = sec < 4 ? 'Live' : 'Updated ' + sec + 's ago'; } }, 1000);
   function load(first) {
     var v = $('view'), t = tab;
     if (first) { clear(v); v.appendChild(skeleton()); }
     return VIEWS[t]().then(function (node) {
       if (t !== tab) return;
       lastLoad = Date.now(); var keep = window.scrollY; var sn = subnav(); if (sn) node.insertBefore(sn, node.children[1] || null); clear(v); node.classList.add(first ? 'enter' : 'same'); v.appendChild(node); if (!first) window.scrollTo(0, keep);
-    }, function (e) { if (t === tab && first) { clear(v); v.appendChild(h('p', { class: 'empty', text: (e && e.message) || 'Could not load.' })); } fail(e); });
+    }, function (e) { if (t === tab && first) { clear(v); TFLoad.state(v, { kind: 'error', title: 'This could not be loaded', text: TFLoad.why(e, (e && e.message) || 'Could not load.'), retry: function () { return load(true); } }); } fail(e); });
   }
   function schedule() {
     clearInterval(timer);
@@ -219,7 +214,7 @@
   function pollAlerts() { api('GET', 'security').then(function (j) { setAlerts(j.alerts, tab === 'security'); }, function () {}); }
 
   // ---------- pieces ----------
-  function head(title, sub, right) { return h('div', { class: 'vh' }, h('span', { class: 'vico', 'aria-hidden': 'true' }, ICON[tab] ? icon(tab, 24) : null), h('div', { class: 'vt' }, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), h('div', { class: 'avr' }, right || null, liveBadge())); }
+  function head(title, sub, right) { return h('div', { class: 'vh' }, h('span', { class: 'vico', 'aria-hidden': 'true' }, ICON[tab] ? icon(tab, 24) : null), h('div', { class: 'vt' }, h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null), h('div', { class: 'avr' }, right || null)); }
   function stat(label, value, note, cls) { return h('div', { class: 'kpi ' + (cls || '') }, h('small', { text: label }), h('b', { text: value }), note ? h('em', { text: note }) : null); }
   function ctl(title, text, body) { return h('div', { class: 'ctl' }, h('b', { text: title }), h('p', { class: 'muted', text: text }), body); }
   function panel(title, small) { var p = h('section', { class: 'pnl' }); if (title) p.appendChild(h('h3', null, title, small ? h('small', { text: small }) : null)); for (var i = 2; i < arguments.length; i++) add(p, arguments[i]); return p; }
@@ -254,7 +249,7 @@
     var ring = svg('svg', { viewBox: '0 0 100 100', class: 'gring', role: 'img', 'aria-label': label + ' ' + Math.round(p) + ' percent' },
       svg('circle', { class: 'rt', cx: 50, cy: 50, r: R, fill: 'none', 'stroke-width': 10 }),
       svg('circle', { class: 'rf ' + lvl, cx: 50, cy: 50, r: R, fill: 'none', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': (C * p / 100).toFixed(1) + ' ' + C.toFixed(1), transform: 'rotate(-90 50 50)' }));
-    return h('div', { class: 'gauge' }, h('div', { class: 'gr' }, ring, h('b', { class: 'gp', text: (p < 10 ? p.toFixed(1) : String(Math.round(p))) + '%' })), h('div', { class: 'gl', text: label }), h('div', { class: 'gc', text: caption }));
+    return h('div', { class: 'gauge' }, h('div', { class: 'gr' }, ring, h('b', { class: 'gpv', text: (p < 10 ? p.toFixed(1) : String(Math.round(p))) + '%' })), h('div', { class: 'gl', text: label }), h('div', { class: 'gc', text: caption }));
   }
   function bars(series, a, b) {
     if (!series.some(function (x) { return x[a] || x[b]; })) return h('p', { class: 'empty', text: 'No pairing attempts in the last 24 hours.' });

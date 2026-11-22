@@ -362,6 +362,7 @@
 
   // ---------- start ----------
   function reset() {
+    $('connect').classList.remove('ldb', 'ldx');
     stop(); idStop(); clearJob(); restoring = false; slowPoll = false; islandReset();
     $('step-done').classList.remove('used'); $('usedmsg').hidden = true; $('idtimer').classList.remove('used'); job = null; lastCode = ''; dmPolls = 0; submitting = false; reqId++; checking = false;
     renderCode(''); $('code').hidden = false; $('codemsg').hidden = true; $('qrmsg').hidden = true; $('retry').hidden = true; $('retry').disabled = false; $('status').parentNode.classList.remove('done');
@@ -376,11 +377,12 @@
   }
   function busy(on) {
     var b = $('go'); b.classList.toggle('busy', on); b.setAttribute('aria-busy', on ? 'true' : 'false'); b.disabled = on;
+    $('connect').classList.toggle('ldb', on); if (on) $('connect').classList.remove('ldx');   // the phone and TurboFex picture shows "connecting" while the request runs
     tabs.classList.toggle('locked', on); $('number').readOnly = on; $('cpick').disabled = on;
   }
   function idleLabel() { swapText($('go-text'), method === 'code' ? 'Generate pairing code' : 'Show QR code'); }
   function failSubmit(msg) {
-    submitting = false; busy(false); idleLabel();
+    submitting = false; busy(false); idleLabel(); $('connect').classList.add('ldx');
     islandSet('bad', 'Could not start. Try again.');
     setText($('err1'), msg); flash($('go'), 'shake', 500); $('go').classList.add('fail');
     try { $('err1').scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' }); } catch (e) { /* older browsers */ }
@@ -397,7 +399,7 @@
     busy(true);
     snd('press'); islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
-    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number, country: lastCountry }) })
+    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number, country: lastCountry }) }, 25000)
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
         if (mine !== reqId) return;
@@ -411,7 +413,7 @@
         show('step-wait');
         poll = setInterval(check, 2000); check();
       })
-      .catch(function () { if (mine === reqId) failSubmit('Could not reach the site. Check your internet connection and try again.'); });
+      .catch(function (e) { if (mine === reqId) failSubmit(e && e.timeout ? 'The site is taking too long to answer. Please try again.' : 'Could not reach the site. Check your internet connection and try again.'); });
   });
 
   // an attempt ended (expired, refused, stopped): no empty box - say what happened and offer "Try again"
@@ -427,20 +429,20 @@
     $('retry-text').textContent = qr ? 'Try again – new QR code' : 'Try again – new code';
     $('retry').classList.add('main'); $('retry').hidden = false; $('retry').disabled = false;
     setText($('err2'), msg || '');
-    islandSet('bad', 'Linking failed');
+    islandSet('bad', 'Linking failed'); $('connect').classList.remove('ldb'); $('connect').classList.add('ldx');
   }
   // "Try again": drop the old attempt and ask for a new code / QR right here (same number, same screen)
   function retry() {
     if (submitting) return;
     var old = job; stop(); clearJob(); job = null; lastCode = ''; checking = false; submitting = true; var mine = ++reqId, sent = method;
     if (old) fetch('/api/cancel/' + old, { method: 'POST' }).catch(function () {});
-    snd('press'); islLock = false; islandSet('working', 'Connecting…');
+    snd('press'); islLock = false; islandSet('working', 'Connecting…'); $('connect').classList.remove('ldx');
     $('status').parentNode.classList.remove('done'); $('retry').disabled = true; $('retry-text').textContent = 'Getting a new one…';
     setText($('err2'), ''); $('codemsg').hidden = true; $('qrmsg').hidden = true; $('code').hidden = false; $('retry').classList.remove('main');
     renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('prog').style.width = '100%'; $('timer').hidden = true;
     $('status').textContent = sent === 'code' ? 'Requesting a new pairing code…' : 'Preparing a new QR code…';
-    fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber, country: lastCountry }) })
+    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber, country: lastCountry }) }, 25000)
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
         if (mine !== reqId) return;
@@ -450,7 +452,7 @@
         job = x.j.job; dmPolls = 0; saveJob(); $('retry').hidden = true;
         poll = setInterval(check, 2000); check();
       })
-      .catch(function () { if (mine === reqId) { submitting = false; ended('Could not reach the site. Check your internet connection and try again.'); } });
+      .catch(function (e) { if (mine === reqId) { submitting = false; $('retry-text').textContent = 'Try again'; ended(e && e.timeout ? 'The site is taking too long to answer. Please try again.' : 'Could not reach the site. Check your internet connection and try again.'); } });
   }
   $('retry').addEventListener('click', retry);
 
