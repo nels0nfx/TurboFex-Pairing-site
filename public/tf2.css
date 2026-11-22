@@ -321,10 +321,9 @@ html { background: var(--bg); }
 .xtiles .row b { font-size: 15px; }
 .xtiles .row .d { font-size: 12.5px; margin-top: 3px; }
 .xtiles .row .go { position: absolute; top: 14px; right: 12px; width: 15px; height: 15px; }
-.xtiles a.row:hover, .xtiles a.row:focus-visible { border-color: var(--line2); background: var(--s2); transform: translateY(-2px); }
-.xtiles a.row:active { transform: scale(.98); }
+.xtiles a.row:hover, .xtiles a.row:focus-visible { border-color: var(--line2); background: var(--s2); }
 @media (max-width: 380px) { .xtiles { gap: 8px; } .xtiles .row, .xtiles .row + .row { padding: 12px 12px 11px; min-height: 120px; } .xtiles .row .d { font-size: 12px; } }
-@media (prefers-reduced-motion: reduce) { .xtiles .row, .xtiles .row + .row { transition: none; } .xtiles a.row:hover, .xtiles a.row:focus-visible, .xtiles a.row:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .xtiles .row, .xtiles .row + .row { transition: none; } }
 
 /* v3.21.0: one brand colour (--brand, set at the top) for the Get started button, the "Fex" in the name and the F of the logo */
 .logo .fx { color: var(--brand); }
@@ -407,10 +406,10 @@ html { background: var(--bg); }
 @keyframes modturn { from { rotate: .2 1 0 -34deg; } to { rotate: 0 1 .3 34deg; } }
 @keyframes modglow { 0%, 34% { opacity: 0; } 46% { opacity: 1; } 58%, 100% { opacity: 0; } }
 
-/* v3.22.0: small interface motion. Cards: the icon tilts and lifts a little on hover and tap. Panels that appear (steps, results, errors, tabs, menu) fade and slide in softly. Never for reduced motion. */
-.row .ico { transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease; }
-a.row:hover .ico, a.row:focus-visible .ico { transform: translateY(-2px) rotate(-6deg) scale(1.07); box-shadow: 0 6px 14px rgb(var(--c, var(--acc)) / .28); }
-a.row:active .ico { transform: scale(.94); }
+/* v3.22.0: small interface motion. Panels that appear (steps, results, errors, tabs, menu) fade and slide in softly. Never for reduced motion. */
+/* v3.24.0: the icon tile no longer moves as one piece. Only the icon drawing moves (tf2-icons.css), the tile just glows. */
+.row .ico { transition: box-shadow .22s ease; }
+a.row:hover .ico, a.row:focus-visible .ico { box-shadow: 0 6px 14px rgb(var(--c, var(--acc)) / .28); }
 a.row .go { transition: transform .2s ease, color .2s ease; } a.row:hover .go, a.row:focus-visible .go { transform: translateX(3px); }
 .xtiles a.row:hover .go, .xtiles a.row:focus-visible .go { transform: translate(2px, -2px); }
 .btn { transition: background-color .18s ease, transform .12s ease, border-color .18s ease; } .btn:active:not(:disabled) { transform: scale(.98); }

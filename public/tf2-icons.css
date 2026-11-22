@@ -1,0 +1,200 @@
+/* TurboFex icon motion (v3.24.0). Each feature icon has one move that fits what it does, and the same icon moves the same way on every page.
+   Only the drawing inside the icon moves (never the card or the tile). Colours are not touched.
+   Idle: a slow, rare move, only while the icon is on screen (tf2-icons.js adds .ic-live). Hover, focus and tap: a slightly bigger move.
+   Everything is inside the no-preference block, so Reduce Motion shows still icons. */
+@media (prefers-reduced-motion: no-preference) {
+svg[data-ic] { overflow: visible; }
+svg[data-ic] * { transform-box: fill-box; transform-origin: center; }
+html.ic-hide svg[data-ic], html.ic-hide svg[data-ic] * { animation-play-state: paused !important; }
+svg[data-ic] .ib { fill: currentColor; stroke: none; opacity: 0; }
+svg[data-ic] .ib.ibl { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+@keyframes tfi-dl{0%,60%,100%{transform:translateY(0)}22%,36%{transform:translateY(calc(var(--a,1) * 3px))}}
+@keyframes tfi-l1{0%,100%{transform:translate(0,0)}28%,50%{transform:translate(calc(var(--a,1) * 1.7px),calc(var(--a,1) * -1.7px))}66%{transform:translate(calc(var(--a,1) * -0.5px),calc(var(--a,1) * 0.5px))}80%{transform:translate(0,0)}}
+@keyframes tfi-l2{0%,100%{transform:translate(0,0)}28%,50%{transform:translate(calc(var(--a,1) * -1.7px),calc(var(--a,1) * 1.7px))}66%{transform:translate(calc(var(--a,1) * 0.5px),calc(var(--a,1) * -0.5px))}80%{transform:translate(0,0)}}
+@keyframes tfi-plug{0%,66%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(0,calc(var(--a,1) * -1.4px)) rotate(calc(var(--a,1) * -10deg))}44%{transform:translate(0,calc(var(--a,1) * 0.8px)) rotate(calc(var(--a,1) * 4deg))}56%{transform:translate(0,0) rotate(0)}}
+@keyframes tfi-book{0%,66%,100%{transform:perspective(70px) rotateY(0)}32%{transform:perspective(70px) rotateY(calc(var(--a,1) * -28deg))}}
+@keyframes tfi-book2{0%,66%,100%{transform:scaleX(1)}32%{transform:scaleX(calc(1 + var(--a,1) * -.16))}}
+@keyframes tfi-flask{0%,100%{transform:rotate(0)}25%{transform:rotate(calc(var(--a,1) * -4deg))}75%{transform:rotate(calc(var(--a,1) * 4deg))}}
+@keyframes tfi-bub{0%{opacity:0;transform:translateY(0) scale(.5)}25%{opacity:.95}80%{opacity:.5;transform:translateY(calc(var(--a,1) * -5px)) scale(1)}100%{opacity:0;transform:translateY(calc(var(--a,1) * -6.5px)) scale(1)}}
+@keyframes tfi-cr{0%,62%,100%{transform:translateX(0)}25%{transform:translateX(calc(var(--a,1) * 2.2px))}42%{transform:translateX(calc(var(--a,1) * -0.8px))}}
+@keyframes tfi-cl{0%,62%,100%{transform:translateX(0)}25%{transform:translateX(calc(var(--a,1) * -2.2px))}42%{transform:translateX(calc(var(--a,1) * 0.8px))}}
+@keyframes tfi-slash{0%,62%,100%{transform:scaleY(1)}25%{transform:scaleY(calc(1 + var(--a,1) * .16))}42%{transform:scaleY(.94)}}
+@keyframes tfi-cur{0%,100%{transform:scaleX(1);opacity:1}10%{transform:scaleX(.25);opacity:1}38%{transform:scaleX(1);opacity:1}50%,66%{opacity:0}58%,74%{opacity:1}}
+@keyframes tfi-chv{0%,60%,100%{transform:translateX(0)}22%{transform:translateX(calc(var(--a,1) * 1.2px))}}
+@keyframes tfi-drop{0%,60%,100%{transform:translateY(0) scale(1,1)}20%{transform:translateY(calc(var(--a,1) * -2.4px))}42%{transform:translateY(calc(var(--a,1) * 1px)) scale(1.05,.94)}54%{transform:translateY(0) scale(1,1)}}
+@keyframes tfi-sh{0%,70%,100%{transform:scale(1)}30%{transform:scale(calc(1 + var(--a,1) * .07))}}
+@keyframes tfi-draw{0%{stroke-dashoffset:0}10%{stroke-dashoffset:1}42%,100%{stroke-dashoffset:0}}
+@keyframes tfi-lock{0%,70%,100%{transform:translateY(0)}22%,46%{transform:translateY(calc(var(--a,1) * -1.6px))}}
+@keyframes tfi-tick{0%,8%{transform:rotate(0)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+@keyframes tfi-key{0%,70%,100%{transform:rotate(0)}20%{transform:rotate(calc(var(--a,1) * -16deg))}40%{transform:rotate(calc(var(--a,1) * 10deg))}55%{transform:rotate(0)}}
+@keyframes tfi-blink{0%,86%,100%{transform:scaleY(1)}92%{transform:scaleY(.1)}}
+@keyframes tfi-look{0%,100%{transform:translateX(0)}30%{transform:translateX(calc(var(--a,1) * -1.6px))}65%{transform:translateX(calc(var(--a,1) * 1.6px))}}
+@keyframes tfi-scan{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(calc(var(--a,1) * -1.1px),calc(var(--a,1) * -1.1px)) rotate(calc(var(--a,1) * -8deg))}50%{transform:translate(calc(var(--a,1) * 1.1px),calc(var(--a,1) * -1.2px)) rotate(calc(var(--a,1) * 8deg))}75%{transform:translate(calc(var(--a,1) * 0.5px),calc(var(--a,1) * 0.8px)) rotate(0)}}
+@keyframes tfi-fly{0%,60%,100%{transform:translate(0,0);opacity:1}30%{transform:translate(calc(var(--a,1) * 3px),calc(var(--a,1) * -3px));opacity:0}31%{transform:translate(calc(var(--a,1) * -3px),calc(var(--a,1) * 3px));opacity:0}}
+@keyframes tfi-pop{0%,60%,100%{transform:scale(1) rotate(0)}30%{transform:scale(calc(1 + var(--a,1) * .14)) rotate(calc(var(--a,1) * -6deg))}}
+@keyframes tfi-wig{0%,60%,100%{transform:rotate(0)}15%{transform:rotate(calc(var(--a,1) * -9deg))}30%{transform:rotate(calc(var(--a,1) * 8deg))}45%{transform:rotate(calc(var(--a,1) * -4deg))}}
+@keyframes tfi-exit{0%,60%,100%{transform:translateX(0)}25%{transform:translateX(calc(var(--a,1) * 2.6px))}40%{transform:translateX(calc(var(--a,1) * 0.6px))}}
+@keyframes tfi-nudge{0%,60%,100%{transform:translateX(0)}30%{transform:translateX(calc(var(--a,1) * 3px))}}
+@keyframes tfi-nudge2{0%,60%,100%{transform:translateX(0)}30%{transform:translateX(calc(var(--a,1) * 2px))}}
+@keyframes tfi-bob{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(calc(var(--a,1) * 2px))}}
+@keyframes tfi-r90{0%{transform:rotate(0)}100%{transform:rotate(90deg)}}
+@keyframes tfi-shake{0%,60%,100%{transform:rotate(0)}8%{transform:rotate(calc(var(--a,1) * -9deg))}16%{transform:rotate(calc(var(--a,1) * 9deg))}24%{transform:rotate(calc(var(--a,1) * -6deg))}32%{transform:rotate(calc(var(--a,1) * 4deg))}40%{transform:rotate(0)}}
+@keyframes tfi-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes tfi-sun{0%,100%{transform:rotate(0)}50%{transform:rotate(calc(var(--a,1) * 60deg))}}
+@keyframes tfi-sway{0%,100%{transform:rotate(0)}30%{transform:rotate(calc(var(--a,1) * -18deg))}60%{transform:rotate(calc(var(--a,1) * 8deg))}}
+@keyframes tfi-bu1{0%,100%{transform:translateX(0)}40%{transform:translateX(calc(var(--a,1) * 2.2px))}}
+@keyframes tfi-bu2{0%,100%{transform:translateX(0)}40%{transform:translateX(calc(var(--a,1) * -2.2px))}}
+@keyframes tfi-hop{0%,60%,100%{transform:translateY(0)}25%{transform:translateY(calc(var(--a,1) * -1.8px))}}
+@keyframes tfi-bar{0%{transform:scaleY(.45)}60%{transform:scaleY(1.08)}100%{transform:scaleY(1)}}
+@keyframes tfi-dots{0%,100%{opacity:1}30%{opacity:.2}}
+@keyframes tfi-wave{0%,60%,100%{transform:translateX(0);opacity:1}25%{transform:translateX(calc(var(--a,1) * 1.8px));opacity:.25}}
+@keyframes tfi-line{0%{transform:scaleX(.3)}60%{transform:scaleX(1)}100%{transform:scaleX(1)}}
+@keyframes tfi-cog{0%,100%{transform:rotate(0)}50%{transform:rotate(calc(var(--a,1) * 60deg))}}
+@keyframes tfi-mer{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.35)}}
+@keyframes tfi-twk{0%,60%,100%{transform:scale(1) rotate(0)}30%{transform:scale(calc(1 + var(--a,1) * .18)) rotate(calc(var(--a,1) * 16deg))}}
+@keyframes tfi-flash{0%,60%,100%{opacity:1;transform:scale(1)}20%{opacity:.45}40%{opacity:1;transform:scale(calc(1 + var(--a,1) * .14))}}
+@keyframes tfi-sl1{0%,100%{transform:translateX(0)}40%{transform:translateX(calc(var(--a,1) * -3px))}}
+@keyframes tfi-sl2{0%,100%{transform:translateX(0)}40%{transform:translateX(calc(var(--a,1) * 3px))}}
+@keyframes tfi-flag{0%,100%{transform:skewY(0)}30%{transform:skewY(calc(var(--a,1) * -8deg))}65%{transform:skewY(calc(var(--a,1) * 6deg))}}
+@keyframes tfi-scn{0%{opacity:0;transform:translateY(-5px)}20%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(5px)}}
+@keyframes tfi-playp{0%,60%,100%{transform:translateX(0) scale(1)}30%{transform:translateX(calc(var(--a,1) * 1.2px)) scale(calc(1 + var(--a,1) * .1))}}
+.ic-s1{--dl:-.8s}.ic-s2{--dl:-1.7s}.ic-s3{--dl:-2.6s}.ic-s4{--dl:-3.5s}.ic-s5{--dl:-4.4s}.ic-s6{--dl:-5.3s}
+svg.ic-live[data-ic="dl"] .p2,svg.ic-live[data-ic="dl"] .p3{animation:tfi-dl 4.2s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="dl"] .p2,:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="dl"] .p3{--a:1.5;animation:tfi-dl 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="link"] .p1{animation:tfi-l1 4.8s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="link"] .p1{--a:1.5;animation:tfi-l1 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="link"] .p2{animation:tfi-l2 4.8s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="link"] .p2{--a:1.5;animation:tfi-l2 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="plug"]{animation:tfi-plug 5s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="plug"]{--a:1.5;animation:tfi-plug 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="puzzle"]{animation:tfi-plug 5s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="puzzle"]{--a:1.5;animation:tfi-plug 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="book"]{transform-origin:22% 50%;}
+svg.ic-live[data-ic="book"]{animation:tfi-book 5.4s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="book"]{--a:1.5;animation:tfi-book 1.3s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="book2"]{animation:tfi-book2 5.4s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="book2"]{--a:1.5;animation:tfi-book2 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="flask"]{transform-origin:50% 85%;}
+svg.ic-live[data-ic="flask"]{animation:tfi-flask 3.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="flask"]{--a:1.5;animation:tfi-flask 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="flask"] .ibb1{animation:tfi-bub 2.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="flask"] .ibb1{--a:1.5;animation:tfi-bub 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="flask"] .ibb2{animation:tfi-bub 2.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + -0.9s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="flask"] .ibb2{--a:1.5;animation:tfi-bub 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="flask"] .ibb3{animation:tfi-bub 2.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + -1.7s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="flask"] .ibb3{--a:1.5;animation:tfi-bub 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="code"] .p1{animation:tfi-cr 4.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="code"] .p1{--a:1.5;animation:tfi-cr 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="code"] .p2{animation:tfi-cl 4.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="code"] .p2{--a:1.5;animation:tfi-cl 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="code2"] .p1{animation:tfi-cl 4.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="code2"] .p1{--a:1.5;animation:tfi-cl 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="code2"] .p2{animation:tfi-cr 4.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="code2"] .p2{--a:1.5;animation:tfi-cr 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="code2"] .p3{animation:tfi-slash 4.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="code2"] .p3{--a:1.5;animation:tfi-slash 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="term"] .p1{animation:tfi-chv 3.4s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="term"] .p1{--a:1.5;animation:tfi-chv 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="term"] .p2{transform-origin:0% 50%;}
+svg.ic-live[data-ic="term"] .p2{animation:tfi-cur 3.4s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="term"] .p2{--a:1.5;animation:tfi-cur 1.4s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="box"]{animation:tfi-drop 5.2s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="box"]{--a:1.5;animation:tfi-drop 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="play"]{animation:tfi-playp 5s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="play"]{--a:1.5;animation:tfi-playp 1.1s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="shield"]{animation:tfi-sh 5.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="shield"]{--a:1.5;animation:tfi-sh 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="shield"] .p2{stroke-dasharray:1 1;}
+svg.ic-live[data-ic="shield"] .p2{animation:tfi-draw 5.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="shield"] .p2{--a:1.5;animation:tfi-draw 1.4s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="lock"] .p2{animation:tfi-lock 6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="lock"] .p2{--a:1.5;animation:tfi-lock 1.1s ease-in-out 3;animation-delay:0s}
+svg[data-ic="clock"] .p2{transform-box:view-box;transform-origin:12px 12px;}
+svg.ic-live[data-ic="clock"] .p2{animation:tfi-tick 6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="clock"] .p2{--a:1.5;animation:tfi-tick 1.6s ease-in-out 3;animation-delay:0s}
+svg[data-ic="key"]{transform-origin:33% 62%;}
+svg.ic-live[data-ic="key"]{animation:tfi-key 5.8s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="key"]{--a:1.5;animation:tfi-key 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="eye"]{animation:tfi-blink 5.2s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="eye"]{--a:1.5;animation:tfi-blink 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="eye"] .p2{--a:1.5;animation:tfi-look 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="search"]{animation:tfi-scan 5.4s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="search"]{--a:1.5;animation:tfi-scan 1.2s ease-in-out 3;animation-delay:0s}
+svg.ic-live[data-ic="send"]{animation:tfi-fly 5.6s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="send"]{--a:1.5;animation:tfi-fly 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="tg"]{--a:1.5;animation:tfi-pop 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="wa"]{--a:1.5;animation:tfi-pop 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="gh"]{--a:1.5;animation:tfi-wig 1s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="out"] .p2,:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="out"] .p3{--a:1.5;animation:tfi-exit 1s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="arrow"]{--a:1.5;animation:tfi-nudge 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="chev"]{--a:1.5;animation:tfi-nudge2 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="down"]{--a:1.5;animation:tfi-bob 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="plus"]{--a:1.5;animation:tfi-r90 0.45s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="close"]{--a:1.5;animation:tfi-r90 0.45s ease-in-out 3;animation-delay:0s}
+svg[data-ic="warn"]{transform-origin:50% 90%;}
+svg.ic-live[data-ic="warn"]{animation:tfi-shake 6.5s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="warn"]{--a:1.5;animation:tfi-shake 1s ease-in-out 3;animation-delay:0s}
+svg[data-ic="alert"]{transform-origin:50% 90%;}
+svg.ic-live[data-ic="alert"]{animation:tfi-shake 6.5s ease-in-out infinite;animation-delay:calc(var(--dl,0s) + 0s)}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="alert"]{--a:1.5;animation:tfi-shake 1s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="copy"]{--a:1.5;animation:tfi-pop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="refresh"]{--a:1.5;animation:tfi-spin 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="sun"]{--a:1.5;animation:tfi-sun 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="moon"]{transform-origin:60% 40%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="moon"]{--a:1.5;animation:tfi-sway 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="burger"] .p1{--a:1.5;animation:tfi-bu1 0.7s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="burger"] .p2{--a:1.5;animation:tfi-bu2 0.7s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="lines"] .p1{--a:1.5;animation:tfi-bu1 0.7s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="lines"] .p3{--a:1.5;animation:tfi-bu2 0.7s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="home"]{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="store"]{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="user"] .p1{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="people"] .p1{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+svg[data-ic="chart"] .p1{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="chart"] .p1{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0s}
+svg[data-ic="chart"] .p2{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="chart"] .p2{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0.1s}
+svg[data-ic="chart"] .p3{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="chart"] .p3{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0.2s}
+svg[data-ic="dash"] .p1{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="dash"] .p1{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0s}
+svg[data-ic="dash"] .p2{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="dash"] .p2{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0.1s}
+svg[data-ic="dash"] .p3{transform-origin:50% 100%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="dash"] .p3{--a:1.5;animation:tfi-bar 0.7s ease-in-out 3;animation-delay:0.2s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="server"] .p3{--a:1.5;animation:tfi-dots 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="server"] .p4{--a:1.5;animation:tfi-dots 1.2s ease-in-out 3;animation-delay:0.3s}
+svg[data-ic="pulse"]{stroke-dasharray:1 1;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="pulse"]{--a:1.5;animation:tfi-draw 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="check"]{stroke-dasharray:1 1;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="check"]{--a:1.5;animation:tfi-draw 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="mega"] .p2{--a:1.5;animation:tfi-wave 1s ease-in-out 3;animation-delay:0s}
+svg[data-ic="doc"] .p3{transform-origin:0% 50%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="doc"] .p3{--a:1.5;animation:tfi-line 0.8s ease-in-out 3;animation-delay:0s}
+svg[data-ic="doc"] .p4{transform-origin:0% 50%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="doc"] .p4{--a:1.5;animation:tfi-line 0.8s ease-in-out 3;animation-delay:0.12s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="gear"]{--a:1.5;animation:tfi-cog 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="life"]{--a:1.5;animation:tfi-cog 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="globe"] .p3,:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="globe"] .p4{--a:1.5;animation:tfi-mer 1.4s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="star"]{--a:1.5;animation:tfi-twk 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="bolt"]{--a:1.5;animation:tfi-flash 0.9s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="chat"]{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="image"] .p2{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="db"] .p1{--a:1.5;animation:tfi-hop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="sliders"] .p5{--a:1.5;animation:tfi-sl1 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="sliders"] .p6{--a:1.5;animation:tfi-sl2 1.2s ease-in-out 3;animation-delay:0s}
+svg[data-ic="flag"] .p2{transform-origin:0% 50%;}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="flag"] .p2{--a:1.5;animation:tfi-flag 1.2s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="more"] .p1{--a:1.5;animation:tfi-hop 0.7s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="more"] .p2{--a:1.5;animation:tfi-hop 0.7s ease-in-out 3;animation-delay:0.1s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="more"] .p3{--a:1.5;animation:tfi-hop 0.7s ease-in-out 3;animation-delay:0.2s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="info"]{--a:1.5;animation:tfi-pop 0.8s ease-in-out 3;animation-delay:0s}
+:is(a,button,summary,li,.row,.pill,.tb,.cb,.srow,.pfind,.warnbox):is(:hover,:focus-visible,:active,:focus-within) svg[data-ic="qr"] .ibl{--a:1.5;animation:tfi-scn 1.2s ease-in-out 3;animation-delay:0s}
+
+/* menu button: the two lines turn into a cross while the menu is open */
+svg[data-ic="burger"] .p1, svg[data-ic="burger"] .p2 { transition: transform .26s cubic-bezier(.2,.8,.2,1); }
+[aria-expanded="true"] svg[data-ic="burger"] .p1 { animation: none !important; transform: translateY(4px) rotate(45deg); }
+[aria-expanded="true"] svg[data-ic="burger"] .p2 { animation: none !important; transform: translateY(-4px) rotate(-45deg); }
+/* the active tab in the bottom bar pops once when it becomes active */
+.tb.on svg[data-ic], .tb[aria-current="page"] svg[data-ic] { animation: tfi-pop .5s ease-out 1; }
+}

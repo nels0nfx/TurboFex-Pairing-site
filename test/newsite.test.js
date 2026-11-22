@@ -357,3 +357,31 @@ test('class names of the scene kit and the Home chat do not clash with the Pair 
   const pairCss = used('tf2-pair.css');
   for (const k of ['chips', 'spin', 'wire']) assert.ok(pairCss.has(k), 'sanity: the Pair page really uses .' + k);
 });
+
+test('icon motion (v3.24.0): one shared kit on every page, only the drawing moves, nothing moves for Reduce Motion, no inline styles', async () => {
+  const pub = path.join(root, 'public');
+  const css = fs.readFileSync(path.join(pub, 'tf2-icons.css'), 'utf8');
+  const js = fs.readFileSync(path.join(pub, 'tf2-icons.js'), 'utf8');
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  assert.ok(bare.startsWith('@media (prefers-reduced-motion: no-preference) {'), 'every rule sits inside the no-preference block');
+  assert.ok(!/@media \(prefers-reduced-motion: no-preference\)[\s\S]*@media \(prefers-reduced-motion: no-preference\)/.test(bare), 'one block only');
+  assert.ok(!/\.style\.|setAttribute\('style'/.test(js), 'no inline styles (strict CSP)');
+  // every name used by the styles is a name the script can give
+  const given = new Set([...js.slice(js.indexOf('var SIG'), js.indexOf('var SPLIT')).matchAll(/\b([a-z0-9]+): \[/g)].map((m) => m[1]).concat(['puzzle', 'alert']));
+  for (const k of new Set([...css.matchAll(/data-ic="([a-z0-9]+)"/g)].map((m) => m[1]))) assert.ok(given.has(k), 'the script can give the name ' + k);
+  // the card or tile no longer moves as one piece
+  const main = fs.readFileSync(path.join(pub, 'tf2.css'), 'utf8');
+  assert.ok(!/a\.row:hover \.ico[^}]*transform/.test(main), 'the icon tile does not tilt any more');
+  assert.ok(!/\.xtiles a\.row:hover, \.xtiles a\.row:focus-visible \{[^}]*transform/.test(main), 'the Extend it card does not lift any more');
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    for (const p of ['/', '/install', '/pair', '/plugins', '/plugin-guide', '/docs', '/playground', '/developers', '/about', '/support', '/terms', '/privacy', '/rules']) {
+      const h = await (await fetch(t.base + p)).text();
+      assert.strictEqual((h.match(/\/tf2-icons\.css/g) || []).length, 1, p + ' loads the icon styles once');
+      assert.strictEqual((h.match(/\/tf2-icons\.js/g) || []).length, 1, p + ' loads the icon script once');
+    }
+    for (const f of ['/tf2-icons.css', '/tf2-icons.js']) assert.strictEqual((await fetch(t.base + f)).status, 200);
+    const adm = fs.readFileSync(path.join(pub, 'admin.html'), 'utf8');
+    assert.ok(adm.includes('/tf2-icons.css') && adm.includes('/tf2-icons.js'), 'the admin loads the same kit');
+  } finally { t.close(); }
+});

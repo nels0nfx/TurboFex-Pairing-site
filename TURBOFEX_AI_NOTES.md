@@ -593,3 +593,11 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## v3.23.0 - admin and dev dashboard
 - Admin: `admin5.css` loads last and only re-maps the colour tokens (the old "gold" tokens now hold the brand violet, light and dark), so admin3/admin4 are untouched. `.gold` text = `--brand`. Logos: logo-brand-dark.png / logo-brand-light.png (T chrome + violet F baked in, toggled by data-theme). Admin footer removed from admin.html (`.afoot` is also hidden in CSS). Sign-in page rewritten (same ids: login, f-login, u, p, c, trust, b-login, lg-err, tfxframe) with the `s-adm` scene.
 - The Home "Extend it" grid class is now `xtiles` (the Developer Centre uses `.tiles` for its numbers box). Remember: unique prefixes for new class names.
+
+## v3.24.0 - animated feature icons
+- One shared kit: `public/tf2-icons.js` (finds each icon by its drawing, names it with `data-ic`, splits one-path icons into pieces, starts idle moves only on screen) and `public/tf2-icons.css` (all the moves, generated from a small table; every rule is inside `prefers-reduced-motion: no-preference`).
+- Same drawing = same name = same move on every page, the Developer Centre and the admin. Icons added later by scripts (dashboards, lists) are picked up by a MutationObserver.
+- Only the drawing moves, never the tile or the card. Colours come from the existing classes and are not changed. Pieces get classes `p1, p2...`; extras (flask bubbles, QR scan line) use `ib*` classes and stay invisible until the icon moves.
+- To animate a new icon: add its drawing start to `SIG` in tf2-icons.js and a track for its name in the table, then run `python3 tools/make-icon-css.py` to rebuild the CSS. Keep new class names unique (see the class-name guard test).
+- Not covered on purpose: the 3D scenes (own kit), the logo, the blue verified mark, chevrons marked `.go` (own hover rule), the phone icon and the success tick on Pair (own animations).
+
