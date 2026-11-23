@@ -444,3 +444,13 @@ test('theme (v3.28.0): one colour-mode module for every page, no reload, follows
     }
   } finally { t.close(); }
 });
+
+test('cube (v3.30.0): tumbles on X, Y and Z together, whole turns so the loop has no jump, only in no-preference', () => {
+  const css = fs.readFileSync(path.join(root, 'public', 'tf2.css'), 'utf8');
+  const kf = css.match(/@keyframes tfspin \{([\s\S]*?)\n\}/)[1];
+  const ang = (axis, which) => Number(kf.match(new RegExp(which + ' \\{ transform:[^}]*rotate' + axis + '\\((-?\\d+)deg\\)'))[1]);
+  for (const ax of ['X', 'Y', 'Z']) assert.strictEqual(((ang(ax, 'to') - ang(ax, 'from')) % 360), 0, ax + ' turns a whole number of times');
+  assert.ok(ang('X', 'to') - ang('X', 'from') >= 360 && ang('Y', 'to') - ang('Y', 'from') >= 360 && ang('Z', 'to') - ang('Z', 'from') >= 360, 'all three axes really turn');
+  assert.ok(new Set([ang('X', 'to') - ang('X', 'from'), ang('Y', 'to') - ang('Y', 'from'), ang('Z', 'to') - ang('Z', 'from')]).size === 3, 'the three speeds differ');
+  assert.ok(/\.cube \{ animation: tfspin 48s linear infinite/.test(css) && /@media \(prefers-reduced-motion: no-preference\) \{\s*\.cube \{ animation/.test(css), 'runs by itself, linear, only when motion is allowed');
+});

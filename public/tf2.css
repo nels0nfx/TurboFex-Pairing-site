@@ -225,26 +225,27 @@ html { background: var(--bg); }
 .flegal { grid-column: 1 / -1; }
 .flegal ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
 /* the 3D block now turns slowly, and has a light-mode look */
-/* the cube tumbles on its own through changing angles. Three motions with different lengths (so it never repeats in an obvious way): `rotate` swings the turning axis around (41 s), `transform` turns it on Y with slow and fast stretches and rolls it on Z and X (31 s), and a soft float. Only transform-type properties move. No motion when the phone asks for reduced motion. */
+/* The cube TUMBLES like a small object floating in space. Three things move it, all with transform-type properties only:
+   1) `transform` (tfspin, 48 s, linear): it turns on the X, Y and Z axes at the same time at three different steady speeds
+      (2 turns, 3 turns and 1 turn per loop). Because the three turns are chained, the cube rolls forward, turns sideways and
+      tilts diagonally all at once, so it keeps reaching new orientations and shows different faces in turn instead of
+      spinning around one axis. Every angle ends a whole number of turns later, so the loop has no jump.
+   2) `rotate` (tftumble, 13 s, back and forth): the whole tumbling cube leans a little around a slanted axis, so the speed and the
+      direction of the tumble keep changing a little.
+   3) `translate` (tffloat): a soft float up and down.
+   Nothing else moves, the cube stays centred, and there is no motion when the phone asks for reduced motion. */
 .cube { -webkit-transform-style: preserve-3d; will-change: transform; }
 .cu, .cu b { -webkit-transform-style: preserve-3d; -webkit-backface-visibility: hidden; }
 @media (prefers-reduced-motion: no-preference) {
-  .cube { animation: tfspin 31s ease-in-out infinite, tftumble 41s ease-in-out infinite, tffloat 7s ease-in-out infinite alternate; }
+  .cube { animation: tfspin 48s linear infinite, tftumble 13s ease-in-out infinite alternate, tffloat 7s ease-in-out infinite alternate; }
 }
 @keyframes tfspin {
-  0% { transform: rotateZ(-6deg) rotateX(-24deg) rotateY(36deg); }
-  18% { transform: rotateZ(14deg) rotateX(-6deg) rotateY(120deg); }
-  34% { transform: rotateZ(-14deg) rotateX(-38deg) rotateY(160deg); }
-  55% { transform: rotateZ(10deg) rotateX(-12deg) rotateY(290deg); }
-  78% { transform: rotateZ(-8deg) rotateX(-32deg) rotateY(335deg); }
-  100% { transform: rotateZ(-6deg) rotateX(-24deg) rotateY(396deg); }
+  from { transform: rotateX(-24deg) rotateY(36deg) rotateZ(0deg); }
+  to { transform: rotateX(696deg) rotateY(1116deg) rotateZ(360deg); }
 }
 @keyframes tftumble {
-  0% { rotate: 1 0 0 0deg; }
-  22% { rotate: 1 .5 .2 70deg; }
-  47% { rotate: .3 1 .6 150deg; }
-  72% { rotate: .6 .2 1 230deg; }
-  100% { rotate: 1 0 0 360deg; }
+  from { rotate: 1 .55 .25 -18deg; }
+  to { rotate: 1 .55 .25 18deg; }
 }
 @keyframes tffloat { from { translate: 0 -.35rem 0; } to { translate: 0 .35rem 0; } }
 :root[data-theme="light"] .cu b { border-color: rgb(var(--w) / .2); background: linear-gradient(145deg, #ffffff 0%, #ececf3 60%, #e0e0ea 100%); box-shadow: inset 0 0 .6rem rgb(var(--w) / .05); }
