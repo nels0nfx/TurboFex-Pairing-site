@@ -81,7 +81,7 @@ test('admin data survives a restart with an empty disk when Supabase is on', asy
   // new actions continue the same chain
   await w2.req('POST', '/admin/api/announcements/add', { ...w2.s, body: { text: 'Second', level: 'info' } });
   assert.strictEqual((await w2.req('GET', '/admin/api/audit', w2.s)).json.chainOk, true);
-  assert.deepStrictEqual(Object.keys((await w2.req('GET', '/admin/api/health', w2.s)).json.storage.cloud).sort(), ['enabled', 'lastError', 'lastOkAt', 'ok', 'queued', 'restored']);
+  assert.deepStrictEqual(Object.keys((await w2.req('GET', '/admin/api/health', w2.s)).json.storage.cloud).sort(), ['enabled', 'held', 'lastError', 'lastOkAt', 'ok', 'queued', 'restored']);
   assert.ok(!JSON.stringify((await w2.req('GET', '/admin/api/health', w2.s)).json).includes('secret-key'), 'the key is never shown');
   app2.close();
 });
@@ -95,8 +95,11 @@ test('if Supabase is down the site keeps working and catches up later', async ()
   assert.strictEqual(r.status, 200);
   assert.strictEqual((await w.req('POST', '/api/pair', { body: { method: 'code', number: '8023456789', country: 'NG' } })).status, 200);
   await c.flush(); assert.strictEqual(c.status().ok, false); assert.ok(c.status().queued > 0);
+  // the site started without its saved copy, so it keeps its changes queued and sends nothing until a start that CAN read the saved copy
   fake.setDown(false); await c.flush();
-  assert.strictEqual(c.status().queued, 0); assert.strictEqual(c.status().ok, true); assert.ok(fake.db.tfx_audit.length >= 2);
+  assert.strictEqual(c.status().held, true); assert.ok(c.status().queued > 0); assert.strictEqual(fake.db.tfx_audit.length, 0, 'nothing sent while held');
+  assert.strictEqual(await c.restore(fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-c6-'))), true);   // the next start reads it fine
+  await c.flush(); assert.strictEqual(c.status().held, false); assert.strictEqual(c.status().queued, 0); assert.strictEqual(c.status().ok, true); assert.ok(fake.db.tfx_audit.length >= 2);
   app.close();
 });
 
@@ -126,4 +129,25 @@ test('developer records are copied to Supabase and come back after a restart (an
   assert.strictEqual(await createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, log() {} }).restoreKv('bad prefix', dir), 0);
   fake.setDown(true); assert.strictEqual(await createCloud({ url: 'https://x.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, log() {} }).restoreKv('dc:', dir), 0, 'offline: quiet');
   await c.close();
+});
+
+test('if the saved copy cannot be read at start-up, nothing is sent up (the good copy is never overwritten by an empty one)', async () => {
+  const fake = fakeSupabase();
+  const mk = () => createCloud({ url: 'https://abc.supabase.co', key: 'secret-key', fetchImpl: fake.fetchImpl, flushMs: 60000, log() {} });
+  const c0 = mk();   // a good run first: one announcement is saved
+  c0.pushState({ maintenance: { on: false, message: '' }, limits: {}, blocks: [], announcements: [{ id: 'a1', text: 'keep me', active: true }], trust: {} });
+  await c0.flush();
+  assert.ok(fake.db.tfx_kv.find((r) => r.key === 'state'));
+  fake.setDown(true);                                   // Supabase is asleep at the next start
+  const c1 = mk(); const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tfx-held-'));
+  assert.strictEqual(await c1.restore(dir), false);
+  assert.strictEqual(c1.status().held, true, 'held after a failed restore');
+  assert.match(c1.status().lastError, /NOT sent/);
+  fake.setDown(false);                                  // it wakes up, and the site (started empty) saves a new setting
+  c1.pushState({ maintenance: { on: true, message: 'x' }, limits: {}, blocks: [], announcements: [], trust: {} });
+  await c1.flush();
+  const row = fake.db.tfx_kv.find((r) => r.key === 'state');
+  assert.strictEqual(row.value.announcements.length, 1, 'the saved copy was NOT overwritten by the empty start');
+  assert.strictEqual(await c1.restore(dir), true);      // a later successful restore lifts the hold
+  assert.strictEqual(c1.status().held, false);
 });

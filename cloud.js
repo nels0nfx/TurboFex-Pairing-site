@@ -13,6 +13,11 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
   const base = String(url || '').replace(/\/+$/, '');
   const enabled = /^https:\/\/[^/\s]+$/.test(base) && !!key && typeof fetchImpl === 'function';
   const st = { ok: null, lastOkAt: 0, lastError: '', restored: false };
+  // SAFETY: if the saved copy could not be read when the site started, the site starts empty. Sending that empty state up would
+  // overwrite the good copy for ever, so nothing is sent until the next start can read it (held = true).
+  let stateFail = false, kvFail = false;
+  const isHeld = () => stateFail || kvFail;
+  const HELD_MSG = 'The saved data could not be loaded the saved data at start-up, so new changes are NOT sent to Supabase (this protects the saved copy). Restart the site.';
   let evQueue = [], auQueue = [], stateDirty = null, flushing = false, stateTimer = null;
   const kvQueue = new Map();   // key -> value (the Developer Centre's records; the newest value of a key wins)
 
@@ -53,10 +58,10 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
         if (!rows || rows.length < 1000) break;
       }
       if (au.length) fs.writeFileSync(path.join(dir, 'admin-audit.jsonl'), au.join('\n') + '\n', { mode: 0o600 });
-      st.restored = true;
+      st.restored = true; stateFail = false; if (!isHeld()) { st.ok = true; st.lastError = ''; }
       log(`Supabase: restored ${ev.length} activity lines and ${au.length} audit lines`);
       return true;
-    } catch (err) { log('Supabase: could not restore (' + err.message + '); starting from local files'); return false; }
+    } catch (err) { stateFail = true; st.ok = false; st.lastError = (st.lastError ? st.lastError + '. ' : '') + HELD_MSG; log('Supabase: could not restore (' + err.message + '); starting from local files, sending paused'); return false; }
   }
 
   // ---- records of the Developer Centre: keys that start with a prefix such as "dc:" are written back as small files (dir/<key with : as _>.json) ----
@@ -74,9 +79,9 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
         }
         if (!rows || rows.length < 500) break;
       }
-      log(`Supabase: restored ${n} developer records`);
+      kvFail = false; log(`Supabase: restored ${n} developer records`);
       return n;
-    } catch (err) { log('Supabase: could not restore developer records (' + err.message + ')'); return 0; }
+    } catch (err) { kvFail = true; st.ok = false; st.lastError = (st.lastError ? st.lastError + '. ' : '') + HELD_MSG; log('Supabase: could not restore developer records (' + err.message + '); sending paused'); return 0; }
   }
 
   // ---- send changes up (queued, so a slow or broken connection never slows the site) ----
@@ -91,7 +96,7 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
     clearTimeout(stateTimer); stateTimer = setTimeout(() => { flush().catch(() => {}); }, 500); stateTimer.unref();
   }
   async function flush() {
-    if (!enabled || flushing) return; flushing = true;
+    if (!enabled || flushing || isHeld()) return; flushing = true;
     try {
       if (stateDirty) { const s = stateDirty; await call('POST', 'tfx_kv?on_conflict=key', { key: 'state', value: s, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=minimal' }); if (stateDirty === s) stateDirty = null; }
       for (const [k, v] of [...kvQueue]) { await call('POST', 'tfx_kv?on_conflict=key', { key: k, value: v, updated_at: new Date().toISOString() }, { Prefer: 'resolution=merge-duplicates,return=minimal' }); if (kvQueue.get(k) === v) kvQueue.delete(k); }
@@ -103,7 +108,7 @@ function createCloud({ url, key, fetchImpl = globalThis.fetch, retentionMs = 7 *
 
   const timer = enabled ? setInterval(() => { flush(); }, flushMs) : null; if (timer) timer.unref();
   const pruneTimer = enabled ? setInterval(prune, 3600 * 1000) : null; if (pruneTimer) pruneTimer.unref();
-  const status = () => ({ enabled, ok: enabled ? st.ok : null, lastOkAt: st.lastOkAt, lastError: st.lastError, restored: st.restored, queued: evQueue.length + auQueue.length + kvQueue.size + (stateDirty ? 1 : 0) });
+  const status = () => ({ enabled, ok: enabled ? st.ok : null, lastOkAt: st.lastOkAt, lastError: st.lastError, restored: st.restored, held: isHeld(), queued: evQueue.length + auQueue.length + kvQueue.size + (stateDirty ? 1 : 0) });
   async function close() { if (timer) clearInterval(timer); if (pruneTimer) clearInterval(pruneTimer); clearTimeout(stateTimer); await flush(); }
   return { enabled, restore, restoreKv, pushEvent, pushAudit, pushState, pushKv, flush, status, close };
 }

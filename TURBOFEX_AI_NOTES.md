@@ -621,3 +621,8 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 ## v3.28.0 - loading screen removed (owner does not like it)
 - Do NOT add a full-screen loading screen again. Only the thin top line (`#tfnav`, `tf2-load.js`) for taps on internal links remains, plus the local loaders (buttons, skeletons, Try again).
 - Colour switch: `tf2-theme.js` puts `html.tf-sw` (transitions off, `tf2-load.css`) for 120 ms while it changes `data-theme`; there is no colour fade (it made parts flash light). The `color-scheme` meta is edited in place, `theme-color` is replaced.
+
+## v3.29.0 - safer permanent storage
+- Supabase storage already existed (v2.21.0, `cloud.js`); the owner reported admin data resetting. Two real gaps fixed: no flush on SIGTERM (server.js main now calls `cloud.close()` on SIGTERM/SIGINT, 6 s cap) and a failed restore at boot let the empty local state overwrite the saved copy. Now boot retries restore 4 times (0/2/5/10 s); if it still fails `cloud` is `held` (nothing is sent; `status().held`; admin shows "Problem: ... NOT sent ...") until a start that can read it.
+- Most likely cause of resets on the live site is still that `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` are not set on Render or `tools/supabase-setup.sql` was not run: the admin Server page shows "Not set up" in that case. Admin LOGIN sessions are in memory by design (log in again after a restart). Session IDs/pairing data are deliberately never stored in Supabase.
+- Open question to the owner: "adds numbers that are not verified" (not understood yet).

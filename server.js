@@ -472,9 +472,21 @@ if (require.main === module) {
   (async () => {
     const cloud = cloudFromEnv(process.env);
     const dataDir = path.join(__dirname, 'data');
-    if (cloud.enabled) { await cloud.restore(path.join(dataDir, 'admin')); await cloud.restoreKv('dc:', path.join(dataDir, 'devcentre')); }   // bring the saved admin data back before the site reads its files
+    if (cloud.enabled) {   // bring the saved admin data back before the site reads its files; a slow or sleeping Supabase gets a few more tries
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      for (const pause of [0, 2000, 5000, 10000]) {
+        if (pause) await wait(pause);
+        const a = await cloud.restore(path.join(dataDir, 'admin'));
+        const b = await cloud.restoreKv('dc:', path.join(dataDir, 'devcentre'));
+        if (a && !cloud.status().held) break;
+      }
+    }
     const app = createApp({ cloud, dataDir });
     const port = Number(process.env.PORT) || 3000;
     app.server.listen(port, () => console.log(`TurboFex pairing site running on port ${port}` + (cloud.enabled ? ' (Supabase storage on)' : '')));
+    // the host stops the site with SIGTERM on every restart or deploy: send the last changes to Supabase first, so nothing saved in the last seconds is lost
+    let bye = false;
+    const stop = (sig) => { if (bye) return; bye = true; console.log(sig + ': saving the last changes before stopping'); Promise.race([cloud.close(), new Promise((r) => setTimeout(r, 6000))]).then(() => process.exit(0), () => process.exit(0)); };
+    process.on('SIGTERM', () => stop('SIGTERM')); process.on('SIGINT', () => stop('SIGINT'));
   })();
 }
