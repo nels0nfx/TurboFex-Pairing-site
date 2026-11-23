@@ -607,3 +607,8 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Rules: honest progress only, never hide content already showing, never replace a QR/code with a loader, no inline style attributes (CSP), motion only under no-preference. Class prefixes `ld-`, `tb-`, `skel`.
 - Site facts: no Status or Bot-management page exists; Install and Docs are static; plugin install is a copy command (the bot installs), so no install progress bar.
 - Admin fix: the scene kit's `.st` is now `.sc > .st` and the admin ring class is `gpv`. Lesson again: never share short class names between kits.
+
+## v3.26.0 - page-load screen
+- The screen is static HTML (`<div id="tfboot">`) placed in every page's head right after `tf2-load.css`, before any other stylesheet. The parser then starts the body, so the browser can paint it while big stylesheets download. Keep it before all other stylesheets on every page (a test checks this). New pages must copy the block.
+- CSS (`tf2-load.css`) does the 120 ms grace fade-in and a 7 s failsafe by itself; `tf2-load.js` removes it when stylesheets, fonts and pictures are ready (hard limit 7 s), and adds the thin top line + slow-link screen for clicks on internal links. `tf2-load-nojs.css` hides it when scripts are off.
+- Honest limit: nothing on the page can show before the server answers. A sleeping/cold host (free tier) shows the browser's own blank page until the first bytes arrive. `/health` exists for an outside pinger; no service worker was added (would need approval).

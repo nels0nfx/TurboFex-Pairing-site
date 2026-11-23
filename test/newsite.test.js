@@ -398,14 +398,15 @@ test('admin (v3.25.0): no Live/updated tag, and the admin and the scene kit shar
   assert.ok(!/^\.adm \.gp \{/m.test(a3), 'admin css does not restyle the scene panel class');
 });
 
-test('loading system (v3.25.0): kit linked once everywhere, motion respects reduced motion, no inline styles', async () => {
+test('loading system (v3.26.0): kit linked once everywhere, motion respects reduced motion, no inline styles', async () => {
   const pub = path.join(root, 'public');
   const css = fs.readFileSync(path.join(pub, 'tf2-load.css'), 'utf8');
   const js = fs.readFileSync(path.join(pub, 'tf2-load.js'), 'utf8');
   assert.ok(!/\.setAttribute\(\s*['"]style['"]/.test(js) && !/style=/.test(js), 'the script never writes an inline style attribute');
   assert.ok(/prefers-reduced-motion/.test(css), 'the styles know about reduced motion');
   const outside = css.replace(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*$/, '');
-  assert.ok(!/animation\s*:/.test(outside), 'animation only lives in the no-preference block');
+  const names = [...outside.matchAll(/animation\s*:\s*([^;]+);/g)].map((m) => m[1]).join(' ');
+  assert.ok(/tbGrace/.test(names) && !/tbIn|tbGlint|tbBar|tbHalo|tbNav/.test(names), 'outside the no-preference block only the fade-in, fade-out and failsafe run');
   for (const sel of [...css.matchAll(/^\s*\.([a-z0-9-]+)[ ,{.:]/gm)].map((m) => m[1])) assert.ok(/^(ld|tb|skel|pk)/.test(sel) || sel === 'sk', 'class ' + sel + ' has a safe prefix');
   const t = await boot({ OLD_SITE: '' });
   try {
@@ -413,7 +414,10 @@ test('loading system (v3.25.0): kit linked once everywhere, motion respects redu
       const h = await (await fetch(t.base + p)).text();
       assert.strictEqual((h.match(/\/tf2-load\.js/g) || []).length, 1, p + ' loads the loading script once');
       assert.strictEqual((h.match(/\/tf2-load\.css/g) || []).length, 1, p + ' loads the loading styles once');
+      assert.strictEqual((h.match(/id="tfboot"/g) || []).length, 1, p + ' carries the loading screen in its own HTML');
+      assert.ok(h.indexOf('id="tfboot"') < h.indexOf('/tf2.css') || !h.includes('/tf2.css'), p + ': the loading screen comes before the big stylesheets');
+      assert.ok(!/<link[^>]*stylesheet[^>]*>[\s\S]*id="tfboot"/.test(h.replace(/<link[^>]*tf2-load[^>]*>/g, '')), p + ': no stylesheet blocks it');
     }
-    for (const f of ['/tf2-load.css', '/tf2-load.js']) assert.strictEqual((await fetch(t.base + f)).status, 200);
+    for (const f of ['/tf2-load.css', '/tf2-load.js', '/tf2-load-nojs.css']) assert.strictEqual((await fetch(t.base + f)).status, 200);
   } finally { t.close(); }
 });

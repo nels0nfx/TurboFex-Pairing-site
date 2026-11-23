@@ -1,0 +1,2 @@
+/* Shown only when scripts are off: the loading screen has nothing to wait for, so hide it. */
+#tfboot { display: none !important; }

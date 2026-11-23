@@ -6,9 +6,17 @@
 
 /* ---- Level A: start-up ---- */
 html.tf-boot { overflow: hidden; }
-#tfboot { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 26px; background: #050506; opacity: 1; transition: opacity .3s ease; }
+#tfboot { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 26px; background: #050506; }
 html[data-theme="light"] #tfboot { background: #f6f6f9; }
-#tfboot.out { opacity: 0; pointer-events: none; }
+#tfboot { opacity: 0; animation: tbGrace .2s ease .12s both, tbFail .01s linear 7s forwards; }   /* 120 ms grace: a page that is ready at once never shows it; at 7 s it hides itself even if the script never loads */
+#tfboot.now { animation: tbGrace .2s ease both, tbFail .01s linear 12s forwards; }
+#tfboot.out { animation: tbOut .3s ease forwards; }
+#tfboot .tb-logo .tb-l { display: none; }
+html[data-theme="light"] #tfboot .tb-logo .tb-d { display: none; }
+html[data-theme="light"] #tfboot .tb-logo .tb-l { display: block; }
+@media (prefers-reduced-motion: reduce) { #tfboot, #tfboot.now, #tfboot.out { animation-duration: .01s, .01s; } #tfboot .tb-bar { display: none; } }
+#tfnav { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 2147482999; pointer-events: none; overflow: hidden; }
+#tfnav i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #6c5ce7; opacity: .85; transform: scaleX(.3); transform-origin: 0 50%; }
 #tfboot .tb-halo { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: radial-gradient(closest-side, rgba(108, 92, 231, .34), rgba(108, 92, 231, 0)); pointer-events: none; }
 html[data-theme="light"] #tfboot .tb-halo { background: radial-gradient(closest-side, rgba(108, 92, 231, .22), rgba(108, 92, 231, 0)); }
 #tfboot .tb-logo { position: relative; width: 132px; height: 91px; }
@@ -50,6 +58,7 @@ html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(1
 .ld-hide { display: none !important; }
 
 @media (prefers-reduced-motion: no-preference) {
+  #tfnav i { animation: tbNav 8s cubic-bezier(.1, .7, .2, 1) both; }
   #tfboot .tb-logo { animation: tbIn .8s cubic-bezier(.2, .8, .2, 1) both; }
   #tfboot .tb-halo { animation: tbHalo 1.6s ease-out both; }
   #tfboot .tb-glint { animation: tbGlint 1s ease-in-out .55s both; }
@@ -64,7 +73,11 @@ html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(1
 @keyframes tbHalo { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
 @keyframes tbGlint { 0% { opacity: 1; background-position: 160% 0; } 100% { opacity: 1; background-position: -60% 0; } }
 @keyframes tbFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tbGrace { to { opacity: 1; } }
+@keyframes tbFail { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@keyframes tbOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; pointer-events: none; } }
 @keyframes tbBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+@keyframes tbNav { 0% { transform: scaleX(.04); } 100% { transform: scaleX(.92); } }
 @keyframes ldShim { to { background-position: -60% 0; } }
 @keyframes ldSpin { to { transform: rotate(360deg); } }
 @keyframes ldBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(270%); } }
