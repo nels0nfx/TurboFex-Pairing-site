@@ -1,31 +1,15 @@
-/* TurboFex loading kit (v3.25.0).
-   Level A: the start-up screen (first visit of a browser session only).
+/* TurboFex loading kit.
+   Level A: a thin line when a link to another page is tapped (there is no full-screen loading screen).
    Level B: placeholders for one list, card or table that is waiting for data (.skel, .ld-*).
    Level C: a small indicator inside a button that is working (.ld-busy) and a small progress bar (.ld-bar).
    All colours come from the site tokens, so light and dark both work. Motion is inside the no-preference block. */
 
-/* ---- Level A: start-up ---- */
-html.tf-boot { overflow: hidden; }
-#tfboot { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 26px; background: #050506; }
-html[data-theme="light"] #tfboot { background: #f6f6f9; }
-#tfboot { opacity: 0; animation: tbGrace .2s ease .12s both, tbFail .01s linear 7s forwards; }   /* 120 ms grace: a page that is ready at once never shows it; at 7 s it hides itself even if the script never loads */
-#tfboot.soft { animation: tbGrace .2s ease .7s both, tbFail .01s linear 7s forwards; }
-#tfboot.now { animation: tbGrace .2s ease both, tbFail .01s linear 12s forwards; }
-#tfboot.out { animation: tbOut .3s ease forwards; }
-#tfboot .tb-logo .tb-l { display: none; }
-html[data-theme="light"] #tfboot .tb-logo .tb-d { display: none; }
-html[data-theme="light"] #tfboot .tb-logo .tb-l { display: block; }
-@media (prefers-reduced-motion: reduce) { #tfboot, #tfboot.soft, #tfboot.now, #tfboot.out { animation-duration: .01s, .01s; } #tfboot .tb-bar { display: none; } }
+/* ---- colour switch: no element fades its own colours while light/dark changes (tf2-theme.js adds the class for a moment) ---- */
+html.tf-sw, html.tf-sw *, html.tf-sw *::before, html.tf-sw *::after { transition: none !important; }
+
+/* ---- a thin line when a link to another page is tapped ---- */
 #tfnav { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 2147482999; pointer-events: none; overflow: hidden; }
 #tfnav i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #6c5ce7; opacity: .85; transform: scaleX(.3); transform-origin: 0 50%; }
-#tfboot .tb-halo { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: radial-gradient(closest-side, rgba(108, 92, 231, .34), rgba(108, 92, 231, 0)); pointer-events: none; }
-html[data-theme="light"] #tfboot .tb-halo { background: radial-gradient(closest-side, rgba(108, 92, 231, .22), rgba(108, 92, 231, 0)); }
-#tfboot .tb-logo { position: relative; width: 132px; height: 91px; }
-#tfboot .tb-logo img { display: block; width: 100%; height: 100%; }
-#tfboot .tb-glint { position: absolute; inset: 0; opacity: 0; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .9) 50%, transparent 62%) 160% 0 / 220% 100% no-repeat; -webkit-mask: url(/logo-brand-dark.png) center / contain no-repeat; mask: url(/logo-brand-dark.png) center / contain no-repeat; }
-html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(105deg, transparent 38%, rgba(108, 92, 231, .55) 50%, transparent 62%); -webkit-mask-image: url(/logo-brand-light.png); mask-image: url(/logo-brand-light.png); }
-#tfboot .tb-bar { position: relative; width: 96px; height: 3px; border-radius: 3px; overflow: hidden; background: rgba(128, 128, 160, .22); }
-#tfboot .tb-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 40%; border-radius: 3px; background: #6c5ce7; }
 
 /* ---- Level B: placeholders ---- */
 .skel, .ld-sk { display: block; border-radius: var(--r, 14px); background-color: rgb(var(--w, 128 128 160) / .07); background-image: linear-gradient(100deg, transparent 30%, rgb(var(--acc, 108 92 231) / .16) 50%, transparent 70%); background-size: 220% 100%; background-position: 160% 0; background-repeat: no-repeat; }
@@ -59,27 +43,12 @@ html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(1
 .ld-hide { display: none !important; }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* a colour mode switch fades the colours for 0.18 s (tf2-theme.js adds the class for a moment); taps are never held up */
-  html.tf-tt, html.tf-tt *, html.tf-tt *::before, html.tf-tt *::after { transition-property: background-color, border-color, color, fill, stroke, box-shadow !important; transition-duration: .18s !important; transition-timing-function: ease !important; transition-delay: 0s !important; }
   #tfnav i { animation: tbNav 8s cubic-bezier(.1, .7, .2, 1) both; }
-  #tfboot .tb-logo { animation: tbIn .8s cubic-bezier(.2, .8, .2, 1) both; }
-  #tfboot .tb-halo { animation: tbHalo 1.6s ease-out both; }
-  #tfboot .tb-glint { animation: tbGlint 1s ease-in-out .55s both; }
-  #tfboot .tb-bar { animation: tbFade .4s ease .3s both; }
-  #tfboot .tb-bar i { animation: tbBar 1.1s ease-in-out infinite; }
   .skel, .ld-sk { animation: ldShim 1.5s linear infinite; }
   .ld-busy::before, .ld-spin { animation: ldSpin .75s linear infinite; }
   .ld-bar.ld-ind i { animation: ldBar 1.2s ease-in-out infinite; }
   .ld-state { animation: ldIn .3s ease both; }
 }
-@keyframes tbIn { from { opacity: 0; transform: translateY(6px) scale(.84); filter: blur(10px); } to { opacity: 1; transform: none; filter: blur(0); } }
-@keyframes tbHalo { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
-@keyframes tbGlint { 0% { opacity: 1; background-position: 160% 0; } 100% { opacity: 1; background-position: -60% 0; } }
-@keyframes tbFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes tbGrace { to { opacity: 1; } }
-@keyframes tbFail { to { opacity: 0; visibility: hidden; pointer-events: none; } }
-@keyframes tbOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; pointer-events: none; } }
-@keyframes tbBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
 @keyframes tbNav { 0% { transform: scaleX(.04); } 100% { transform: scaleX(.92); } }
 @keyframes ldShim { to { background-position: -60% 0; } }
 @keyframes ldSpin { to { transform: rotate(360deg); } }

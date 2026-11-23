@@ -1,5 +1,5 @@
 /* TurboFex loading kit (v3.26.0). One small script, loaded in the head of every page (styles: tf2-load.css).
-   1) The page-load screen: the TF logo on every full page load (see the long note below), a thin line for link clicks.
+   1) A thin violet line when a link to another page is tapped (no full-screen loading screen).
    2) TFLoad: shared helpers the pages use, so every page loads, waits and fails the same way:
       TFLoad.fetch(url, opts, ms)    - a fetch that gives up after ms (default 20 s) with an error where error.timeout is true
       TFLoad.latest(key, url, ...)   - same, but a newer call with the same key cancels the older one
@@ -13,77 +13,21 @@
   var W = window, d = document, root = d.documentElement;
   var reduce = !!(W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  /* ---------- 1) page-load screen ----------
-     Runs as early as a script in the head can: the moment the browser has the first bytes of the page and this file.
-     (Before the server answers at all nothing on the page can run - see the notes about slow hosting starts.)
-     - Every full page load (first visit, refresh, direct address, a link to another page) gets it.
-     - It waits 120 ms before it shows, so a page that is ready at once never flashes it, and once shown it stays at least 600 ms.
-     - A click on a link to another page of the site shows a thin violet line at once; if the next page is slow, the full screen follows.
-     - Reduce Motion: same screen, no movement. A hard limit makes sure nothing can stay on screen for ever. */
-  var GRACE_BASE = 120, MIN_SHOWN = 600, HARD = 7000, SLOW_NAV = 700, NAV_LIMIT = 12000;
+  /* ---------- 1) a thin violet line when a link to another page of the site is tapped ----------
+     There is no full-screen loading screen. The line only shows that the tap was received; it goes away by itself if the page never changes.
+     Links the page handles itself (tabs, menus, filters) and #links never show it. */
+  var NAV_LIMIT = 12000;
   function gone(n) { if (n && n.parentNode) n.parentNode.removeChild(n); }
-  var SPLASH = '<div class="tb-halo"></div><div class="tb-logo"><img class="tb-d" src="/logo-brand-dark.png" alt="" width="132" height="91"><img class="tb-l" src="/logo-brand-light.png" alt="" width="132" height="91"><i class="tb-glint"></i></div><div class="tb-bar"><i></i></div>';
-  function makeSplash(now) {                                   // the same markup the pages carry in their HTML (used for slow link clicks)
-    var el = d.createElement('div'); el.id = 'tfboot'; el.setAttribute('role', 'status'); el.setAttribute('aria-label', 'Loading TurboFex');
-    if (now) el.className = 'now';
-    el.innerHTML = SPLASH; root.appendChild(el); return el;
-  }
-  var splash = null, navBar = null, navTimers = [];
-  function closeSplash(el) {
-    if (!el) return; el.classList.add('out');
-    setTimeout(function () { gone(el); if (splash === el) splash = null; if (!splash) root.classList.remove('tf-boot'); }, 340);
-  }
-  function boot() {
-    if (/[?&]nosplash/.test(location.search)) { gone(d.getElementById('tfboot')); return; }
-    // a page opened from another page of this site (a link, back/forward) only shows the screen if it is really slow; a first visit,
-    // a refresh and a typed address show it after the short grace
-    var nav = null, soft = false;
-    try { nav = (performance.getEntriesByType('navigation')[0] || {}).type; var rf = d.referrer && new URL(d.referrer).origin === location.origin; soft = nav === 'back_forward' || (nav === 'navigate' && !!rf); } catch (e) { /* treated as a direct visit */ }
-    var GRACE = soft ? 700 : GRACE_BASE;
-    var el = splash = d.getElementById('tfboot') || makeSplash(false), t0 = Date.now(), shownAt = 0, over = false;
-    if (soft) el.classList.add('soft');   // the page's own HTML already carries it, so it is drawn before any stylesheet
-    function show() { if (over || shownAt) return; shownAt = Date.now(); root.classList.add('tf-boot'); }
-    var tg = setTimeout(show, GRACE);
-    function leave() {
-      if (over) return; over = true; clearTimeout(tg);
-      if (!shownAt) { gone(el); if (splash === el) splash = null; return; }   // the page was ready before it was ever needed
-      closeSplash(el);
-    }
-    function soon() { if (over) return; if (!shownAt) return leave(); setTimeout(leave, Math.max(0, MIN_SHOWN - (Date.now() - shownAt))); }
-    function sheetsReady() {                                  // every stylesheet of the page has arrived: only then is the page drawn properly
-      var l = d.querySelectorAll('link[rel~="stylesheet"]');
-      for (var i = 0; i < l.length; i++) if (!l[i].sheet) return false;
-      return true;
-    }
-    function afterDom() {
-      var done = false; function go() { if (done) return; done = true; soon(); }
-      function fin() {                                         // styles are in: wait for fonts, then for pictures, but only a little
-        var f = d.fonts && d.fonts.ready; var cap = setTimeout(go, 1200);
-        function pics() { if (d.readyState === 'complete') go(); else W.addEventListener('load', go, { once: true }); }
-        if (f && f.then) f.then(pics, pics); else pics();
-      }
-      (function poll() { if (over || done) return; if (sheetsReady()) fin(); else setTimeout(poll, 50); })();
-    }
-    if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', afterDom); else afterDom();
-    setTimeout(leave, HARD);                                  // hard limit, so a stuck request can never keep the screen up
-    W.addEventListener('error', function () { setTimeout(leave, 0); }, { once: true });   // a script error must not trap the visitor behind it
-    el.addEventListener('pointerdown', leave); d.addEventListener('keydown', function () { leave(); }, { once: true });
-  }
-  try { boot(); } catch (e) { gone(d.getElementById('tfboot')); root.classList.remove('tf-boot'); }
+  var navBar = null, navTimers = [];
 
   /* a link to another page of the site: a light signal first, the full screen only if the next page is slow */
   function navCleanup() {
     navTimers.forEach(clearTimeout); navTimers = [];
     gone(navBar); navBar = null;
-    if (splash && splash.getAttribute('data-nav')) { var s = splash; splash = null; gone(s); root.classList.remove('tf-boot'); }
   }
   function navStart() {
     navCleanup();
     navBar = d.createElement('div'); navBar.id = 'tfnav'; navBar.setAttribute('aria-hidden', 'true'); navBar.innerHTML = '<i></i>'; root.appendChild(navBar);
-    navTimers.push(setTimeout(function () {
-      if (splash) return;
-      splash = makeSplash(true); splash.setAttribute('data-nav', '1'); root.classList.add('tf-boot');
-    }, SLOW_NAV));
     navTimers.push(setTimeout(navCleanup, NAV_LIMIT));         // the page never changed (offline, blocked): hand the page back
   }
   d.addEventListener('click', function (ev) {
@@ -101,7 +45,7 @@
       } catch (e) { /* a failed check just means no transition */ }
     }, 0);
   });
-  W.addEventListener('pageshow', function (ev) { if (ev.persisted) { navCleanup(); gone(d.getElementById('tfboot')); splash = null; root.classList.remove('tf-boot'); } });   // back button restoring a saved page
+  W.addEventListener('pageshow', function (ev) { if (ev.persisted) navCleanup(); });   // back button restoring a saved page
 
   /* ---------- 2) shared helpers ---------- */
   var latestCalls = {};

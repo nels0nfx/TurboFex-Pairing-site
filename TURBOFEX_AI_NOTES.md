@@ -617,3 +617,7 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - `public/tf2-theme.js` is the ONLY code that decides light/dark (loaded in the head of every page incl. admin, before `tf2-load.css`). `TFTheme.toggle()/set()/mode()`. No saved choice = follow the device live. `theme.js` now only holds the old small page settings (lite/android classes) and must be loaded after it. Never write `tfx-theme` or call `location.reload()` from page scripts.
 - Colours: every surface/text uses the tokens in `tf2.css` (`:root[data-theme="light"]` overrides). New components must use tokens, never fixed light/dark hex values. A part that keeps the other mode (the dark code box in light mode) re-scopes the tokens on itself.
 - Colour fade: `html.tf-tt` for 0.18 s (only when motion is allowed). Loading screen: first visit/refresh/typed address after 120 ms; page opened from a site link only after 700 ms.
+
+## v3.28.0 - loading screen removed (owner does not like it)
+- Do NOT add a full-screen loading screen again. Only the thin top line (`#tfnav`, `tf2-load.js`) for taps on internal links remains, plus the local loaders (buttons, skeletons, Try again).
+- Colour switch: `tf2-theme.js` puts `html.tf-sw` (transitions off, `tf2-load.css`) for 120 ms while it changes `data-theme`; there is no colour fade (it made parts flash light). The `color-scheme` meta is edited in place, `theme-color` is replaced.
