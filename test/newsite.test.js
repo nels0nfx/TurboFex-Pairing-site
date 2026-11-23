@@ -421,3 +421,26 @@ test('loading system (v3.26.0): kit linked once everywhere, motion respects redu
     for (const f of ['/tf2-load.css', '/tf2-load.js', '/tf2-load-nojs.css']) assert.strictEqual((await fetch(t.base + f)).status, 200);
   } finally { t.close(); }
 });
+
+test('theme (v3.27.0): one colour-mode module for every page, no reload, follows the phone, loading screen kept for real page loads', async () => {
+  const pub = path.join(root, 'public');
+  const th = fs.readFileSync(path.join(pub, 'tf2-theme.js'), 'utf8');
+  assert.ok(/prefers-color-scheme: dark/.test(th) && /removeItem/.test(th), 'follows the device when nothing is saved');
+  for (const f of ['tf2.js', 'app.js', 'admin.js']) {
+    const s = fs.readFileSync(path.join(pub, f), 'utf8');
+    assert.ok(/TFTheme\.toggle\(\)/.test(s), f + ' switches through the shared module');
+    assert.ok(!/localStorage\.setItem\('tfx-theme'/.test(s), f + ' does not write the colour mode itself');
+    assert.ok(!/location\.reload\(\)/.test(s), f + ' never reloads to switch the theme');
+  }
+  const load = fs.readFileSync(path.join(pub, 'tf2-load.js'), 'utf8');
+  assert.ok(/setTimeout\(function \(\) \{\s*try \{\s*if \(ev\.defaultPrevented/.test(load), 'link clicks are judged after the page handlers ran');
+  const t = await boot({ OLD_SITE: '' });
+  try {
+    for (const p of ['/', '/install', '/pair', '/plugins', '/docs', '/playground', '/developers', '/support', '/about', '/terms', '/privacy', '/rules']) {
+      const h = await (await fetch(t.base + p)).text();
+      const i = h.indexOf('/tf2-theme.js');
+      assert.ok(i > 0 && (h.match(/\/tf2-theme\.js/g) || []).length === 1, p + ' loads the colour module once');
+      assert.ok(i < h.indexOf('/tf2-load.css'), p + ': the colour mode is set before anything is drawn');
+    }
+  } finally { t.close(); }
+});

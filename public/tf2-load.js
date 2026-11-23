@@ -20,7 +20,7 @@
      - It waits 120 ms before it shows, so a page that is ready at once never flashes it, and once shown it stays at least 600 ms.
      - A click on a link to another page of the site shows a thin violet line at once; if the next page is slow, the full screen follows.
      - Reduce Motion: same screen, no movement. A hard limit makes sure nothing can stay on screen for ever. */
-  var GRACE = 120, MIN_SHOWN = 600, HARD = 7000, SLOW_NAV = 700, NAV_LIMIT = 12000;
+  var GRACE_BASE = 120, MIN_SHOWN = 600, HARD = 7000, SLOW_NAV = 700, NAV_LIMIT = 12000;
   function gone(n) { if (n && n.parentNode) n.parentNode.removeChild(n); }
   var SPLASH = '<div class="tb-halo"></div><div class="tb-logo"><img class="tb-d" src="/logo-brand-dark.png" alt="" width="132" height="91"><img class="tb-l" src="/logo-brand-light.png" alt="" width="132" height="91"><i class="tb-glint"></i></div><div class="tb-bar"><i></i></div>';
   function makeSplash(now) {                                   // the same markup the pages carry in their HTML (used for slow link clicks)
@@ -34,8 +34,14 @@
     setTimeout(function () { gone(el); if (splash === el) splash = null; if (!splash) root.classList.remove('tf-boot'); }, 340);
   }
   function boot() {
-    if (/[?&]nosplash/.test(location.search)) return;
-    var el = splash = d.getElementById('tfboot') || makeSplash(false), t0 = Date.now(), shownAt = 0, over = false;   // the page's own HTML already carries it, so it is drawn before any stylesheet
+    if (/[?&]nosplash/.test(location.search)) { gone(d.getElementById('tfboot')); return; }
+    // a page opened from another page of this site (a link, back/forward) only shows the screen if it is really slow; a first visit,
+    // a refresh and a typed address show it after the short grace
+    var nav = null, soft = false;
+    try { nav = (performance.getEntriesByType('navigation')[0] || {}).type; var rf = d.referrer && new URL(d.referrer).origin === location.origin; soft = nav === 'back_forward' || (nav === 'navigate' && !!rf); } catch (e) { /* treated as a direct visit */ }
+    var GRACE = soft ? 700 : GRACE_BASE;
+    var el = splash = d.getElementById('tfboot') || makeSplash(false), t0 = Date.now(), shownAt = 0, over = false;
+    if (soft) el.classList.add('soft');   // the page's own HTML already carries it, so it is drawn before any stylesheet
     function show() { if (over || shownAt) return; shownAt = Date.now(); root.classList.add('tf-boot'); }
     var tg = setTimeout(show, GRACE);
     function leave() {
@@ -81,16 +87,19 @@
     navTimers.push(setTimeout(navCleanup, NAV_LIMIT));         // the page never changed (offline, blocked): hand the page back
   }
   d.addEventListener('click', function (ev) {
-    try {
-      if (ev.defaultPrevented || ev.button || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
-      var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
-      if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
-      var u = new URL(a.href, location.href);
-      if (u.origin !== location.origin || !/^https?:$/.test(u.protocol)) return;
-      if (u.pathname === location.pathname && u.search === location.search) return;     // same page or a #link: nothing to load
-      if (/^\/(api|admin\/api)\//.test(u.pathname) || /\.(zip|png|jpe?g|svg|pdf|txt|json)$/i.test(u.pathname)) return;
-      navStart();
-    } catch (e) { /* a failed check just means no transition */ }
+    // wait until every other click handler has run: a link the page handles itself (tab, filter, menu) calls preventDefault and is not a page load
+    setTimeout(function () {
+      try {
+        if (ev.defaultPrevented || ev.button || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+        var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+        if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+        var u = new URL(a.href, location.href);
+        if (u.origin !== location.origin || !/^https?:$/.test(u.protocol)) return;
+        if (u.pathname === location.pathname && u.search === location.search) return;     // same page or a #link: nothing to load
+        if (/^\/(api|admin\/api)\//.test(u.pathname) || /\.(zip|png|jpe?g|svg|pdf|txt|json)$/i.test(u.pathname)) return;
+        navStart();
+      } catch (e) { /* a failed check just means no transition */ }
+    }, 0);
   });
   W.addEventListener('pageshow', function (ev) { if (ev.persisted) { navCleanup(); gone(d.getElementById('tfboot')); splash = null; root.classList.remove('tf-boot'); } });   // back button restoring a saved page
 

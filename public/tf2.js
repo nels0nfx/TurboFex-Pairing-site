@@ -22,25 +22,16 @@
     d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { setMenu(false); btn.focus(); } });
   }
 
-  // dark / light switch (the saved choice is applied earlier by tf2-theme.js)
+  // dark / light switch: tf2-theme.js decides and remembers; this only presses the button and keeps its label right
   var tg = d.getElementById('ttheme');
   function paintToggle() {
     var light = d.documentElement.getAttribute('data-theme') === 'light';
     if (tg) { tg.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode'); tg.setAttribute('aria-pressed', light ? 'true' : 'false'); }
-    var m = d.querySelector('meta[name="theme-color"]'); if (m) { var n = d.createElement('meta'); n.name = 'theme-color'; n.content = light ? '#f6f6f9' : '#050506'; m.parentNode.replaceChild(n, m); } // replaced (not edited) so phones repaint the top bar
   }
   if (tg) {
     paintToggle();
-    tg.addEventListener('click', function () {
-      var next = d.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      d.documentElement.setAttribute('data-theme', next);
-      try { localStorage.setItem('tfx-theme', next); } catch (e) { /* cannot save: it still works for this visit */ }
-      paintToggle();
-      var cs = d.querySelector('meta[name="color-scheme"]');
-      if (cs) { var c2 = d.createElement('meta'); c2.name = 'color-scheme'; c2.content = next; cs.parentNode.replaceChild(c2, cs); }
-      // iPhones read the colour of their top bar when a page opens, so reload once to make it match (other browsers change at once)
-      if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) location.reload();
-    });
+    tg.addEventListener('click', function () { if (window.TFTheme) window.TFTheme.toggle(); });
+    window.addEventListener('tfx-theme', paintToggle);   // also when the phone's own setting or another tab changes it
   }
 
   // mark where you are

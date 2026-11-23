@@ -20,21 +20,8 @@
     var imgs = [].slice.call(document.querySelectorAll('.art')), wait = new Promise(function (r) { setTimeout(r, 500); });
     return Promise.race([Promise.all(imgs.map(function (i) { return i.decode ? i.decode().catch(function () {}) : null; })), wait]);
   }
-  themeBtn.addEventListener('click', function () {
-    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    function apply() {
-      root.classList.add('switching');                   // no element animates its own colours during the switch
-      root.setAttribute('data-theme', next);
-      setTimeout(function () { root.classList.remove('switching'); }, 120);
-      var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute('content', next === 'dark' ? '#0B0B0B' : '#FAF3E6');
-      try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved, still works */ }
-      syncTheme();
-    }
-    if (reduced) { apply(); return; }
-    // Everything (text, backgrounds, borders, hero picture) switches in the same instant. A colour fade makes the text and the background
-    // cross each other half-way (grey on grey = unreadable) and nested fades make inherited text lag behind, so there is no fade.
-    artReady().then(apply);                              // the new hero picture is decoded first, so it can never pop in late
-  });
+  artReady();                                            // both hero pictures are decoded in advance, so the switch below can be instant
+  themeBtn.addEventListener('click', function () { if (window.TFTheme) window.TFTheme.toggle(); });
   syncTheme();
   window.addEventListener('tfx-theme', syncTheme);   // the phone's own light/dark setting changed
 

@@ -3,7 +3,7 @@
 :root {
   --bg: #050506; --s1: #0d0d10; --s2: #141418; --s3: #1b1b21;
   --line: rgb(var(--w) / .07); --line2: rgb(var(--w) / .13);
-  --t: #f4f4f6; --b: #b9b9c2; --m: #8a8a95; --d: #5f5f69;
+  --t: #f4f4f6; --b: #b9b9c2; --m: #8a8a95; --d: #7c7c88;
   --w: 255 255 255; --bgc: 5 5 6;
   --acc: 139 124 255; --ok: 52 211 153; --warn: 245 166 35; --bad: 248 113 113;
   /* identity colours (only for command categories and a few feature icons) and the main button */
@@ -187,14 +187,14 @@ details p a { color: var(--t); text-decoration: underline; text-decoration-color
   color-scheme: light;
   --bg: #f6f6f9; --s1: #ffffff; --s2: #f0f0f5; --s3: #e6e6ee;
   --w: 20 20 40; --bgc: 246 246 249;
-  --t: #14141b; --b: #464653; --m: #6a6a78; --d: #9a9aa8;
-  --acc: 108 92 231; --vio: 108 92 231; --sky: 37 99 235; --cyan: 8 145 178; --pink: 219 39 119; --fuc: 168 85 247;
-  --ok: 5 150 105; --warn: 202 110 4; --bad: 220 38 38;
+  --t: #14141b; --b: #464653; --m: #62626f; --d: #70707e;
+  --acc: 108 92 231; --vio: 108 92 231; --sky: 37 99 235; --cyan: 14 116 144; --pink: 219 39 119; --fuc: 168 85 247;
+  --ok: 4 120 87; --warn: 180 83 9; --bad: 200 30 30;
 }
 :root[data-theme="light"] .hero h1 { background: none; -webkit-text-fill-color: currentColor; }
 :root[data-theme="light"] .pill { background: var(--s1); border-color: var(--line2); }
 :root[data-theme="light"] .skip { color: #fff; }
-:root[data-theme="light"] .code { background: #14141b; }
+:root[data-theme="light"] .code { background: #14141b; --t: #f4f4f6; --b: #b9b9c2; --m: #8a8a95; --d: #8a8a95; --w: 255 255 255; }   /* the code panel stays dark in light mode, so its own text colours are the dark-mode ones */
 
 /* the page behind the phone's top bar and the overscroll area follows the mode too */
 html { background: var(--bg); }
@@ -327,6 +327,7 @@ html { background: var(--bg); }
 
 /* v3.21.0: one brand colour (--brand, set at the top) for the Get started button, the "Fex" in the name and the F of the logo */
 .logo .fx { color: var(--brand); }
+:root:not([data-theme="light"]) .logo .fx { color: #8577f0; }   /* a touch lighter on the dark background so the name stays readable */
 .mark .mf { position: absolute; inset: 0; pointer-events: none; background: url(/logo-f-hi.png) center / contain no-repeat, url(/logo-f-lo.png) center / contain no-repeat, var(--brand); -webkit-mask: url(/logo-f.png) center / contain no-repeat; mask: url(/logo-f.png) center / contain no-repeat; }
 
 /* v3.21.0: section labels centred; the two section animations (Connection Hub, Modular Plugin Engine). Plain elements; only transform-type properties and opacity move. */

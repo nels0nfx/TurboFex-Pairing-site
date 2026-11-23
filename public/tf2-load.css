@@ -9,12 +9,13 @@ html.tf-boot { overflow: hidden; }
 #tfboot { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 26px; background: #050506; }
 html[data-theme="light"] #tfboot { background: #f6f6f9; }
 #tfboot { opacity: 0; animation: tbGrace .2s ease .12s both, tbFail .01s linear 7s forwards; }   /* 120 ms grace: a page that is ready at once never shows it; at 7 s it hides itself even if the script never loads */
+#tfboot.soft { animation: tbGrace .2s ease .7s both, tbFail .01s linear 7s forwards; }
 #tfboot.now { animation: tbGrace .2s ease both, tbFail .01s linear 12s forwards; }
 #tfboot.out { animation: tbOut .3s ease forwards; }
 #tfboot .tb-logo .tb-l { display: none; }
 html[data-theme="light"] #tfboot .tb-logo .tb-d { display: none; }
 html[data-theme="light"] #tfboot .tb-logo .tb-l { display: block; }
-@media (prefers-reduced-motion: reduce) { #tfboot, #tfboot.now, #tfboot.out { animation-duration: .01s, .01s; } #tfboot .tb-bar { display: none; } }
+@media (prefers-reduced-motion: reduce) { #tfboot, #tfboot.soft, #tfboot.now, #tfboot.out { animation-duration: .01s, .01s; } #tfboot .tb-bar { display: none; } }
 #tfnav { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 2147482999; pointer-events: none; overflow: hidden; }
 #tfnav i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #6c5ce7; opacity: .85; transform: scaleX(.3); transform-origin: 0 50%; }
 #tfboot .tb-halo { position: absolute; left: 50%; top: 50%; width: 440px; height: 440px; margin: -220px 0 0 -220px; border-radius: 50%; background: radial-gradient(closest-side, rgba(108, 92, 231, .34), rgba(108, 92, 231, 0)); pointer-events: none; }
@@ -58,6 +59,8 @@ html[data-theme="light"] #tfboot .tb-glint { background-image: linear-gradient(1
 .ld-hide { display: none !important; }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* a colour mode switch fades the colours for 0.18 s (tf2-theme.js adds the class for a moment); taps are never held up */
+  html.tf-tt, html.tf-tt *, html.tf-tt *::before, html.tf-tt *::after { transition-property: background-color, border-color, color, fill, stroke, box-shadow !important; transition-duration: .18s !important; transition-timing-function: ease !important; transition-delay: 0s !important; }
   #tfnav i { animation: tbNav 8s cubic-bezier(.1, .7, .2, 1) both; }
   #tfboot .tb-logo { animation: tbIn .8s cubic-bezier(.2, .8, .2, 1) both; }
   #tfboot .tb-halo { animation: tbHalo 1.6s ease-out both; }

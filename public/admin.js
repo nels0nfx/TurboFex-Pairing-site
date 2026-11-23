@@ -74,11 +74,7 @@
   $('out').addEventListener('click', function () { confirmThen('Sign out of the admin dashboard?', function () { api('POST', 'logout').then(function () { showLogin('You are signed out.'); }, function () { showLogin(); }); }, 'Sign out'); });
 
   // ---------- theme button ----------
-  $('theme').addEventListener('click', function () {
-    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    root.classList.add('switching'); root.setAttribute('data-theme', next); setTimeout(function () { root.classList.remove('switching'); }, 120);
-    try { localStorage.setItem('tfx-theme', next); } catch (e) { /* not saved */ }
-  });
+  $('theme').addEventListener('click', function () { if (window.TFTheme) window.TFTheme.toggle(); });
 
   // ---------- navigation ----------
   var ICON = {
