@@ -151,6 +151,7 @@
   function idStop() { if (idTimer) clearInterval(idTimer); idTimer = null; idEnd = 0; }
   function idExpired() {
     idStop(); clearJob();
+    if ($('deploybtn')) $('deploybtn').hidden = true;
     $('idtimer').textContent = 'This session ID has expired. Link again to get a new one.';
     $('idtimer').classList.add('gone');
     $('sid').classList.add('expired'); $('sid').setAttribute('aria-disabled', 'true'); $('sid').tabIndex = -1;
@@ -167,7 +168,8 @@
     $('sid').textContent = 'Used'; $('env').textContent = 'SESSION_ID=(used)';
     $('copy').disabled = true; $('copyenv').disabled = true;
     $('dm').textContent = '';
-    islLock = false; islandSet('ok', 'Bot connected');
+    islLock = false; islandSet('ok', 'Login collected');
+    if ($('deploybtn')) $('deploybtn').hidden = true;
   }
   function idTick() {
     var left = Math.max(0, Math.ceil((idEnd - Date.now()) / 1000));
@@ -491,6 +493,7 @@
         idExpired();
       } else if (j.state === 'linked') {
         if (!idTimer) { $('sid').textContent = j.sessionId; $('env').textContent = 'SESSION_ID=' + j.sessionId; }
+        if ($('deploybtn')) $('deploybtn').hidden = false;   // only when the server says the pairing is finished and the ID is still valid
         if ($('step-done').hidden) show('step-done');
         idStart(j.idSecondsLeft);
         dmNote(j.dm);

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TurboFex | Deploy your bot</title>
+<meta name="description" content="Launch your TurboFex bot after pairing: pick Termux, a VPS, Docker, a panel, Render, Koyeb or a computer and follow a guided checklist with copy-ready commands.">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script src="/tf2-theme.js"></script>
+<link rel="stylesheet" href="/tf2-load.css">
+<script src="/tf2-load.js"></script>
+<link rel="stylesheet" href="/tf2.css">
+<link rel="stylesheet" href="/tf2-icons.css">
+<link rel="stylesheet" href="/tf2-deploy.css">
+</head>
+<body>
+<!--tfx:head2-->
+<main id="main" class="dp">
+<section class="wrap ph"><div class="col">
+  <p class="eyebrow">Deploy</p>
+  <h1 class="page">Deploy your bot</h1>
+  <p class="lead">Your WhatsApp is paired. Pick where the bot will live and follow the checklist.</p>
+</div></section>
+<section class="wrap"><div class="col" id="app" aria-live="polite">
+  <noscript><div class="dp-card"><b>JavaScript is needed for the Deploy Centre.</b><p>Use the <a href="/install">Install page</a> for the same steps without it.</p></div></noscript>
+  <div class="dp-card dp-load" id="dp-loading"><span class="dp-spin" aria-hidden="true"></span> Checking your pairing…</div>
+</div></section>
+</main>
+<div class="dp-toast" id="dp-toast" role="status" aria-live="polite" hidden></div>
+<script src="/deploy-data.js"></script>
+<script src="/deploy.js"></script>
+<script src="/tf2.js"></script>
+<script src="/tf2-icons.js"></script>
+</body>
+</html>

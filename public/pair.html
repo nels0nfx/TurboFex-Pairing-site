@@ -138,7 +138,7 @@
   <section id="step-done" class="step" hidden>
     <div class="ok" aria-hidden="true"><svg viewBox="0 0 52 52" width="64" height="64"><circle cx="26" cy="26" r="24" fill="none" stroke="#34d399" stroke-width="1.5"/><path class="tick" d="M15 27l8 8 14-16" fill="none" stroke="#34d399" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h2 class="center">Linked successfully</h2>
-    <p class="usedmsg" id="usedmsg" role="status" hidden><b>Your bot is logged in.</b> This session ID was used successfully, so it cannot be used again. You can close this page.</p>
+    <p class="usedmsg" id="usedmsg" role="status" hidden><b>Your bot collected its login.</b> This session ID was used, so it cannot be used again. That does not prove WhatsApp is connected: check your bot log or send .ping to the bot.</p>
     <p class="label">Your session ID</p>
     <div class="sid" id="sid" role="button" tabindex="0" aria-label="Session ID. Tap to copy"></div>
     <button id="copy" class="cta" type="button"><span id="copy-text">Copy session ID</span></button>
@@ -155,6 +155,7 @@
         <li><span class="n">2</span><span>Start the bot</span></li>
       </ol>
     </div>
+      <a class="ghost main" id="deploybtn" href="/deploy" hidden><span>Deploy your bot</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     <p class="hint warn">Works once · expires in 5 minutes · keep it private</p>
     <p class="hint center idtimer" id="idtimer" aria-live="off"></p>
     <button id="again" class="link" type="button">Link another number</button>

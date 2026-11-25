@@ -1,4 +1,6 @@
 CHANGED IN THE NEXT VERSION
+- NEW (pairsite v3.32.0): Deploy Centre at /deploy: after pairing, pick Termux, VPS, Docker, a panel, Render, Koyeb, another web host or Windows/Mac and follow a checklist with copy buttons. Guided only (no provider automation). The session ID is never shown, stored or put in an address; it is only put on the clipboard when you tap Copy.
+- CHANGED (pairsite v3.32.0): the pair page said "Your bot is logged in" / "Bot connected" as soon as the bot downloaded the ID. That only proves the login was collected, so it now says so, and a Deploy your bot button appears while the ID is valid.
 - FIXED (pairsite v3.31.0): retried writes could be stored twice and one refused row could block all later saving; activity and audit lines now have unique keys (run tools/supabase-migrate-v3.31.sql once in Supabase).
 - FIXED (pairsite v3.31.0): admin settings, blocks and announcements said saved before the database had them, and saving only one limit wiped the other limits; they now report honestly whether they are safely stored.
 - FIXED (pairsite v3.31.0): dashboard counts: cancelled, replaced and busy attempts were not recorded, a session fetch counted before delivery, a repeated request counted twice; hour bars now use whole UTC hours and daily totals are kept for ever (7/30/90-day views).

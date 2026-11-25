@@ -638,3 +638,10 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Settings POST: fields left out keep their saved value (they used to be wiped); `null`/`''` resets one to the host default.
 - New events: `pair.cancelled` (replaced / user), `pair.busy`; `session.fetch` is recorded after the response was written (`delivery_failed` otherwise) and for invalid/rate-limited tries (`detail`). `/api/pair` accepts an optional `rid`: a repeat of the same request returns the same attempt and is not counted again.
 - `/admin/api/overview?days=1|7|30|90|365` and `/admin/api/history?days=N`.
+
+## v3.32.0 — Deploy Centre (/deploy), guided only
+- `/deploy` (`new-deploy.html`, `deploy.js`, `tf2-deploy.css`) opens after a finished pairing in the same tab. It reads the job id the pair page already keeps in `sessionStorage` (`tfx-job`) and asks `/api/job/<id>`; the session ID lives only in the script's memory (masked on screen, built into the clipboard text at copy time, never in a URL, storage, request or event).
+- `public/deploy-data.js` is the single source of host steps/commands/variables (browser + Node). A test checks every command on the Install page (unchanged) is present in it. Facts come from the hosting ZIP v1.8.4 and Render/Koyeb docs (Render Free: spins down after 15 min, ephemeral disk; Koyeb Free: no volumes, scales to zero after 1 h). Re-check provider facts before editing them.
+- Honest states: "WhatsApp paired" and "Login collected" are server facts (job linked; `used`). "WhatsApp connected" and "host running" are user checks ("You confirmed"), never shown as success by TurboFex. `used:true` only means the ID was downloaded.
+- `POST /api/deploy/choose {job, platform}` records `deploy.platform` once per finished pairing and host. No provider API automation exists in this phase.
+- Pair page: "Deploy your bot" button only while the server shows a valid ID; the "used" wording now says the bot collected its login (it used to say connected).

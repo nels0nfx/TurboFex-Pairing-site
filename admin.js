@@ -228,11 +228,11 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     const t0 = now(), nowBlock = {
       activeAttempts: jobs().filter((j) => !j.doneAt).length, liveSessionIds: store.list().length, blocks: state.blocks.filter(liveBlock).length, maintenance: state.maintenance.on, announcements: state.announcements.filter((a) => a.active && (!a.endsAt || a.endsAt > now())).length,
     };
-    let totals, methods, countries, successRate, series, bucket, from, covered;
+    let totals, methods, countries, successRate, series, bucket, from, covered, deployPlatforms;
     if (days === 1) {
       const end = A.hourStart(t0), from0 = end - 23 * HOUR, ev = events.since(t0 - from0).filter((e) => e.t >= from0);
       const sum = A.total(Object.values(A.summarize(ev)));
-      totals = sum.totals; methods = sum.methods; countries = sum.countries; successRate = sum.successRate; bucket = 'hour'; from = from0;
+      totals = sum.totals; methods = sum.methods; countries = sum.countries; deployPlatforms = sum.deployPlatforms; successRate = sum.successRate; bucket = 'hour'; from = from0;
       totals.visitors = new Set(ev.filter((e) => e.client && (e.type === 'site.visit' || e.type.startsWith('pair.'))).map((e) => e.client)).size;
       series = Array.from({ length: 24 }, (_, i) => ({ t: from0 + i * HOUR, attempts: 0, linked: 0, failed: 0 }));
       for (const e of ev) { const i = Math.floor((e.t - from0) / HOUR); if (i < 0 || i > 23) continue; if (e.type === 'pair.start') series[i].attempts++; else if (e.type === 'pair.linked') series[i].linked++; else if (e.type === 'pair.failed') series[i].failed++; }
@@ -241,14 +241,14 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       const map = dailyMap(), today = A.dayKey(t0), startDay = A.dayKey(t0 - (days - 1) * DAY);
       const list = []; for (let t = A.dayStart(startDay); t <= A.dayStart(today); t += DAY) { const k = A.dayKey(t); list.push(map.get(k) || A.emptyDay(k)); }
       const sum = A.total(list);
-      totals = sum.totals; methods = sum.methods; countries = sum.countries; successRate = sum.successRate; bucket = 'day'; from = A.dayStart(startDay);
+      totals = sum.totals; methods = sum.methods; countries = sum.countries; deployPlatforms = sum.deployPlatforms; successRate = sum.successRate; bucket = 'day'; from = A.dayStart(startDay);
       series = list.map((d) => ({ t: A.dayStart(d.day), attempts: d.attempts, linked: d.linked, failed: d.failed }));
       const have = [...map.keys()].sort()[0]; covered = have ? A.dayStart(have) : null;
     }
     totals.sessionFetchOk = totals.fetchOk; totals.sessionFetchBad = totals.fetchBad;   // names the dashboard page already uses
     return {
       since: events.first(), windowHours: days * 24, range: { days, tz: 'UTC', bucket, from, recordedSince: covered, visitorsAreDailySums: days > 1 },
-      totals, successRate, methods, countries: countries.slice(0, 6), series, now: nowBlock,
+      totals, successRate, methods, countries: countries.slice(0, 6), deployPlatforms, series, now: nowBlock,
       alerts: alerts().length, uptimeSec: Math.round(process.uptime()), version,
     };
   }

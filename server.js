@@ -89,7 +89,8 @@ function createApp(opts = {}) {
     if (!fs.existsSync(f)) fs.writeFileSync(f, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
     secret = fs.readFileSync(f, 'utf8').trim();
   }
-  const store = makeStore({
+  const deployData = require('./public/deploy-data.js');
+const store = makeStore({
     dir: path.join(dataDir, 'sessions'),
     secret,
     ttlMs: (Number(env.SESSION_TTL_SECONDS) > 0 ? Number(env.SESSION_TTL_SECONDS) * 1000 : DEFAULT_TTL_MS), // 5 minutes unless changed
@@ -402,6 +403,19 @@ function createApp(opts = {}) {
       return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, idSecondsLeft: idLeft, expired: idExpired, used, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
+    // 2b) the Deploy Centre tells us which host a person picked. Only counted for a real, finished pairing (the server checks the job); nothing about the session ID is sent or kept.
+    if (req.method === 'POST' && p === '/api/deploy/choose') {
+      let b; try { b = JSON.parse((await readBody(req)) || '{}'); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
+      const job = typeof b.job === 'string' ? jobs.get(b.job) : null;
+      if (!job || job.state !== 'linked' || typeof b.platform !== 'string' || !deployData.byId[b.platform]) return send(res, 400, { error: 'Not counted.' });
+      job.picks = job.picks || new Set();
+      if (!job.picks.has(b.platform)) {   // once per pairing and host, so reloads and retries do not inflate it
+        job.picks.add(b.platform);
+        events.record('deploy.platform', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), platform: b.platform });
+      }
+      return send(res, 200, { ok: true });
+    }
+
     // 3) the bot downloads its login with the session ID
     if (req.method === 'GET' && p.startsWith('/api/session/')) {
       const fwho = { client: admin.idOf('client', ip), ipm: admin.maskIp(ip) };
@@ -426,7 +440,7 @@ function createApp(opts = {}) {
     if (req.method === 'GET') {
       // The redesigned site is the live site. The old pages stay in the project but are not served; OLD_SITE=on brings them back at their old addresses (the new pages then sit at /new/...), as a rollback.
       const oldSite = String(env.OLD_SITE || '') === 'on';
-      const NEWPAGES = { home: 'new-home.html', install: 'new-install.html', pair: 'pair.html', about: 'new-about.html', terms: 'new-terms.html', privacy: 'new-privacy.html', rules: 'new-rules.html', support: 'new-support.html', plugins: 'new-plugins.html', developers: 'new-developers.html', playground: 'new-playground.html', docs: 'new-docs.html', 'plugin-guide': 'new-docs.html' };
+      const NEWPAGES = { home: 'new-home.html', install: 'new-install.html', deploy: 'new-deploy.html', pair: 'pair.html', about: 'new-about.html', terms: 'new-terms.html', privacy: 'new-privacy.html', rules: 'new-rules.html', support: 'new-support.html', plugins: 'new-plugins.html', developers: 'new-developers.html', playground: 'new-playground.html', docs: 'new-docs.html', 'plugin-guide': 'new-docs.html' };
       const OLDFILES = ['home.html', 'index.html', 'about.html', 'terms.html', 'privacy.html', 'plugins.html', 'developers.html', 'plugin-guide.html', 'rules.html', 'playground.html', 'community.html', 'support.html'];
       const PAGES = {};
       if (!oldSite) {
