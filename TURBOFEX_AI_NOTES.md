@@ -629,3 +629,12 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 
 ## v3.30.0 - cube tumble
 - Only the animation of `.cube` in `public/tf2.css` changed: `tfspin` (48 s, linear: rotateX 2 turns, rotateY 3 turns, rotateZ 1 turn, whole turns so it loops without a jump), `tftumble` (13 s alternate, lean around a slanted axis, `rotate` property), `tffloat`. All inside the no-preference block. Do not go back to a Y-dominant spin (owner wants a free tumble like a floating object). Checked by sampling the orientation: all 6 faces face the viewer in turn, rotation axis keeps changing, speed 24-35 deg/s.
+
+## v3.31.0 — data integrity and analytics accuracy
+- `analytics.js` is the one place that defines what each event means and how totals are counted (UTC). Daily records (counts only) are kept for ever in `tfx_kv` under `daily:YYYY-MM-DD`; they are only ever merged upwards (`mergeMax`).
+- Every activity line has a unique `eid` and every audit line its hash `h`; both tables have unique indexes (`tools/supabase-migrate-v3.31.sql`). Sends use `on_conflict` + ignore-duplicates, so a retry stores nothing twice. Until the migration is run the site falls back to the old insert and the Server tab shows a notice.
+- A refused row (HTTP 4xx) is isolated and counted (`rejected`); it can no longer block the queue. Queues remove sent rows by identity.
+- Settings/blocks/announcements saves wait for the database (`cloud.persistState`) and answer `durable:true|false` + `warning`; the dashboard shows the warning. If the file on disk cannot be written the change is undone and a 500 is returned.
+- Settings POST: fields left out keep their saved value (they used to be wiped); `null`/`''` resets one to the host default.
+- New events: `pair.cancelled` (replaced / user), `pair.busy`; `session.fetch` is recorded after the response was written (`delivery_failed` otherwise) and for invalid/rate-limited tries (`detail`). `/api/pair` accepts an optional `rid`: a repeat of the same request returns the same attempt and is not counted again.
+- `/admin/api/overview?days=1|7|30|90|365` and `/admin/api/history?days=N`.

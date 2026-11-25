@@ -62,7 +62,7 @@ test('admin data survives a restart with an empty disk when Supabase is on', asy
   await w1.req('POST', '/api/pair', { body: { method: 'code', number: '8023456789', country: 'NG' } });
   await new Promise((r) => setTimeout(r, 700)); await c1.flush();
   assert.strictEqual(c1.status().queued, 0, 'everything was sent');
-  assert.ok(fake.db.tfx_events.length >= 1 && fake.db.tfx_audit.length >= 3 && fake.db.tfx_kv.length === 1);
+  assert.ok(fake.db.tfx_events.length >= 1 && fake.db.tfx_audit.length >= 3 && fake.db.tfx_kv.filter((r) => r.key === 'state').length === 1);
   assert.ok(!JSON.stringify(fake.db).includes('8012345678') && !JSON.stringify(fake.db).includes('8023456789'), 'no full number reaches the database');
   const blob = JSON.stringify(fake.db); assert.ok(!/TFX-[A-Z0-9]{4}-/.test(blob), 'no session IDs in the database');
   app1.close();
@@ -81,7 +81,7 @@ test('admin data survives a restart with an empty disk when Supabase is on', asy
   // new actions continue the same chain
   await w2.req('POST', '/admin/api/announcements/add', { ...w2.s, body: { text: 'Second', level: 'info' } });
   assert.strictEqual((await w2.req('GET', '/admin/api/audit', w2.s)).json.chainOk, true);
-  assert.deepStrictEqual(Object.keys((await w2.req('GET', '/admin/api/health', w2.s)).json.storage.cloud).sort(), ['enabled', 'held', 'lastError', 'lastOkAt', 'ok', 'queued', 'restored']);
+  assert.deepStrictEqual(Object.keys((await w2.req('GET', '/admin/api/health', w2.s)).json.storage.cloud).sort(), ['dropped', 'enabled', 'held', 'lastError', 'lastOkAt', 'migrationNeeded', 'ok', 'queued', 'rejected', 'restored']);
   assert.ok(!JSON.stringify((await w2.req('GET', '/admin/api/health', w2.s)).json).includes('secret-key'), 'the key is never shown');
   app2.close();
 });

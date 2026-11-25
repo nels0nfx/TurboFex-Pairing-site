@@ -103,7 +103,8 @@ function createApp(opts = {}) {
 
   const jobs = new Map(); // id -> job
   const cloud = opts.cloud || cloudFromEnv(env);   // optional Supabase copy of the admin data (see cloud.js)
-  const events = createEvents({ dir: path.join(dataDir, 'admin'), onRecord: (e) => cloud.pushEvent(e) });
+  const events = createEvents({ dir: path.join(dataDir, 'admin'), onRecord: (e) => cloud.pushEvent(e), onDaily: (d) => cloud.pushDaily && cloud.pushDaily(d) });
+  if (cloud.enabled && !env.SITE_SECRET) console.warn('WARNING: SITE_SECRET is not set. Visitor and number fingerprints (and therefore blocks) are made with it; a secret that changes at every restart makes saved blocks stop matching. Set SITE_SECRET on the host.');
   const devcentre = opts.devcentre || createDevCentre({ env, dataDir, secret, cloud, fetchImpl: opts.fetchImpl });   // developer sign-in, plugin submissions and the owner's review
   const admin = createAdmin({
     env, dataDir: path.join(dataDir, 'admin'), secret, store, events, version: VERSION, cloud, devcentre,
@@ -115,6 +116,7 @@ function createApp(opts = {}) {
     ? createRegistry({ env: { ...env, REGISTRY_URL: 'local:///', REGISTRY_PUBLIC_KEY: devcentre.signingPublicKey }, fetcher: async (url) => { const b = devcentre.registryFile(String(url).slice('local:///'.length)); if (!b) throw new Error('status 404'); return b; } })
     : createRegistry({ env }));   // the signed plugin list for the Plugins page
   const hits = new Map(); // "kind:ip" -> [timestamps]
+  const rids = new Map(); // "client:rid" -> { job, at }  (so a repeated request is answered with the same attempt)
   const nextUi = createNextUi({ dir: opts.nextDir || env.NEXT_UI_DIR || path.join(__dirname, 'web', 'dist'), env }); // the new interface under /next (does nothing until it is built)
 
   // allows `max` hits per `windowMs` for one visitor
@@ -181,6 +183,7 @@ function createApp(opts = {}) {
     const id = crypto.randomBytes(16).toString('hex');
     const job = { id, number, method, dm: null, state: 'starting', code: null, qr: null, qrSvg: null, sessionId: null, error: null, createdAt: Date.now(), doneAt: 0, handle: null, client: who.client, ipm: who.ipm, numId: who.num, numberMasked: who.numm, country: who.country };
     const ev = (type, extra) => events.record(type, { client: who.client, ipm: who.ipm, num: who.num, numm: who.numm, country: who.country, method, ...extra });
+    job.ev = ev;
     const done = () => {
       job.doneAt = Date.now();
       clearTimeout(job.timer);
@@ -248,7 +251,9 @@ function createApp(opts = {}) {
 
   const active = () => [...jobs.values()].filter((j) => !j.doneAt);
 
-  function stopJob(job, message) {
+  // kind: why it ended when it did not link or fail ('replaced' by a new attempt, 'user' pressed cancel). Recorded so every attempt that starts is accounted for.
+  function stopJob(job, message, kind) {
+    const wasOpen = !job.doneAt && job.state !== 'linked' && job.state !== 'failed';
     try {
       job.handle.cancel();
     } catch (err) {
@@ -260,6 +265,7 @@ function createApp(opts = {}) {
     job.code = null;
     job.qr = null;
     job.doneAt = Date.now();
+    if (kind && wasOpen && job.ev) job.ev('pair.cancelled', { detail: kind });
   }
 
   async function handle(req, res) {
@@ -340,13 +346,16 @@ function createApp(opts = {}) {
       const maint = admin.maintenance();
       if (maint.on) { events.record('pair.maintenance', who); return send(res, 503, { error: maint.message, maintenance: true }); }
       if (admin.blocked({ client: who.client })) { events.record('pair.blocked', { ...who, detail: 'visitor' }); return send(res, 403, { error: 'Pairing is not available from this connection.' }); }
-      if (limited('pair', ip, admin.limits().pair, 15 * 60 * 1000)) { events.record('pair.limited', { ...who, detail: 'visitor' }); return send(res, 429, { error: 'Too many tries. Please wait a few minutes.' }); }
       let body;
       try {
         body = JSON.parse((await readBody(req)) || '{}');
       } catch (err) {
         return send(res, 400, { error: 'Bad request.' });
       }
+      // a request the page sent again (a retry after a slow network) carries the same "rid": it gets the same attempt back and is NOT counted again
+      const rid = typeof body.rid === 'string' && /^[A-Za-z0-9_-]{8,48}$/.test(body.rid) ? who.client + ':' + body.rid : null;
+      if (rid && rids.has(rid)) { const old = jobs.get(rids.get(rid).job); if (old) return send(res, 200, { job: old.id, repeated: true }); rids.delete(rid); }
+      if (limited('pair', ip, admin.limits().pair, 15 * 60 * 1000)) { events.record('pair.limited', { ...who, detail: 'visitor' }); return send(res, 429, { error: 'Too many tries. Please wait a few minutes.' }); }
       const method = body.method === 'qr' ? 'qr' : 'code';
       let number = '';
       if (method === 'code') {
@@ -358,11 +367,13 @@ function createApp(opts = {}) {
         // abuse guard: one number can only be tried so often (counted by a one-way hash, the number itself is never kept)
         if (limited('num', phone.hashOf(number, hashSecret), numberLimit(), 15 * 60 * 1000)) { events.record('pair.limited', { ...who, method, detail: 'number' }); return send(res, 429, { error: 'Too many attempts for this number. Please wait a few minutes before trying again.' }); }
         // the same number asking again means the person started over: stop the old attempt instead of blocking them
-        for (const j of active()) if (j.number === number) stopJob(j, 'Replaced by a new attempt.');
+        for (const j of active()) if (j.number === number) stopJob(j, 'Replaced by a new attempt.', 'replaced');
       }
-      if (active().length >= admin.limits().maxJobs) return send(res, 503, { error: 'The site is busy. Try again in a minute.' });
-      const job = startJob(number, method, who);
-      events.record('pair.start', { ...who, method });
+      if (active().length >= admin.limits().maxJobs) { events.record('pair.busy', { ...who, method }); return send(res, 503, { error: 'The site is busy. Try again in a minute.' }); }
+      let job;
+      try { job = startJob(number, method, who); } catch (err) { events.record('pair.failed', { ...who, method, detail: 'could not start' }); return send(res, 500, { error: 'Could not start. Please try again.' }); }
+      events.record('pair.start', { ...who, method });   // only now: the attempt really exists
+      if (rid) { rids.set(rid, { job: job.id, at: Date.now() }); }
       return send(res, 200, { job: job.id });
     }
 
@@ -370,7 +381,7 @@ function createApp(opts = {}) {
     if (req.method === 'POST' && p.startsWith('/api/cancel/')) {
       if (limited('cancel', ip, 30, 15 * 60 * 1000)) return send(res, 429, { error: 'Too many tries.' });
       const job = jobs.get(p.slice('/api/cancel/'.length));
-      if (job && !job.doneAt) stopJob(job, 'Replaced by a new attempt.');
+      if (job && !job.doneAt) stopJob(job, 'Replaced by a new attempt.', 'user');
       return send(res, 200, { ok: true });
     }
 
@@ -393,15 +404,19 @@ function createApp(opts = {}) {
 
     // 3) the bot downloads its login with the session ID
     if (req.method === 'GET' && p.startsWith('/api/session/')) {
-      if (limited('fetch', ip, 20, 60 * 1000)) return send(res, 429, { error: 'Too many tries.' });
-      const id = decodeURIComponent(p.slice('/api/session/'.length));
-      if (!normalizeId(id)) return send(res, 400, { error: 'That is not a session ID.' });
+      const fwho = { client: admin.idOf('client', ip), ipm: admin.maskIp(ip) };
+      if (limited('fetch', ip, 20, 60 * 1000)) { events.record('session.fetch', { ...fwho, ok: false, detail: 'rate_limited' }); return send(res, 429, { error: 'Too many tries.' }); }
+      let id; try { id = decodeURIComponent(p.slice('/api/session/'.length)); } catch (err) { id = ''; }
+      if (!normalizeId(id)) { events.record('session.fetch', { ...fwho, ok: false, detail: 'invalid_format' }); return send(res, 400, { error: 'That is not a session ID.' }); }
       const creds = store.take(id); // checks the expiry itself and marks the ID as used
-      events.record('session.fetch', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), ok: !!creds });
-      if (!creds) return send(res, 404, { error: 'Session ID not found, expired, or already used.' });
+      if (!creds) { events.record('session.fetch', { ...fwho, ok: false, detail: 'not_found_expired_or_used' }); return send(res, 404, { error: 'Session ID not found, expired, or already used.' }); }
       // tell the page that waits for it: this ID has now been used by the bot
       const canon = normalizeId(id);
       for (const j of jobs.values()) if (j.sessionId && normalizeId(j.sessionId) === canon) { j.usedAt = Date.now(); j.sessionId = null; }
+      // a fetch counts as successful only once the login has been written out completely; if the connection broke first it is recorded as a failure
+      let settled = false;
+      res.once('finish', () => { if (!settled) { settled = true; events.record('session.fetch', { ...fwho, ok: true }); } });
+      res.once('close', () => { if (!settled) { settled = true; events.record('session.fetch', { ...fwho, ok: false, detail: 'delivery_failed' }); } });
       return send(res, 200, creds);
     }
 
@@ -452,6 +467,7 @@ function createApp(opts = {}) {
   const sweeper = setInterval(() => {
     const now = Date.now();
     for (const [id, j] of jobs) if (j.doneAt && now - j.doneAt > JOB_TTL) jobs.delete(id);
+    for (const [k, r] of rids) if (now - r.at > JOB_TTL) rids.delete(k);
     for (const [k, list] of hits) if (!list.some((t) => now - t < 15 * 60 * 1000)) hits.delete(k);
     try {
       store.sweep();

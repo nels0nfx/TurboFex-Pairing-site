@@ -12,6 +12,7 @@ const os = require('os');
 const path = require('path');
 const { monitorEventLoopDelay } = require('perf_hooks');
 const phone = require('./phone');
+const A = require('./analytics');
 
 const PERMS = {
   viewer: ['view'],
@@ -106,9 +107,24 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
   const stateFile = path.join(dataDir, 'admin-state.json');
   let state = { maintenance: { on: false, message: '' }, limits: {}, blocks: [], announcements: [], trust: {} };
   try { const s = JSON.parse(fs.readFileSync(stateFile, 'utf8')); state = { ...state, ...s }; } catch (err) { /* first start */ }
-  function save() {
-    try { fs.writeFileSync(stateFile + '.tmp', JSON.stringify(state), { mode: 0o600 }); fs.renameSync(stateFile + '.tmp', stateFile); } catch (err) { /* best effort */ }
-    if (cloud) cloud.pushState(state);
+  // Saves the settings. Returns { ok, durable, storage, warning }:
+  //  ok=false      the file on this server could not be written (the change is undone and nothing is claimed)
+  //  durable=true  the permanent database confirmed it;  durable=false + warning: it is applied on this site but NOT safely stored yet (it is sent again by itself)
+  async function save() {
+    try { fs.writeFileSync(stateFile + '.tmp', JSON.stringify(state), { mode: 0o600 }); fs.renameSync(stateFile + '.tmp', stateFile); }
+    catch (err) { return { ok: false, durable: false, warning: 'The change could not be written on the server.' }; }
+    if (!cloud || !cloud.enabled) return { ok: true, durable: false, storage: 'local', warning: 'Saved on this server only. Permanent storage is not set up, so a restart or redeploy on a free host can undo it.' };
+    const r = await cloud.persistState(state);
+    if (r.durable) return { ok: true, durable: true, storage: 'cloud' };
+    return { ok: true, durable: false, storage: 'cloud', warning: r.reason === 'held' ? 'Applied, but the saved copy could not be loaded at start-up, so it is NOT sent to permanent storage. Restart the site.' : 'Applied, but permanent storage could not be reached. It will be sent again automatically; do not restart the site until the Server tab shows no queued items.' };
+  }
+  const snapshot = () => JSON.stringify(state);
+  const rollback = (snap) => { try { state = { ...state, ...JSON.parse(snap) }; } catch (err) { /* keep */ } };
+  // run after a change: saves, and when the file write failed puts the old state back and answers 500
+  async function commit(res, json, snap, okBody) {
+    const r = await save();
+    if (!r.ok) { rollback(snap); json(res, 500, { error: r.warning }); return null; }
+    return r;
   }
   const LIMITS = { pair: { min: 1, max: 200 }, number: { min: 1, max: 100 }, maxJobs: { min: 1, max: 100 } };
   const limits = () => ({ pair: state.limits.pair || defaults.pair, number: state.limits.number || defaults.number, maxJobs: state.limits.maxJobs || defaults.maxJobs });
@@ -189,7 +205,7 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       uptimeSec: Math.round(process.uptime()), startedAt: now() - Math.round(process.uptime()) * 1000,
       cpu: { process: last.proc, system: last.sys, load: os.loadavg().map((x) => Math.round(x * 100) / 100) },
       memory: { rss: m.rss, heapUsed: m.heapUsed, heapTotal: m.heapTotal, heapLimit, systemTotal: os.totalmem(), systemFree: os.freemem(), containerLimit, containerUsed: containerLimit ? cg.used : null },
-      storage: { data: dirSize(dataDir), disk, cloud: cloud ? cloud.status() : { enabled: false } },
+      storage: { data: dirSize(dataDir), disk, cloud: cloud ? cloud.status() : { enabled: false }, events: events.stats ? events.stats() : null, secretFromHost: !!env.SITE_SECRET },
       eventLoopLagMs: last.lag,
       series: samples.map((s) => ({ t: s.t, cpu: s.proc, rss: s.rss, lag: s.lag })),
       pairing: { activeJobs: jobs().filter((j) => !j.doneAt).length, liveSessionIds: store.list().length },
@@ -198,28 +214,50 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
 
   // ----- statistics and alerts, all computed from the real activity log -----
   const DAY = 24 * 3600 * 1000, HOUR = 3600 * 1000;
-  function overview() {
-    const ev = events.since(DAY), t0 = now();
-    const c = (type) => ev.filter((e) => e.type === type).length;
-    const starts = ev.filter((e) => e.type === 'pair.start');
-    const linked = c('pair.linked'), failed = c('pair.failed');
-    const buckets = Array.from({ length: 24 }, (_, i) => ({ t: t0 - (23 - i) * HOUR, attempts: 0, linked: 0, failed: 0 }));
-    for (const e of ev) {
-      const i = 23 - Math.floor((t0 - e.t) / HOUR); if (i < 0 || i > 23) continue;
-      if (e.type === 'pair.start') buckets[i].attempts++; else if (e.type === 'pair.linked') buckets[i].linked++; else if (e.type === 'pair.failed') buckets[i].failed++;
+  // Statistics. Everything is worked out from stored events (and the permanent daily totals for anything older than the event log), in UTC.
+  // days=1: the last 24 hours as 24 whole UTC hours (the current hour is partial).  days>1: that many UTC days ending today, one bar per day.
+  const RANGES = [1, 7, 30, 90, 365];
+  function dailyMap() {
+    const map = new Map(events.dailies().map((d) => [d.day, d]));
+    const raw = A.summarize(events.all());   // days still in the event log are recounted from the real events; the saved total can only be raised by that, never lowered
+    for (const [k, rec] of Object.entries(raw)) map.set(k, A.mergeMax(map.get(k), rec));
+    return map;
+  }
+  function overview(days = 1) {
+    days = RANGES.includes(days) ? days : 1;
+    const t0 = now(), nowBlock = {
+      activeAttempts: jobs().filter((j) => !j.doneAt).length, liveSessionIds: store.list().length, blocks: state.blocks.filter(liveBlock).length, maintenance: state.maintenance.on, announcements: state.announcements.filter((a) => a.active && (!a.endsAt || a.endsAt > now())).length,
+    };
+    let totals, methods, countries, successRate, series, bucket, from, covered;
+    if (days === 1) {
+      const end = A.hourStart(t0), from0 = end - 23 * HOUR, ev = events.since(t0 - from0).filter((e) => e.t >= from0);
+      const sum = A.total(Object.values(A.summarize(ev)));
+      totals = sum.totals; methods = sum.methods; countries = sum.countries; successRate = sum.successRate; bucket = 'hour'; from = from0;
+      totals.visitors = new Set(ev.filter((e) => e.client && (e.type === 'site.visit' || e.type.startsWith('pair.'))).map((e) => e.client)).size;
+      series = Array.from({ length: 24 }, (_, i) => ({ t: from0 + i * HOUR, attempts: 0, linked: 0, failed: 0 }));
+      for (const e of ev) { const i = Math.floor((e.t - from0) / HOUR); if (i < 0 || i > 23) continue; if (e.type === 'pair.start') series[i].attempts++; else if (e.type === 'pair.linked') series[i].linked++; else if (e.type === 'pair.failed') series[i].failed++; }
+      covered = events.first();
+    } else {
+      const map = dailyMap(), today = A.dayKey(t0), startDay = A.dayKey(t0 - (days - 1) * DAY);
+      const list = []; for (let t = A.dayStart(startDay); t <= A.dayStart(today); t += DAY) { const k = A.dayKey(t); list.push(map.get(k) || A.emptyDay(k)); }
+      const sum = A.total(list);
+      totals = sum.totals; methods = sum.methods; countries = sum.countries; successRate = sum.successRate; bucket = 'day'; from = A.dayStart(startDay);
+      series = list.map((d) => ({ t: A.dayStart(d.day), attempts: d.attempts, linked: d.linked, failed: d.failed }));
+      const have = [...map.keys()].sort()[0]; covered = have ? A.dayStart(have) : null;
     }
-    const count = (arr, key) => { const m = {}; for (const e of arr) if (e[key]) m[e[key]] = (m[e[key]] || 0) + 1; return Object.entries(m).sort((a, b) => b[1] - a[1]); };
-    const act = jobs().filter((j) => !j.doneAt);
+    totals.sessionFetchOk = totals.fetchOk; totals.sessionFetchBad = totals.fetchBad;   // names the dashboard page already uses
     return {
-      since: events.first(), windowHours: 24,
-      totals: { visits: c('site.visit'), visitors: new Set(ev.filter((e) => e.client && (e.type === 'site.visit' || e.type.startsWith('pair.'))).map((e) => e.client)).size, attempts: starts.length, codes: c('pair.code'), qrs: c('pair.qr'), linked, failed, limited: c('pair.limited'), blocked: c('pair.blocked'), invalid: c('pair.invalid'), sessionFetchOk: ev.filter((e) => e.type === 'session.fetch' && e.ok).length, sessionFetchBad: ev.filter((e) => e.type === 'session.fetch' && !e.ok).length },
-      successRate: linked + failed ? Math.round((linked / (linked + failed)) * 1000) / 10 : null,
-      methods: { code: starts.filter((e) => e.method === 'code').length, qr: starts.filter((e) => e.method === 'qr').length },
-      countries: count(starts, 'country').slice(0, 6).map(([country, n]) => ({ country, n })),
-      series: buckets,
-      now: { activeAttempts: act.length, liveSessionIds: store.list().length, blocks: state.blocks.filter(liveBlock).length, maintenance: state.maintenance.on, announcements: state.announcements.filter((a) => a.active && (!a.endsAt || a.endsAt > now())).length },
+      since: events.first(), windowHours: days * 24, range: { days, tz: 'UTC', bucket, from, recordedSince: covered, visitorsAreDailySums: days > 1 },
+      totals, successRate, methods, countries: countries.slice(0, 6), series, now: nowBlock,
       alerts: alerts().length, uptimeSec: Math.round(process.uptime()), version,
     };
+  }
+  // one record per UTC day (the permanent history), newest last
+  function history(days) {
+    const map = dailyMap(), today = A.dayKey(now()), out = [];
+    const startDay = A.dayKey(now() - (Math.min(365, Math.max(1, days)) - 1) * DAY);
+    for (let t = A.dayStart(startDay); t <= A.dayStart(today); t += DAY) { const k = A.dayKey(t); out.push(map.get(k) || A.emptyDay(k)); }
+    return { tz: 'UTC', days: out, ...A.total(out) };
   }
   function alerts() {
     const out = [], ev = events.since(DAY), t = now();
@@ -350,10 +388,11 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
 
     if (post && route === 'logout') { sessions.delete(sid); act('logout', '', ''); json(res, 200, { ok: true }, { 'Set-Cookie': setCookie(req, '0'.repeat(64), 0) }); return true; }
     if (post && route === 'trust/forget') {   // any signed-in admin: cancel "trust this device" for their own account, everywhere
-      state.trust = state.trust || {}; state.trust[sess.user] = trustEpoch(sess.user) + 1; save(); act('trust.forget', sess.user, ''); json(res, 200, { ok: true }, { 'Set-Cookie': clearTrustCookie(req) }); return true;
+      const snap = snapshot(); state.trust = state.trust || {}; state.trust[sess.user] = trustEpoch(sess.user) + 1; const r = await commit(res, json, snap); if (!r) return true; act('trust.forget', sess.user, ''); json(res, 200, { ok: true, durable: r.durable, warning: r.warning }, { 'Set-Cookie': clearTrustCookie(req) }); return true;
     }
     if (!post && route === 'me') { json(res, 200, { user: sess.user, role: sess.role, perms: PERMS[sess.role], csrf: sess.csrf, version, serverTime: now(), idleMs: SESSION_IDLE_MS }); return true; }
-    if (!post && route === 'overview') { if (need('view')) json(res, 200, overview()); return true; }
+    if (!post && route === 'overview') { if (need('view')) json(res, 200, overview(Number(new URL(req.url, 'http://x').searchParams.get('days')) || 1)); return true; }
+    if (!post && route === 'history') { if (need('view')) json(res, 200, history(Number(new URL(req.url, 'http://x').searchParams.get('days')) || 30)); return true; }
     if (!post && route === 'sessions') { if (need('view')) json(res, 200, { sessions: liveSessions(), attempts: liveJobs(), ttlSeconds: Math.round(store.ttlMs / 1000) }); return true; }
     if (post && route === 'sessions/revoke') {
       if (!need('sessions.revoke')) return true;
@@ -382,16 +421,19 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       if (kind === 'client' && id === ipId) { json(res, 400, { error: 'You cannot block your own connection.' }); return true; }
       const hours = Math.min(24 * 365, Math.max(0, Number(b.hours) || 0));
       const reason = String(b.reason || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 120);
+      const snap = snapshot();
       state.blocks = state.blocks.filter((x) => !(x.kind === kind && x.id === id));
       state.blocks.push({ kind, id, label: label || String(b.label || '').slice(0, 40), reason, by: sess.user, at: now(), until: hours ? now() + hours * HOUR : null });
-      save(); act('block.add', kind + ':' + id, `${hours ? hours + 'h' : 'permanent'} ${reason}`); json(res, 200, { ok: true }); return true;
+      const r = await commit(res, json, snap); if (!r) return true;
+      act('block.add', kind + ':' + id, `${hours ? hours + 'h' : 'permanent'} ${reason}`); json(res, 200, { ok: true, durable: r.durable, warning: r.warning }); return true;
     }
     if (post && route === 'blocks/remove') {
       if (!need('blocks.manage')) return true;
-      const b = await body(); const before = state.blocks.length;
+      const b = await body(); const before = state.blocks.length, snap = snapshot();
       state.blocks = state.blocks.filter((x) => !(x.kind === (b && b.kind) && x.id === (b && b.id)));
       if (state.blocks.length === before) { json(res, 404, { error: 'Not found.' }); return true; }
-      save(); act('block.remove', `${b.kind}:${b.id}`, ''); json(res, 200, { ok: true }); return true;
+      const r = await commit(res, json, snap); if (!r) return true;
+      act('block.remove', `${b.kind}:${b.id}`, ''); json(res, 200, { ok: true, durable: r.durable, warning: r.warning }); return true;
     }
     if (!post && route === 'security') { if (need('view')) json(res, 200, { alerts: alerts() }); return true; }
     if (!post && route === 'health') { if (need('view')) json(res, 200, healthNow()); return true; }
@@ -407,23 +449,33 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
     if (post && route === 'settings') {
       if (!need('settings.manage')) return true;
       const b = await body(); if (!b) return json(res, 400, { error: 'Bad request.' }), true;
-      const before = { maintenance: { ...state.maintenance }, limits: { ...state.limits } };
-      if (b.maintenance) state.maintenance = { on: !!b.maintenance.on, message: String(b.maintenance.message || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 200) };
+      const before = { maintenance: { ...state.maintenance }, limits: { ...state.limits } }, snap = snapshot();
+      // validate everything first, so a bad value changes nothing at all
+      let nextLimits = null, nextMaint = null;
+      if (b.maintenance) nextMaint = { on: !!b.maintenance.on, message: String(b.maintenance.message || '').replace(/[\u0000-\u001f]/g, ' ').slice(0, 200) };
       if (b.limits) {
-        const next = {};
+        // a field that is left out or sent as undefined keeps its saved value; null or '' puts it back to the default; a number is saved.
+        // A number equal to what is already in force is not turned into a new override (so changing the host's default later still works).
+        nextLimits = { ...state.limits };
+        const eff = limits();
         for (const k of Object.keys(LIMITS)) {
-          if (b.limits[k] === undefined || b.limits[k] === null || b.limits[k] === '') continue;
-          const n = Number(b.limits[k]);
+          const v = b.limits[k];
+          if (v === undefined) continue;
+          if (v === null || v === '') { delete nextLimits[k]; continue; }
+          const n = Number(v);
           if (!Number.isInteger(n) || n < LIMITS[k].min || n > LIMITS[k].max) { json(res, 400, { error: `${k} must be a whole number from ${LIMITS[k].min} to ${LIMITS[k].max}.` }); return true; }
-          if (n !== defaults[k]) next[k] = n;
+          if (n === defaults[k]) { delete nextLimits[k]; continue; }
+          if (n === eff[k] && nextLimits[k] === undefined) continue;
+          nextLimits[k] = n;
         }
-        state.limits = next;
       }
-      save();
+      if (nextMaint) state.maintenance = nextMaint;
+      if (nextLimits) state.limits = nextLimits;
+      const r = await commit(res, json, snap); if (!r) return true;
       if (before.maintenance.on !== state.maintenance.on) act(state.maintenance.on ? 'maintenance.on' : 'maintenance.off', '', state.maintenance.message);
       else if (JSON.stringify(before.maintenance) !== JSON.stringify(state.maintenance)) act('maintenance.message', '', state.maintenance.message);
       if (JSON.stringify(before.limits) !== JSON.stringify(state.limits)) act('limits.change', '', JSON.stringify(limits()));
-      json(res, 200, { ok: true, maintenance: state.maintenance, limits: limits() }); return true;
+      json(res, 200, { ok: true, durable: r.durable, storage: r.storage, warning: r.warning, maintenance: state.maintenance, limits: limits() }); return true;
     }
     if (!post && route === 'announcements') { if (need('view')) json(res, 200, { announcements: state.announcements.slice().sort((a, b) => b.createdAt - a.createdAt) }); return true; }
     if (post && route === 'announcements/add') {
@@ -432,16 +484,20 @@ function createAdmin({ env = process.env, dataDir, secret, store, events, jobs, 
       if (text.length < 3) { json(res, 400, { error: 'Write the announcement (at least 3 characters).' }); return true; }
       const level = ['info', 'warning', 'critical'].includes(b.level) ? b.level : 'info';
       const hours = Math.min(24 * 90, Math.max(0, Number(b.hours) || 0));
+      const snap = snapshot();
       const a = { id: crypto.randomBytes(6).toString('hex'), text, level, active: true, createdAt: now(), endsAt: hours ? now() + hours * HOUR : null, by: sess.user };
       state.announcements.push(a); if (state.announcements.length > 50) state.announcements = state.announcements.slice(-50);
-      save(); act('announcement.add', a.id, `${level}: ${text}`); json(res, 200, { ok: true, id: a.id }); return true;
+      const r = await commit(res, json, snap); if (!r) return true;
+      act('announcement.add', a.id, `${level}: ${text}`); json(res, 200, { ok: true, id: a.id, durable: r.durable, warning: r.warning }); return true;
     }
     if (post && (route === 'announcements/toggle' || route === 'announcements/delete')) {
       if (!need('announce.manage')) return true;
       const b = await body(); const a = state.announcements.find((x) => x.id === (b && b.id));
       if (!a) { json(res, 404, { error: 'Not found.' }); return true; }
+      const snap = snapshot();
       if (route.endsWith('delete')) state.announcements = state.announcements.filter((x) => x !== a); else a.active = !a.active;
-      save(); act(route.endsWith('delete') ? 'announcement.delete' : (a.active ? 'announcement.show' : 'announcement.hide'), a.id, ''); json(res, 200, { ok: true }); return true;
+      const r = await commit(res, json, snap); if (!r) return true;
+      act(route.endsWith('delete') ? 'announcement.delete' : (a.active ? 'announcement.show' : 'announcement.hide'), a.id, ''); json(res, 200, { ok: true, durable: r.durable, warning: r.warning }); return true;
     }
     // --- plugin submissions from the Developer Centre (owner only: the owner decides what may be published) ---
     if (route.startsWith('plugins/')) {

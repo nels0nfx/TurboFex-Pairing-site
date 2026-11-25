@@ -368,6 +368,10 @@
     tabs.classList.toggle('locked', on); $('number').readOnly = on; $('cpick').disabled = on;
   }
   function idleLabel() { swapText($('go-text'), method === 'code' ? 'Generate pairing code' : 'Show QR code'); }
+  // A request id lets the server recognise a repeat of the SAME request (a retry after a slow network) and not count it twice.
+  var ridKey = '', ridVal = '';
+  function ridFor(method, number) { var k = method + '|' + number; if (k !== ridKey || !ridVal) { ridKey = k; ridVal = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); } return ridVal; }
+  function ridDone() { ridVal = ''; }
   function failSubmit(msg) {
     submitting = false; busy(false); idleLabel(); $('connect').classList.add('ldx');
     islandSet('bad', 'Could not start. Try again.');
@@ -386,9 +390,10 @@
     busy(true);
     snd('press'); islLock = false; islandSet('working', 'Connecting…');
     swapText($('go-text'), sent === 'code' ? 'Generating…' : 'Preparing…');
-    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number, country: lastCountry }) }, 25000)
+    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: number, country: lastCountry, rid: ridFor(sent, number) }) }, 25000)
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
+        ridDone();
         if (mine !== reqId) return;
         if (!x.ok) return failSubmit(x.j.error || 'Something went wrong. Please try again.');
         submitting = false;
@@ -429,9 +434,10 @@
     renderCode(''); $('copycode').disabled = true; $('qrimg').hidden = true; $('qrimg').removeAttribute('src'); $('qrskel').hidden = false;
     $('prog').style.width = '100%'; $('timer').hidden = true;
     $('status').textContent = sent === 'code' ? 'Requesting a new pairing code…' : 'Preparing a new QR code…';
-    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber, country: lastCountry }) }, 25000)
+    TFLoad.fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ method: sent, number: lastNumber, country: lastCountry, rid: ridFor(sent, lastNumber) }) }, 25000)
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }, function () { return { ok: false, j: {} }; }); })
       .then(function (x) {
+        ridDone();
         if (mine !== reqId) return;
         submitting = false;
         $('retry-text').textContent = 'Try again';

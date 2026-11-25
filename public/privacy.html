@@ -51,6 +51,7 @@
     <li>Session: until the session ID is used, or 5 minutes after it was made, whichever comes first. Then it is removed from the site.</li>
     <li>Attempt counters: about 15 minutes.</li>
     <li>Activity log: 7 days, then it is deleted. A copy is kept in a private database service so it is not lost when the site restarts.</li>
+    <li>Daily totals: before activity lines are deleted, each day is added up into plain counts (how many visits, attempts, links, failures, and attempts per country). These counts hold no number, address or visitor reference and are kept so the owner can see history.</li>
     <li>Phone number: not kept.</li>
   </ul>
   <p>Once the bot has your session it keeps running on your account until you unlink it. See below.</p></section>

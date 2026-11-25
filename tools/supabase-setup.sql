@@ -8,3 +8,8 @@ alter table public.tfx_kv enable row level security;
 alter table public.tfx_events enable row level security;
 alter table public.tfx_audit enable row level security;
 revoke all on public.tfx_kv, public.tfx_events, public.tfx_audit from anon, authenticated;
+-- v3.31.0: unique keys so a retried write is stored once (existing installs: run tools/supabase-migrate-v3.31.sql instead)
+alter table public.tfx_events add column if not exists eid text;
+create unique index if not exists tfx_events_eid_uq on public.tfx_events (eid);
+alter table public.tfx_audit add column if not exists h text;
+create unique index if not exists tfx_audit_h_uq on public.tfx_audit (h);

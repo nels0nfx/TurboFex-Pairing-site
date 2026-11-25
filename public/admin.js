@@ -33,12 +33,13 @@
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (r.status === 401 && url !== 'login' && url !== '2fa') { showLogin(me ? 'Your session ended. Please sign in again.' : ''); throw new Error('signed out'); }
         if (!r.ok) { var e = new Error(j.error || 'Something went wrong.'); e.status = r.status; throw e; }
+        if (j && j.durable === false && j.warning) pendingWarn = j.warning;   // the change was applied but is NOT safely stored: never shown as a plain success
         return j;
       });
     });
   }
-  var toastT = 0;
-  function toast(msg, bad) { var t = $('toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3800); }
+  var toastT = 0, pendingWarn = '';
+  function toast(msg, bad) { var t = $('toast'); var long = false; if (pendingWarn) { msg = (bad ? msg : 'Applied.') + ' Warning: ' + pendingWarn; bad = true; pendingWarn = ''; long = true; } t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, long ? 12000 : 3800); }
   function fail(e) { if (e && e.message !== 'signed out') toast(e.message || 'Something went wrong.', true); }
   function can(p) { return !!me && me.perms.indexOf(p) >= 0; }
   function act(btn, fn, okMsg, after) {
@@ -247,8 +248,8 @@
       svg('circle', { class: 'rf ' + lvl, cx: 50, cy: 50, r: R, fill: 'none', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': (C * p / 100).toFixed(1) + ' ' + C.toFixed(1), transform: 'rotate(-90 50 50)' }));
     return h('div', { class: 'gauge' }, h('div', { class: 'gr' }, ring, h('b', { class: 'gpv', text: (p < 10 ? p.toFixed(1) : String(Math.round(p))) + '%' })), h('div', { class: 'gl', text: label }), h('div', { class: 'gc', text: caption }));
   }
-  function bars(series, a, b) {
-    if (!series.some(function (x) { return x[a] || x[b]; })) return h('p', { class: 'empty', text: 'No pairing attempts in the last 24 hours.' });
+  function bars(series, a, b, daily) {
+    if (!series.some(function (x) { return x[a] || x[b]; })) return h('p', { class: 'empty', text: 'No pairing attempts in this period.' });
     var W = 320, H = 110, pad = 16, max = Math.max.apply(null, series.map(function (s) { return Math.max(s[a], s[b]); }).concat([1]));
     var g = svg('svg', { viewBox: '0 0 ' + W + ' ' + (H + 16), class: 'chart', role: 'img', 'aria-label': 'Pairing attempts and linked accounts per hour, last 24 hours' });
     var bw = (W - pad) / series.length;
@@ -257,7 +258,7 @@
       var x = pad / 2 + i * bw, ha = s[a] / max * (H - 8), hb = s[b] / max * (H - 8);
       if (s[a]) g.appendChild(svg('rect', { class: 'abar', x: x + 1, y: H - ha, width: Math.max(2, bw - 3), height: ha, rx: 2 }));
       if (s[b]) g.appendChild(svg('rect', { class: 'bar2', x: x + 1, y: H - hb, width: Math.max(2, bw - 3), height: hb, rx: 2 }));
-      if (i % 6 === 0) { var d = new Date(s.t); var tx = svg('text', { class: 'lbl', x: x, y: H + 12 }); tx.textContent = String(d.getHours()).padStart(2, '0') + ':00'; g.appendChild(tx); }
+      if (i % (daily ? Math.ceil(series.length / 4) : 6) === 0) { var d = new Date(s.t); var tx = svg('text', { class: 'lbl', x: x, y: H + 12 }); tx.textContent = daily ? d.toISOString().slice(5, 10) : String(d.getUTCHours()).padStart(2, '0') + ':00'; g.appendChild(tx); }
     });
     return g;
   }
@@ -287,14 +288,16 @@
   function confirmThen(msg, fn, okLabel) { dlg({ title: 'Please confirm', text: msg, ok: okLabel || 'Yes, do it', danger: true }, fn); }
 
   // ---------- Overview ----------
+  var ovDays = 1;   // 1 = last 24 hours (whole UTC hours); 7, 30, 90 = that many UTC days, from the permanent daily totals
   function vOverview() {
-    return Promise.all([api('GET', 'overview'), api('GET', 'settings'), api('GET', 'announcements')]).then(function (r) {
+    return Promise.all([api('GET', 'overview' + (ovDays > 1 ? '?days=' + ovDays : '')), api('GET', 'settings'), api('GET', 'announcements')]).then(function (r) {
       var o = r[0], s = r[1], an = r[2].announcements.filter(function (a) { return a.active && (!a.endsAt || a.endsAt > Date.now()); });
       var t = o.totals; pollAlerts();
       var n = h('div');
-      n.appendChild(head('Home', 'Welcome back, ' + me.user + ' · last 24 hours' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), [h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' }),
+      n.appendChild(head('Home', 'Welcome back, ' + me.user + ' · ' + (ovDays > 1 ? 'last ' + ovDays + ' days' : 'last 24 hours') + ' (UTC)' + (o.since ? ' · activity recorded since ' + when(o.since) : ''), [h('span', { class: 'tag ' + (o.now.maintenance ? 'bad' : 'ok'), text: o.now.maintenance ? 'Maintenance ON' : 'Site live' }),
         can('blocks.manage') ? h('button', { type: 'button', class: 'btn sm dq', onclick: function () { go('visitors', focusLater('bk-num')); } }, 'Block a number') : null,
         can('announce.manage') ? h('button', { type: 'button', class: 'btn sm dq', onclick: function () { go('announce', focusLater('an-t')); } }, 'New announcement') : null]));
+      n.appendChild(tabs([['1', '24 hours'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']], String(ovDays), function (v) { ovDays = Number(v); load(true); }));
       if (o.now.maintenance) n.appendChild(h('div', { class: 'banner' }, 'Pairing is paused for everyone (maintenance mode).'));
       // what needs a look right now: each chip opens the tab that deals with it
       var items = [];
@@ -306,8 +309,8 @@
       if (items.length) att.appendChild(h('div', { class: 'ac' }, items.map(function (i) { return h('button', { type: 'button', class: 'chipb ' + i[3], onclick: function () { go(i[2]); } }, h('b', { text: String(i[1]) }), h('span', { text: i[0] })); })));
       n.appendChild(att);
       n.appendChild(h('div', { class: 'ahero' },
-        stat('Visitors', String(t.visitors), t.visits + ' page visits'),
-        stat('Pairing attempts', String(t.attempts), t.codes + ' codes · ' + t.qrs + ' QR'),
+        stat('Visitors', String(t.visitors), t.visits + ' page visits' + (o.range && o.range.visitorsAreDailySums ? ' · visitors summed per day' : '')),
+        stat('Pairing attempts', String(t.attempts), t.codes + ' codes · ' + t.qrs + ' QR · ' + t.cancelled + ' cancelled'),
         stat('Linked', String(t.linked), 'accounts linked', 'good'),
         stat('Success rate', o.successRate === null ? '—' : pct(o.successRate), o.successRate === null ? 'no finished attempts yet' : 'linked ÷ finished')));
       n.appendChild(h('div', { class: 'mini' },
@@ -315,7 +318,7 @@
         h('div', null, h('b', { text: String(t.invalid) }), h('span', { text: 'Invalid numbers' })),
         h('div', null, h('b', { text: String(t.limited) }), h('span', { text: 'Rate limited' })),
         h('div', null, h('b', { text: String(t.blocked) }), h('span', { text: 'Blocked tries' }))));
-      n.appendChild(panel('Attempts per hour', '24 h', bars(o.series, 'attempts', 'linked'), h('div', { class: 'legend' }, h('span', null, h('i'), 'Attempts'), h('span', null, h('i', { class: 'g' }), 'Linked'))));
+      n.appendChild(panel(ovDays > 1 ? 'Attempts per day' : 'Attempts per hour', ovDays > 1 ? ovDays + ' days · UTC' : '24 h · UTC', bars(o.series, 'attempts', 'linked', ovDays > 1), h('div', { class: 'legend' }, h('span', null, h('i'), 'Attempts'), h('span', null, h('i', { class: 'g' }), 'Linked'))));
       n.appendChild(h('div', { class: 'cols' },
         panel('Method', null, h('div', { class: 'kv' }, h('div', null, h('span', { text: 'Pairing code' }), h('b', { text: String(o.methods.code) })), h('div', null, h('span', { text: 'QR code' }), h('b', { text: String(o.methods.qr) })), h('div', null, h('span', { text: 'Session IDs fetched by the bot' }), h('b', { text: t.sessionFetchOk + ' ok · ' + t.sessionFetchBad + ' wrong' })))),
         panel('Top countries', null, o.countries.length ? h('div', { class: 'kv' }, o.countries.map(function (c) { return h('div', null, h('span', { text: c.country || '—' }), h('b', { text: String(c.n) })); })) : h('p', { class: 'empty', text: 'No pairing attempts yet.' }))));
