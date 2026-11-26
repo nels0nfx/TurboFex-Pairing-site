@@ -645,3 +645,11 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Honest states: "WhatsApp paired" and "Login collected" are server facts (job linked; `used`). "WhatsApp connected" and "host running" are user checks ("You confirmed"), never shown as success by TurboFex. `used:true` only means the ID was downloaded.
 - `POST /api/deploy/choose {job, platform}` records `deploy.platform` once per finished pairing and host. No provider API automation exists in this phase.
 - Pair page: "Deploy your bot" button only while the server shows a valid ID; the "used" wording now says the bot collected its login (it used to say connected).
+
+## v3.33.0 — Deploy Centre v2 (replaces the v3.32.0 page)
+- `/deploy` is PUBLIC: a five-step wizard (Where, Prepare, Session, Files, Start). Files/commands are generated in the browser by `public/deploy-data.js` (`prepare()` and `launch()`); the session ID is asked for only at the Session step, held in memory only, cleared on demand/expiry/collection/pagehide. Only the wizard choices go to `sessionStorage` (`tfx-deploy`).
+- PREPARE (install, download, `npm install`, optional config.env) never contains an ID and never starts the bot; LAUNCH is one short command or one small file that writes `session_id.txt` / `.env` / a variable and starts. Reason: a session ID lives 5 minutes from pairing and is only consumed when the bot downloads it.
+- Real formats only: `session_id.txt` (`SESSION_ID=`), `config.env` (`TIMEZONE`, `BOT_PREFIX`), Docker `.env` read by docker-compose.yml. The bot does NOT read `.env` itself.
+- `/download/TurboFex-hosting.zip` serves `downloads/TurboFex-hosting.zip` directly (no redirect). Build/replace it with `tools/prepare-hosting-zip.js` (see `downloads/README.md`). `/api/hosting` gives version/size/SHA-256.
+- `POST /api/deploy/check {id}` -> `{valid, secondsLeft}` using `store.peek` (never consumes, never logs/records the ID, 10/min and 60/h per visitor).
+- Events: `deploy.platform` (client-reported choice, once per visitor/host/day) and `hosting.download` (after the whole file was written).

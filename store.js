@@ -48,6 +48,16 @@ function makeStore({ dir, secret, ttlMs = DEFAULT_TTL_MS, oneTime = true }) {
   }
 
   // returns the saved login, or null when the ID is wrong, expired or already used
+  // Is this ID known and still alive? Answers only that, and how long it has left. It does NOT decrypt, mark or remove anything,
+  // so checking an ID can never use it up.
+  function peek(rawId) {
+    const id = normalizeId(rawId);
+    if (!id) return null;
+    let rec;
+    try { rec = JSON.parse(fs.readFileSync(fileOf(id), 'utf8')); } catch (err) { return null; }
+    if (!rec || rec.v !== 2 || !Number.isFinite(rec.exp) || Date.now() >= rec.exp) return null;
+    return { secondsLeft: Math.max(0, Math.floor((rec.exp - Date.now()) / 1000)) };
+  }
   function take(rawId) {
     const id = normalizeId(rawId);
     if (!id) return null;
@@ -114,7 +124,7 @@ function makeStore({ dir, secret, ttlMs = DEFAULT_TTL_MS, oneTime = true }) {
   }
   const fileHashOf = (rawId) => { const id = normalizeId(rawId); return id ? crypto.createHash('sha256').update(id).digest('hex') : null; };
 
-  return { put, take, sweep, list, revoke, fileHashOf, ttlMs };
+  return { put, take, peek, sweep, list, revoke, fileHashOf, ttlMs };
 }
 
 module.exports = { makeStore, newId, normalizeId, DEFAULT_TTL_MS };

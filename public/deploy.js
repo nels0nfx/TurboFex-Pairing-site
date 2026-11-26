@@ -1,13 +1,20 @@
-/* Deploy Centre page. The session ID is only ever held in this script's memory: it is not put in the address, the page text, storage or analytics.
-   What each row of the tracker means:
-   - "WhatsApp paired" and "Login collected" come from the server (the pairing job and the one-time ID being used). Only those are "Confirmed by TurboFex".
-   - "WhatsApp connected" and "Host running" cannot be seen by TurboFex. They are checks the person does in their own bot log / WhatsApp, and are shown as "You confirmed". */
+/* Deploy Centre v2: a five step wizard (Where, Prepare, Session, Files, Start). Public: nothing needs a pairing to look around.
+   Files and commands are generated HERE, in the browser, by deploy-data.js. The session ID:
+   - is held only in this script's memory (never in the address, storage, a request to a host, analytics or a log);
+   - is asked for only at the Session step, and generating or downloading never uses it up (only the bot starting does);
+   - is cleared on demand, when it expires, when the bot has collected it, and when the page is closed.
+   The only server calls that mention an ID are the pairing page's own job lookup and POST /api/deploy/check, which answers valid / seconds left. */
 (function () {
   'use strict';
-  var D = window.TFXDeploy, JOBKEY = 'tfx-job', app = document.getElementById('app');
-  var sid = '', jobId = '', phase = 'loading', secs = 0, pollT = 0, tickT = 0, lastSync = 0, retrievedAt = '';
-  var picked = '', steps = {}, attest = { wa: false, host: false }, sent = {}, errMsg = '';
+  var D = window.TFXDeploy, JOBKEY = 'tfx-job', KEY = 'tfx-deploy', app = document.getElementById('app');
+  var STEPS = ['Where', 'Prepare', 'Session', 'Files', 'Start'];
+  var S = { step: 1, p: '', opts: {}, tz: '', prefix: '', tzRaw: '', prefixRaw: '', prepared: false };
+  var sid = '', src = '', expAt = 0, total = 300, collected = '', expired = false, gen = null, pairing = null, info = null, attested = false, msg = '', msgBad = false, busy = false;
+  var tickT = 0, syncT = 0;
+  var EXPIRED_MSG = 'Your session ID expired and was wiped from this page. Pair again for a new one. Your preparation is still done.';
+  function pairLeft() { return pairing ? Math.max(0, Math.round(pairing.secs - (Date.now() - pairing.at) / 1000)) : 0; }
 
+  // ---------- tiny helpers ----------
   function el(tag, attrs, kids) {
     var n = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) { if (k === 'text') n.textContent = attrs[k]; else if (k === 'class') n.className = attrs[k]; else n.setAttribute(k, attrs[k]); });
@@ -15,177 +22,253 @@
     return n;
   }
   function icon(id) { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); var u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '#' + id); s.appendChild(u); return s; }
-  function toast(msg) { var t = document.getElementById('dp-toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2200); }
+  function toast(m) { var t = document.getElementById('dp-toast'); if (!t) return; t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2200); }
+  function origin() { return location.origin || (location.protocol + '//' + location.host); }
+  function ctx() { return { origin: origin(), opts: Object.assign({}, S.opts, { tz: S.tz || '', prefix: S.prefix || '' }) }; }
+  function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function secsLeft() { return Math.max(0, Math.round((expAt - Date.now()) / 1000)); }
+  function mask(text) { return sid ? String(text).split(sid).join(D.MASK) : String(text); }
+  // only the wizard choices are saved (never the session ID)
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ p: S.p, opts: S.opts, tz: S.tz, prefix: S.prefix, tzRaw: S.tzRaw, prefixRaw: S.prefixRaw, prepared: S.prepared, step: Math.min(S.step, 3) })); } catch (e) { /* storage may be off */ } }
+  function restore() { try { var j = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (j && D.byId[j.p]) { S.p = j.p; S.opts = j.opts || {}; S.tz = D.validZone(j.tz) ? j.tz : ''; S.prefix = D.validPrefix(j.prefix) ? j.prefix : ''; S.tzRaw = j.tzRaw || S.tz; S.prefixRaw = j.prefixRaw || S.prefix; S.prepared = !!j.prepared; S.step = j.step >= 2 && j.step <= 3 ? j.step : 1; } } catch (e) { /* none */ } }
 
-  // ---------- copy ----------
+  // ---------- copy / download ----------
   function copyText(text, btn, label) {
-    function done(ok) {
-      if (!btn) return;
-      var old = label || 'Copy';
-      btn.classList.toggle('ok', ok); btn.lastChild.textContent = ok ? 'Copied' : 'Copy failed';
-      toast(ok ? 'Copied to clipboard' : 'Could not copy. Select the text and copy it by hand.');
-      setTimeout(function () { btn.classList.remove('ok'); btn.lastChild.textContent = old; }, 1600);
-    }
-    function legacy() {
-      try { var ta = el('textarea', { 'aria-hidden': 'true' }); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); document.body.removeChild(ta); done(ok); } catch (e) { done(false); }
-    }
+    function done(ok) { if (!btn) return; btn.classList.toggle('ok', ok); btn.lastChild.textContent = ok ? 'Copied' : 'Copy failed'; toast(ok ? 'Copied to clipboard' : 'Could not copy. Select the text and copy it by hand.'); setTimeout(function () { btn.classList.remove('ok'); btn.lastChild.textContent = label; }, 1600); }
+    function legacy() { try { var ta = el('textarea', { 'aria-hidden': 'true' }); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); document.body.removeChild(ta); done(ok); } catch (e) { done(false); } }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, legacy); else legacy();
   }
-  function copyBtn(getText, needsId, label) {
-    var b = el('button', { type: 'button', class: 'dp-cp' }, [icon('i-copy'), document.createTextNode(label || 'Copy')]);
-    function sync() { var blocked = needsId && !sid; b.disabled = blocked; b.title = blocked ? 'Needs a fresh session ID: pair again' : ''; if (blocked) b.lastChild.textContent = 'ID needed'; else if (b.lastChild.textContent === 'ID needed') b.lastChild.textContent = label || 'Copy'; }
-    b._sync = sync; sync();
-    b.addEventListener('click', function () { if (needsId && !sid) return; copyText(getText(), b, label || 'Copy'); });
-    return b;
+  function copyBtn(getText, label) { var l = label || 'Copy', b = el('button', { type: 'button', class: 'dp-cp' }, [icon('i-copy'), document.createTextNode(l)]); b.addEventListener('click', function () { copyText(getText(), b, l); }); return b; }
+  function download(file, btn) {
+    try { var blob = new Blob([file.text], { type: file.mime }), url = URL.createObjectURL(blob), a = el('a', { href: url, download: file.name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 1500); toast('Downloaded ' + file.name); }
+    catch (e) { toast('Download failed. Use Copy instead.'); }
   }
-
-  // ---------- session state (server is the judge) ----------
-  function readJob() { try { var j = JSON.parse(sessionStorage.getItem(JOBKEY) || 'null'); return j && typeof j.job === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(j.job) ? j.job : ''; } catch (e) { return ''; } }
-  function sync() {
-    jobId = readJob();
-    if (!jobId) { setPhase('none'); return Promise.resolve(); }
-    return fetch('/api/job/' + encodeURIComponent(jobId), { cache: 'no-store' }).then(function (r) {
-      if (r.status === 404) return { gone: true };
-      if (!r.ok) throw new Error('status ' + r.status);
-      return r.json();
-    }).then(function (j) {
-      errMsg = ''; lastSync = Date.now();
-      if (j.gone) { sid = ''; return setPhase('none'); }
-      if (j.state !== 'linked') { sid = ''; return setPhase(j.state === 'failed' ? 'none' : 'pending'); }
-      if (j.used) { sid = ''; if (phase !== 'retrieved') retrievedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); return setPhase('retrieved'); }
-      if (j.expired || !j.sessionId || j.idSecondsLeft <= 0) { sid = ''; return setPhase('expired'); }
-      sid = String(j.sessionId); secs = j.idSecondsLeft; setPhase('ready');
-    }).catch(function () { errMsg = 'Could not reach TurboFex. Check your connection; this page will try again.'; render(); });
+  function term(c, real) {
+    var pre = el('pre', {}, c.lines.map(function (l) { return el('span', { text: (real ? mask(l) : l) + '\n' }); }));
+    return el('div', { class: 'dp-term' }, [el('div', { class: 'bar' }, [el('span', { text: c.label }), copyBtn(function () { return c.lines.join('\n'); })]), pre, c.note ? el('p', { class: 'dp-note', style: 'padding:0 14px 10px' , text: c.note }) : null]);
   }
-  function setPhase(p) { var changed = p !== phase; phase = p; if (changed) render(); schedule(); }
-  function schedule() {
-    clearTimeout(pollT); clearInterval(tickT);
-    if (phase === 'ready') { pollT = setTimeout(sync, 4000); tickT = setInterval(tick, 1000); }
-    else if (phase === 'loading' || errMsg) pollT = setTimeout(sync, 6000);
-  }
-  function tick() {
-    secs = Math.max(0, secs - 1);
-    var t = document.getElementById('dp-secs'), r = document.getElementById('dp-ringfg'), ring = document.getElementById('dp-ring');
-    if (t) t.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
-    if (r) r.setAttribute('stroke-dashoffset', String(176 * (1 - secs / 300)));
-    if (ring) ring.classList.toggle('low', secs <= 60);
-    if (secs === 0) { clearInterval(tickT); sync(); }
-  }
-
-  // ---------- views ----------
-  function card(kids) { return el('div', { class: 'dp-card' }, kids); }
-  function gate() {
-    var pending = phase === 'pending';
-    return card([
-      el('h2', { text: pending ? 'Pairing is not finished yet' : 'Pair your WhatsApp first' }),
-      el('p', { text: pending ? 'The Deploy Centre opens when WhatsApp confirms the link. Go back and finish pairing.' : 'The Deploy Centre opens after a successful pairing in this browser tab. A session ID is one-time and expires after 5 minutes, so there is nothing to deploy yet.' }),
-      el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn p', href: '/pair', text: pending ? 'Continue pairing' : 'Pair WhatsApp' }), el('a', { class: 'dp-btn', href: '/install', text: 'Prepare my host first' })]),
-      errMsg ? el('p', { text: errMsg }) : null
-    ]);
-  }
-  function row(cls, mark, title, sub, badge, badgeCls, extra) {
-    return el('li', {}, [el('span', { class: 'dp-dot ' + cls, text: mark }), el('div', { class: 'tx' }, [el('b', { text: title }), el('small', { text: sub }), badge ? el('span', { class: 'dp-badge ' + badgeCls, text: badge }) : null, extra])]);
-  }
-  function attestBtn(key, label) {
-    var b = el('button', { type: 'button', class: 'dp-btn', style: 'min-height:38px;margin-top:8px;font-size:13px' }, [attest[key] ? 'Undo' : label]);
-    b.addEventListener('click', function () { attest[key] = !attest[key]; render(); });
-    return b;
-  }
-  function tracker() {
-    var ready = phase === 'ready', got = phase === 'retrieved', exp = phase === 'expired';
-    var head = el('div', { class: 'dp-head' }, [el('div', { class: 'tx' }, [el('h2', { text: ready ? 'Your session is ready' : got ? 'Your bot collected its login' : 'Your session ID has expired' }),
-      el('p', { text: ready ? 'Deploy within the countdown. The ID works once.' : got ? 'The ID was used. It cannot be used again.' : 'It was not used. Pair again to get a new one.' })])]);
-    if (ready) {
-      var ring = el('div', { class: 'dp-ring' + (secs <= 60 ? ' low' : ''), id: 'dp-ring' }, [
-        (function () { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 64 64'); s.setAttribute('aria-hidden', 'true');
-          [['bg', null], ['fg', 'dp-ringfg']].forEach(function (c) { var k = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); k.setAttribute('cx', 32); k.setAttribute('cy', 32); k.setAttribute('r', 28); k.setAttribute('class', c[0]); if (c[1]) { k.id = c[1]; k.setAttribute('stroke-dasharray', 176); k.setAttribute('stroke-dashoffset', String(176 * (1 - secs / 300))); } s.appendChild(k); }); return s; })(),
-        el('span', { id: 'dp-secs', text: Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2) })]);
-      head.appendChild(ring);
-    }
-    var list = el('ul', { class: 'dp-track' }, [
-      row('ok', '✓', 'WhatsApp paired', 'WhatsApp confirmed the link and the login was saved.', 'Confirmed by TurboFex', 'ok'),
-      ready ? row('wait', '2', 'Login collected by your bot', 'Waiting for your bot to start and ask for it.', 'Waiting', '') :
-        got ? row('ok', '✓', 'Login collected by your bot', 'Your bot downloaded the login' + (retrievedAt ? ' (noticed at ' + retrievedAt + ')' : '') + '. This is not yet proof that WhatsApp connected.', 'Confirmed by TurboFex', 'ok') :
-        row('bad', '!', 'Login collected by your bot', 'The ID expired before any bot used it.', 'Expired unused', 'bad'),
-      row(attest.wa ? 'you' : '', attest.wa ? '✓' : '3', 'WhatsApp connected', 'TurboFex cannot see this. Look for “is online as” in your bot log, or send .ping to the bot.', attest.wa ? 'You confirmed' : 'Not visible to TurboFex', attest.wa ? 'you' : '', attestBtn('wa', 'I can see it online')),
-      row(attest.host ? 'you' : '', attest.host ? '✓' : '4', 'Bot stays running on your host', 'Check it is still up after a restart or after a few minutes.', attest.host ? 'You confirmed' : 'Not visible to TurboFex', attest.host ? 'you' : '', attestBtn('host', 'It is still running'))
-    ]);
-    var kids = [head, list];
-    if (!ready) kids.push(el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn p', href: '/pair', text: 'Pair again for a new ID' })]));
-    if (ready) { var cb = copyBtn(function () { return sid; }, true, 'Copy session ID'); kids.push(el('div', { class: 'dp-row' }, [el('div', { class: 'dp-term', style: 'flex:1 1 100%;margin:0' }, [el('div', { class: 'bar' }, [el('span', { text: 'Session ID (hidden on screen)' }), cb]), el('pre', {}, [el('span', { text: D.MASK })])])])); }
-    return card(kids);
-  }
-  function picker() {
-    var grid = el('div', { class: 'dp-grid', role: 'group', 'aria-label': 'Where will your bot run?' });
-    D.platforms.forEach(function (p) {
-      var b = el('button', { type: 'button', class: 'dp-plat', 'aria-pressed': picked === p.id ? 'true' : 'false', 'data-p': p.id }, [el('span', { class: 'ic' }, [icon(p.icon)]), el('span', {}, [el('b', { text: p.name }), el('small', { text: p.tag })])]);
-      b.addEventListener('click', function () { choose(p.id); });
-      grid.appendChild(b);
-    });
-    return card([el('h2', { text: 'Where will your bot run?' }), el('p', { text: 'Pick a place. You get the requirements, commands and checks for it.' }), grid]);
-  }
-  function choose(id) {
-    picked = id; if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
-    // count the choice only when the server can see a real linked pairing; the page never sends the session ID
-    if (!sent[id] && jobId && (phase === 'ready' || phase === 'retrieved')) { sent[id] = 1; try { fetch('/api/deploy/choose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ job: jobId, platform: id }) }).catch(function () {}); } catch (e) { /* ignore */ } }
-    render(); var g = document.getElementById('dp-guide'); if (g && g.scrollIntoView) g.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
-  }
-  function term(c) {
-    var text = function () { return D.fill(c.lines.join('\n'), sid); };
-    var needs = c.lines.some(D.usesSession);
-    var cb = copyBtn(text, needs, 'Copy');
-    var pre = el('pre', {}, c.lines.map(function (l) { return el('span', { text: D.fill(l, '') + '\n' }); }));
-    return el('div', { class: 'dp-term' }, [el('div', { class: 'bar' }, [el('i'), el('i'), el('i'), el('span', { text: c.label }), cb]), pre]);
-  }
-  function envBox(list) {
-    var box = el('div', { class: 'dp-env' });
-    list.forEach(function (e) {
-      var val = e.session ? D.MASK : e.v, needs = !!e.session;
-      var cb = copyBtn(function () { return e.session ? sid : e.v; }, needs, 'Copy');
-      box.appendChild(el('div', {}, [el('span', { class: 'k', text: e.k }), el('span', { class: 'v' }, [val, e.optional ? el('em', { text: '  optional' }) : null]), cb]));
-    });
+  function vars(rows, real) {
+    var box = el('div', { class: 'dp-vars' });
+    rows.forEach(function (kv) { box.appendChild(el('div', {}, [el('span', { class: 'k', text: kv[0] }), el('span', { class: 'v', text: real ? mask(kv[1]) : kv[1] }), copyBtn(function () { return kv[1]; })])); });
     return box;
   }
-  function guide() {
-    var p = D.byId[picked]; if (!p) return null;
-    var total = p.steps.length, done = p.steps.filter(function (s, i) { return steps[p.id + i]; }).length;
-    var kids = [el('h2', { text: p.name + ' · ' + p.tag }), el('p', { text: p.blurb })];
-    if (p.warn) kids.push(el('div', { class: 'dp-warn' }, [icon('i-alert'), el('span', { text: p.warn })]));
-    kids.push(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Requirements' }), el('ul', { class: 'dp-need' }, p.needs.map(function (n) { return el('li', { text: n }); }))]));
-    kids.push(el('div', { class: 'dp-row' }, p.files.map(function (f) { return el('a', { class: 'dp-btn p', href: f.href, target: '_blank', rel: 'noopener noreferrer', title: f.note }, [icon('i-arrow'), document.createTextNode('Get the ' + f.label)]); })));
-    kids.push(el('p', { class: 'dp-note', text: p.files[0].note }));
-    var prog = el('div', { class: 'dp-prog', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': done }, [el('i', { style: 'width:' + Math.round(done / total * 100) + '%' })]);
-    kids.push(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Checklist · ' + done + ' of ' + total }), prog]));
-    p.steps.forEach(function (s, i) {
-      var key = p.id + i, chk = el('button', { type: 'button', class: 'dp-chk', 'aria-pressed': steps[key] ? 'true' : 'false', 'aria-label': 'Mark step ' + (i + 1) + ' done' }, [icon('i-check')]);
-      chk.addEventListener('click', function () { steps[key] = !steps[key]; render(true); });
-      var body = [el('b', { text: (i + 1) + '. ' + s.t })];
-      if (s.d) body.push(el('p', { text: s.d }));
-      if (s.link) body.push(el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn', href: s.link.href, target: '_blank', rel: 'noopener noreferrer' }, [icon('i-arrow'), document.createTextNode('Open Releases')])]));
-      (s.cmds || []).forEach(function (c) { body.push(term(c)); });
-      if (s.env) body.push(envBox(s.env));
-      if (s.n) body.push(el('p', { class: 'dp-note', text: s.n }));
-      kids.push(el('div', { class: 'dp-step' + (steps[key] ? ' done' : '') }, [chk, el('div', { class: 'tx' }, body)]));
+  function fileRow(f, real) {
+    var b = el('button', { type: 'button', class: 'dp-btn q' }, [icon('i-arrow'), document.createTextNode('Download')]);
+    b.addEventListener('click', function () { download(f); });
+    return el('div', { class: 'dp-file' }, [el('b', { text: f.name }), copyBtn(function () { return f.text; }, 'Copy file'), b]);
+  }
+  function zipRow() {
+    var meta = info ? 'Version ' + info.version + ' · ' + (info.size / 1048576).toFixed(2) + ' MB' : 'Direct download from this site';
+    var a = el('a', { class: 'dp-btn', href: D.ZIP_PATH, download: '' }, [icon('i-arrow'), document.createTextNode('Download hosting ZIP')]);
+    var kids = [el('div', { class: 'dp-row' }, [a]), el('p', { class: 'dp-note', text: meta + '. This is the file your host needs; it downloads straight from TurboFex.' })];
+    if (info) kids.push(el('details', { class: 'dp-acc' }, [el('summary', { text: 'Check the download (optional)' }), el('div', {}, ['SHA-256: ' + info.sha256 + '. Compare with: sha256sum TurboFex-hosting.zip'])]));
+    return el('div', {}, kids);
+  }
+
+  // ---------- session handling ----------
+  function setSid(id, from, secs) { sid = id; src = from; total = Math.max(secs, 1); expAt = Date.now() + secs * 1000; collected = ''; expired = false; msg = ''; schedule(); }
+  function clearSid(why) { sid = ''; src = ''; expAt = 0; gen = null; attested = false; clearTimeout(syncT); clearInterval(tickT); if (why === 'expired') expired = true; if (why === 'manual') { msg = 'Cleared from this page.'; msgBad = false; } }
+  function schedule() { clearInterval(tickT); clearTimeout(syncT); if (!sid) return; tickT = setInterval(tick, 1000); syncT = setTimeout(resync, 20000); }
+  function tick() {
+    var left = secsLeft(), t = document.getElementById('dp-time'), b = document.getElementById('dp-barfill'), w = document.getElementById('dp-timewrap');
+    if (t) t.textContent = mmss(left); if (b) b.style.width = Math.round(left / total * 100) + '%'; if (w) w.className = 'dp-time' + (left <= 60 ? ' low' : '');
+    if (left <= 0) { clearSid('expired'); render(); }
+  }
+  function readJobId() { try { var j = JSON.parse(sessionStorage.getItem(JOBKEY) || 'null'); return j && typeof j.job === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(j.job) ? j.job : ''; } catch (e) { return ''; } }
+  function lookJob() {   // the pairing page's own job record: linked + valid ID, or used, or nothing
+    var id = readJobId(); if (!id) return Promise.resolve(null);
+    return fetch('/api/job/' + encodeURIComponent(id), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
+  function resync() {   // is my ID still alive, or did the bot already collect it?
+    if (!sid) return;
+    var p = src === 'pairing' ? lookJob().then(function (j) { if (!j) return; if (j.used) return gone('confirmed'); if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0) { expAt = Date.now() + j.idSecondsLeft * 1000; } }) :
+      checkId(sid).then(function (r) { if (r && r.valid === false && secsLeft() > 5) gone('likely'); else if (r && r.valid) expAt = Date.now() + r.secondsLeft * 1000; });
+    p.then(function () { if (sid) syncT = setTimeout(resync, 20000); });
+  }
+  function gone(kind) { collected = kind; clearSid(); render(); }   // the ID is no use any more: wipe it
+  function checkId(id) {
+    return fetch('/api/deploy/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: id }) }).then(function (r) { if (r.status === 429) return { limited: true }; return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
+  function usePasted() {
+    var inp = document.getElementById('dp-id'), norm = D.normalizeId(inp && inp.value);
+    if (!norm) { msg = 'That does not look like a session ID. It is TFX- followed by 12 letters and numbers.'; msgBad = true; return render(); }
+    busy = true; msg = 'Checking…'; msgBad = false; render();
+    checkId(norm).then(function (r) {
+      busy = false;
+      if (!r) { setSid(norm, 'pasted', 300); msg = 'Could not check it just now. Treat the countdown as a guess and move fast.'; msgBad = true; }   // never claim a validity we could not confirm
+      else if (r.limited) { msg = 'Too many checks. Wait a minute and try again.'; msgBad = true; }
+      else if (!r.valid) { msg = 'This ID is not valid any more: it expired, was already used by a bot, or did not come from this site. Pair again to get a new one.'; msgBad = true; }
+      else { setSid(norm, 'pasted', r.secondsLeft); }
+      render();
     });
-    kids.push(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Check that it really started' }), el('ul', { class: 'dp-need' }, p.verify.map(function (v) { return el('li', { text: v }); })),
-      el('p', { class: 'dp-note', text: 'TurboFex can confirm that your bot collected its login. It cannot see whether WhatsApp connected, so tick the tracker rows yourself once you have seen it.' })]));
-    kids.push(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Troubleshooting' })].concat(p.trouble.map(function (t) { return el('details', { class: 'dp-acc' }, [el('summary', { text: t.q }), el('div', { text: t.a })]); }))));
-    kids.push(el('p', { class: 'dp-note' }, ['More detail: ', el('a', { href: D.GUIDES, target: '_blank', rel: 'noopener noreferrer', text: 'the hosting guides in the TurboFex README' }), ' · ', el('a', { href: '/install', text: 'Install page' })]));
-    var c = card(kids); c.id = 'dp-guide'; return c;
   }
-  function render() {
-    var keepY = window.scrollY;
+  function usePairing() { if (!pairing) return; var left = pairLeft(); if (left <= 0) { pairing = null; return render(); } setSid(pairing.id, 'pairing', left); pairing = null; render(); }
+
+  // ---------- views ----------
+  function head() {
+    return el('ol', { class: 'dp-steps', 'aria-label': 'Progress' }, STEPS.map(function (n, i) { return el('li', { class: i + 1 === S.step ? 'on' : i + 1 < S.step ? 'past' : '', text: (i + 1) + ' ' + n, 'aria-current': i + 1 === S.step ? 'step' : 'false' }); }));
+  }
+  function nav(back, next, nextLabel, nextDisabled) {
+    var row = el('div', { class: 'dp-row' }), b;
+    if (next) { b = el('button', { type: 'button', class: 'dp-btn p' }, [nextLabel || 'Continue']); b.disabled = !!nextDisabled; b.addEventListener('click', next); row.appendChild(b); }
+    var wrap = el('div', {}, [row]);
+    if (back) { var l = el('button', { type: 'button', class: 'dp-link', text: 'Back' }); l.addEventListener('click', back); wrap.appendChild(l); }
+    return wrap;
+  }
+  function go(n) { S.step = n; save(); render(true); }
+
+  function stepWhere() {
+    var list = el('ul', { class: 'dp-list' });
+    D.platforms.forEach(function (p) {
+      var b = el('button', { type: 'button', class: 'dp-plat', 'data-p': p.id }, [el('span', { class: 'ic' }, [icon(p.icon)]), el('span', { class: 'tx' }, [el('b', { text: p.name }), el('small', { text: p.tag })]), icon('i-arrow')]);
+      b.lastChild.setAttribute('class', 'go');
+      b.addEventListener('click', function () { choose(p.id); });
+      list.appendChild(el('li', {}, [b]));
+    });
+    var kids = [el('h2', { text: 'Where will TurboFex run?' }), el('p', { text: 'Pick one. You do not need a session ID to look around.' }), list];
+    if (pairing) kids.splice(2, 0, el('div', { class: 'dp-warn' }, ['Your pairing is ready (' + mmss(pairLeft()) + ' left). Its session ID lives 5 minutes, which is usually too short to install a bot. Prepare your host first, then pair again, or carry on and be quick.']));
+    return el('div', { class: 'dp-view' }, kids);
+  }
+  function choose(id) {
+    if (S.p !== id) { S.p = id; S.opts = D.defaults(D.byId[id]); S.prepared = false; }
+    try { fetch('/api/deploy/choose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: id }) }).catch(function () {}); } catch (e) { /* ignore */ }
+    go(2);
+  }
+
+  function stepPrepare() {
+    var p = D.byId[S.p], v = el('div', { class: 'dp-view' }), out = el('div', { id: 'dp-prep' });
+    v.appendChild(el('h2', { text: 'Prepare ' + p.name })); v.appendChild(el('p', { text: p.blurb }));
+    v.appendChild(el('div', { class: 'dp-warn' }, ['Prepare first, pair second. A session ID lives 5 minutes from pairing and is used only when your bot starts. Installing takes longer, so nothing on this step needs an ID.']));
+    if (p.warn) v.appendChild(el('div', { class: 'dp-warn' }, [p.warn]));
+    v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'You need' }), el('ul', { class: 'dp-need' }, p.needs.map(function (n) { return el('li', { text: n }); }))]));
+    var opts = el('div', { class: 'dp-sec' });
+    (p.options || []).forEach(function (o) {
+      if (o.type === 'bool') { var cb = el('input', { type: 'checkbox' }); cb.checked = S.opts[o.id] !== false; cb.addEventListener('change', function () { S.opts[o.id] = cb.checked; save(); renderPrep(out); }); opts.appendChild(el('label', { class: 'dp-check' }, [cb, o.label])); }
+      else { var sel = el('select'); o.choices.forEach(function (c) { var op = el('option', { value: c[0], text: c[1] }); if ((S.opts[o.id] || o.def) === c[0]) op.selected = true; sel.appendChild(op); }); sel.addEventListener('change', function () { S.opts[o.id] = sel.value; save(); renderPrep(out); }); opts.appendChild(el('label', { class: 'dp-field' }, [el('span', { text: o.label }), sel])); }
+    });
+    var tz = el('input', { type: 'text', placeholder: 'Africa/Lagos', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', value: S.tzRaw }), pf = el('input', { type: 'text', placeholder: '.', autocomplete: 'off', spellcheck: 'false', maxlength: '3', value: S.prefixRaw }), tzErr = el('p', { class: 'dp-err', hidden: 'hidden' }), pfErr = el('p', { class: 'dp-err', hidden: 'hidden' });
+    function upd() {
+      S.tzRaw = tz.value.trim(); S.prefixRaw = pf.value;
+      var tzOk = !S.tzRaw || D.validZone(S.tzRaw), pfOk = !S.prefixRaw || D.validPrefix(S.prefixRaw);
+      S.tz = tzOk ? S.tzRaw : ''; S.prefix = pfOk ? S.prefixRaw : '';
+      tzErr.hidden = tzOk; tzErr.textContent = tzOk ? '' : 'Use a time zone name like Africa/Lagos or Europe/London.'; pfErr.hidden = pfOk; pfErr.textContent = pfOk ? '' : 'Use 1 to 3 characters with no spaces or slashes.';
+      save(); renderPrep(out);
+    }
+    tz.addEventListener('input', upd); pf.addEventListener('input', upd);
+    opts.appendChild(el('details', { class: 'dp-acc' }, [el('summary', { text: 'Optional settings (time zone, command prefix)' }), el('div', {}, [el('label', { class: 'dp-field' }, [el('span', { text: 'Time zone (the bot defaults to Africa/Johannesburg)' }), tz, tzErr]), el('label', { class: 'dp-field' }, [el('span', { text: 'Command prefix (default is .)' }), pf, pfErr])])]));
+    v.appendChild(opts);
+    renderPrep(out); v.appendChild(out);
+    v.appendChild(nav(function () { go(1); }, function () { S.prepared = true; go(3); }, 'I have finished preparing'));
+    return v;
+  }
+  function renderPrep(out) {
+    while (out.firstChild) out.removeChild(out.firstChild);
+    var r = D.prepare(S.p, ctx()), sec = el('div', { class: 'dp-sec' });
+    sec.appendChild(el('h3', { text: 'Do this now · no session ID needed' })); sec.appendChild(el('p', { text: r.intro }));
+    if (r.steps) { var ol = el('ol', { class: 'dp-ol' }); r.steps.forEach(function (s) { ol.appendChild(el('li', { text: s.t })); }); sec.appendChild(ol); }
+    out.appendChild(sec);
+    var needZip = (r.steps || []).some(function (s) { return s.zip; }) || (r.cmds || []).some(function (c) { return c.lines.some(function (l) { return l.indexOf(D.ZIP_PATH) >= 0; }); });
+    var body = el('div', { class: 'dp-sec' });
+    if (needZip) body.appendChild(zipRow());
+    (r.cmds || []).forEach(function (c) { body.appendChild(term(c, false)); });
+    (r.files || []).forEach(function (f) { body.appendChild(fileRow(f)); });
+    if (r.filesNote) body.appendChild(el('p', { class: 'dp-note', text: r.filesNote }));
+    if (r.vars && r.vars.length) body.appendChild(vars(r.vars, false));
+    (r.after || []).forEach(function (c) { body.appendChild(term(c, false)); });
+    if (r.warn) body.appendChild(el('div', { class: 'dp-warn', text: r.warn }));
+    if (r.check) { body.appendChild(el('h3', { style: 'margin-top:18px', text: 'Check' })); body.appendChild(term(r.check, false)); }
+    out.appendChild(body);
+  }
+
+  function stepSession() {
+    var v = el('div', { class: 'dp-view' });
+    v.appendChild(el('h2', { text: 'Your session ID' }));
+    if (expired) v.appendChild(el('div', { class: 'dp-warn', text: EXPIRED_MSG }));
+    if (collected) v.appendChild(collectedNote());
+    if (sid) {
+      v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Time left' }), el('div', { class: 'dp-time' + (secsLeft() <= 60 ? ' low' : ''), id: 'dp-timewrap' }, [el('b', { id: 'dp-time', text: mmss(secsLeft()) }), el('span', { class: 'dp-ok', text: 'ready' })]), el('div', { class: 'dp-bar' }, [el('i', { id: 'dp-barfill', style: 'width:' + Math.round(secsLeft() / total * 100) + '%' })]),
+        el('p', { class: 'dp-note', text: 'Generating or downloading files does not use the ID up. Only your bot starting does. Source: ' + (src === 'pairing' ? 'your pairing in this tab.' : 'the ID you pasted.') })]));
+      if (msg) v.appendChild(el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }));
+      var clr = el('button', { type: 'button', class: 'dp-link', text: 'Clear my session ID from this page' }); clr.addEventListener('click', function () { clearSid('manual'); render(); });
+      v.appendChild(clr);
+      v.appendChild(nav(function () { go(2); }, function () { go(4); }, 'Continue'));
+      return v;
+    }
+    v.appendChild(el('p', { text: 'Pair WhatsApp to get one, or paste one you already have. It works once and expires 5 minutes after pairing.' }));
+    if (pairing) { var u = el('button', { type: 'button', class: 'dp-btn p' }, ['Use my pairing from this tab (' + mmss(pairLeft()) + ' left)']); u.addEventListener('click', usePairing); v.appendChild(el('div', { class: 'dp-row' }, [u])); }
+    else v.appendChild(el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn p', href: '/pair', text: 'Pair WhatsApp now' })]));
+    var inp = el('input', { type: 'text', id: 'dp-id', class: 'mono', placeholder: 'TFX-XXXX-XXXX-XXXX', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'characters', autocorrect: 'off', 'aria-label': 'Session ID' });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') usePasted(); });
+    var chk = el('button', { type: 'button', class: 'dp-btn' }, [busy ? 'Checking…' : 'Check and use']); chk.disabled = busy; chk.addEventListener('click', usePasted);
+    v.appendChild(el('div', { class: 'dp-sec' }, [el('label', { class: 'dp-field' }, [el('span', { text: 'Or paste a session ID' }), inp]), el('div', { class: 'dp-row' }, [chk]), msg ? el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }) : null,
+      el('p', { class: 'dp-note', text: 'The ID stays in this page only. It is not saved, not put in the address and not sent to any host. Checking it only asks TurboFex whether it is still alive.' })]));
+    v.appendChild(nav(function () { go(2); }));
+    return v;
+  }
+  function collectedNote() {
+    return el('div', { class: 'dp-warn', text: collected === 'confirmed' ? 'Your bot collected its login (TurboFex confirmed the ID was used). The ID is wiped from this page. This does not yet prove WhatsApp connected: check the log for "is online as".' : 'The ID stopped being valid before its time ran out, which usually means your bot collected it. TurboFex cannot tell this from other causes. The ID is wiped from this page. Check your bot log for "is online as".' });
+  }
+
+  function stepFiles() {
+    var v = el('div', { class: 'dp-view' });
+    if (!sid) { v.appendChild(el('h2', { text: 'Files' })); v.appendChild(collected ? collectedNote() : expired ? el('div', { class: 'dp-warn', text: EXPIRED_MSG }) : el('p', { text: 'There is no session ID on this page. Go back and add one.' })); v.appendChild(nav(function () { go(3); }, collected ? function () { go(5); } : null, 'Continue')); return v; }
+    v.appendChild(el('h2', { text: 'Generate your launch files' }));
+    v.appendChild(el('div', { class: 'dp-sec' }, [el('div', { class: 'dp-time' + (secsLeft() <= 60 ? ' low' : ''), id: 'dp-timewrap' }, [el('b', { id: 'dp-time', text: mmss(secsLeft()) }), el('span', { text: 'left' })]), el('div', { class: 'dp-bar' }, [el('i', { id: 'dp-barfill', style: 'width:' + Math.round(secsLeft() / total * 100) + '%' })])]));
+    if (!gen) {
+      var g = el('button', { type: 'button', class: 'dp-btn p' }, ['Generate for ' + D.byId[S.p].name]); g.addEventListener('click', function () { try { gen = D.launch(S.p, ctx(), sid); } catch (e) { msg = e.message; msgBad = true; } render(); });
+      v.appendChild(el('p', { text: 'This only builds the files and commands in your browser. It does not use up your session ID.' }));
+      v.appendChild(el('div', { class: 'dp-row' }, [g])); v.appendChild(nav(function () { go(3); })); return v;
+    }
+    var r = gen, sec = el('div', { class: 'dp-sec' });
+    sec.appendChild(el('p', { text: r.intro }));
+    (r.cmds || []).forEach(function (c) { sec.appendChild(term(c, true)); });
+    (r.files || []).forEach(function (f) { sec.appendChild(fileRow(f, true)); });
+    if (r.alt) sec.appendChild(el('p', { class: 'dp-note', text: r.alt }));
+    if (r.vars && r.vars.length) sec.appendChild(vars(r.vars, true));
+    sec.appendChild(el('div', { class: 'dp-warn', text: 'These contain your session ID: keep them private. The screen hides the ID but Copy and Download include it. Delete downloaded files from shared devices after use.' }));
+    v.appendChild(sec);
+    var clr = el('button', { type: 'button', class: 'dp-link', text: 'Clear my session ID from this page' }); clr.addEventListener('click', function () { clearSid('manual'); go(3); });
+    v.appendChild(clr);
+    v.appendChild(nav(function () { go(3); }, function () { go(5); }, 'I have run it'));
+    return v;
+  }
+
+  function stepStart() {
+    var p = D.byId[S.p], v = el('div', { class: 'dp-view' });
+    v.appendChild(el('h2', { text: 'Start and check' }));
+    var st = [];
+    if (gen && gen.start) st = gen.start;
+    st.forEach(function (t) { v.appendChild(el('p', { text: t })); });
+    if (collected) v.appendChild(collectedNote()); else if (sid) v.appendChild(el('p', { class: 'dp-note', text: 'Waiting for your bot to collect the ID (' + mmss(secsLeft()) + ' left)…' })); else if (expired) v.appendChild(el('div', { class: 'dp-warn', text: 'The ID expired before a bot collected it. Pair again, then repeat the Session and Files steps.' }));
+    v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'How to tell it worked' }), el('ul', { class: 'dp-need' }, p.verify.map(function (t) { return el('li', { text: t }); }))]));
+    var ab = el('button', { type: 'button', class: 'dp-btn' }, [attested ? 'You confirmed it is online (undo)' : 'I can see it online']); ab.addEventListener('click', function () { attested = !attested; render(); });
+    v.appendChild(el('div', { class: 'dp-row' }, [ab])); v.appendChild(el('p', { class: 'dp-note', text: 'TurboFex cannot see your bot. Only you can confirm that WhatsApp connected.' }));
+    v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'If something is wrong' })].concat(p.trouble.map(function (t) { return el('details', { class: 'dp-acc' }, [el('summary', { text: t.q }), el('div', { text: t.a })]); }))));
+    v.appendChild(el('p', { class: 'dp-note' }, ['More detail: ', el('a', { href: D.GUIDES, target: '_blank', rel: 'noopener noreferrer', text: 'hosting guides' }), ' · ', el('a', { href: '/install', text: 'Install page' })]));
+    var again = el('button', { type: 'button', class: 'dp-link', text: 'Start over' }); again.addEventListener('click', function () { clearSid('manual'); S.p = ''; S.prepared = false; collected = ''; expired = false; msg = ''; go(1); });
+    v.appendChild(el('div', {}, [again]));
+    v.appendChild(nav(function () { go(sid ? 4 : 3); }));
+    return v;
+  }
+
+  function render(focus) {
     while (app.firstChild) app.removeChild(app.firstChild);
-    if (phase === 'loading') { app.appendChild(card([el('span', { class: 'dp-spin' }), document.createTextNode(' Checking your pairing…')])); return; }
-    if (phase === 'none' || phase === 'pending') { app.appendChild(gate()); return; }
-    if (errMsg) app.appendChild(card([el('p', { text: errMsg })]));
-    app.appendChild(tracker()); app.appendChild(picker());
-    var g = guide(); if (g) app.appendChild(g);
-    if (arguments[0]) window.scrollTo(0, keepY);
+    app.appendChild(head());
+    var view = S.step === 1 ? stepWhere() : !S.p ? stepWhere() : S.step === 2 ? stepPrepare() : S.step === 3 ? stepSession() : S.step === 4 ? stepFiles() : stepStart();
+    app.appendChild(view);
+    if (focus) { var h = view.querySelector ? view.querySelector('h2') : null; if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } if (window.scrollTo) window.scrollTo(0, 0); }
   }
-  window.addEventListener('hashchange', function () { var id = location.hash.slice(1); if (D.byId[id] && id !== picked && phase !== 'loading' && phase !== 'none' && phase !== 'pending') { picked = id; render(); } });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && (phase === 'ready' || phase === 'loading')) sync(); });
-  window.addEventListener('pagehide', function () { sid = ''; });
-  if (D.byId[location.hash.slice(1)]) picked = location.hash.slice(1);
-  render(); sync();
+
+  window.addEventListener('pagehide', function () { sid = ''; gen = null; });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && sid) resync(); });
+  restore();
+  if (location.hash === '#session' && S.p && S.prepared) S.step = 3;
+  render();
+  fetch('/api/hosting', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.sha256) { info = j; if (S.step === 2) render(); } }).catch(function () {});
+  lookJob().then(function (j) {
+    if (!j) return;
+    if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0 && !j.used && !j.expired) pairing = { id: String(j.sessionId), secs: j.idSecondsLeft, at: Date.now() };
+    if (pairing && location.hash === '#session' && S.p && S.prepared && S.step === 3) { /* the person is ready: offer it on the Session step */ }
+    if (!sid) render();
+  });
 })();

@@ -17,7 +17,7 @@ const hourStart = (t) => Math.floor(t / HOUR) * HOUR;
 //  session.fetch   a bot asked for a session ID: ok=true only when the login was actually sent; ok=false with a detail otherwise
 function emptyDay(day) {
   return { day, visits: 0, visitors: 0, attempts: 0, codes: 0, qrs: 0, linked: 0, failed: 0, cancelled: 0, limited: 0, blocked: 0, invalid: 0, busy: 0, maintenance: 0,
-    fetchOk: 0, fetchBad: 0, fetchLimited: 0, deploy: 0, deployPlatforms: {}, methods: { code: 0, qr: 0 }, countries: {}, hours: { attempts: Array(24).fill(0), linked: Array(24).fill(0), failed: Array(24).fill(0) } };
+    fetchOk: 0, fetchBad: 0, fetchLimited: 0, deploy: 0, downloads: 0, deployPlatforms: {}, methods: { code: 0, qr: 0 }, countries: {}, hours: { attempts: Array(24).fill(0), linked: Array(24).fill(0), failed: Array(24).fill(0) } };
 }
 function summarize(events) {   // -> { 'YYYY-MM-DD': dailyRecord }
   const days = {}, seen = {};
@@ -38,6 +38,7 @@ function summarize(events) {   // -> { 'YYYY-MM-DD': dailyRecord }
       case 'pair.invalid': d.invalid++; break;
       case 'pair.busy': d.busy++; break;
       case 'pair.maintenance': d.maintenance++; break;
+      case 'hosting.download': d.downloads++; break;   // the whole hosting ZIP was sent
       case 'deploy.platform': d.deploy++; if (e.platform) d.deployPlatforms[e.platform] = (d.deployPlatforms[e.platform] || 0) + 1; break;   // someone with a finished pairing chose a host in the Deploy Centre
       case 'session.fetch': if (e.ok) d.fetchOk++; else if (e.detail === 'rate_limited') d.fetchLimited++; else d.fetchBad++; break;
       default: break;
@@ -61,7 +62,7 @@ function mergeMax(a, b) {   // never lowers a number: the result is at least as 
 const cleanDaily = (r) => (r && typeof r === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(r.day)) ? mergeMax(emptyDay(r.day), r) : null);
 // adds up a list of daily records into one set of totals
 function total(list) {
-  const t = { visits: 0, visitors: 0, attempts: 0, codes: 0, qrs: 0, linked: 0, failed: 0, cancelled: 0, limited: 0, blocked: 0, invalid: 0, busy: 0, maintenance: 0, fetchOk: 0, fetchBad: 0, fetchLimited: 0, deploy: 0 };
+  const t = { visits: 0, visitors: 0, attempts: 0, codes: 0, qrs: 0, linked: 0, failed: 0, cancelled: 0, limited: 0, blocked: 0, invalid: 0, busy: 0, maintenance: 0, fetchOk: 0, fetchBad: 0, fetchLimited: 0, deploy: 0, downloads: 0 };
   const methods = { code: 0, qr: 0 }, countries = {}, deployPlatforms = {};
   for (const d of list) {
     for (const k of Object.keys(t)) t[k] += d[k] || 0;

@@ -90,6 +90,9 @@ function createApp(opts = {}) {
     secret = fs.readFileSync(f, 'utf8').trim();
   }
   const deployData = require('./public/deploy-data.js');
+  const DOWNLOADS = opts.downloadsDir || path.join(__dirname, 'downloads');
+  const picks = new Map();   // visitor:host:day -> time (so a host is counted once per visitor per day)
+  const hostingMeta = () => { try { const m = JSON.parse(fs.readFileSync(path.join(DOWNLOADS, 'hosting.json'), 'utf8')); return m && m.sha256 && m.file && m.size ? m : null; } catch (err) { return null; } };
 const store = makeStore({
     dir: path.join(dataDir, 'sessions'),
     secret,
@@ -403,17 +406,42 @@ const store = makeStore({
       return send(res, 200, { state: job.state, method: job.method, dm: job.dm, qr, code: job.code, sessionId: job.sessionId, idSecondsLeft: idLeft, expired: idExpired, used, error: job.error, secondsLeft: Math.max(0, Math.round((job.createdAt + JOB_MAX - Date.now()) / 1000)) });
     }
 
-    // 2b) the Deploy Centre tells us which host a person picked. Only counted for a real, finished pairing (the server checks the job); nothing about the session ID is sent or kept.
+    // 2b) Deploy Centre (public): which host a visitor picked. A client-reported UI action (the server cannot verify a person's intent), counted once per
+    //     visitor, host and day, and it carries no session ID. Never used as proof of anything.
     if (req.method === 'POST' && p === '/api/deploy/choose') {
       let b; try { b = JSON.parse((await readBody(req)) || '{}'); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
-      const job = typeof b.job === 'string' ? jobs.get(b.job) : null;
-      if (!job || job.state !== 'linked' || typeof b.platform !== 'string' || !deployData.byId[b.platform]) return send(res, 400, { error: 'Not counted.' });
-      job.picks = job.picks || new Set();
-      if (!job.picks.has(b.platform)) {   // once per pairing and host, so reloads and retries do not inflate it
-        job.picks.add(b.platform);
-        events.record('deploy.platform', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), platform: b.platform });
-      }
+      if (typeof b.platform !== 'string' || !deployData.byId[b.platform]) return send(res, 400, { error: 'Not counted.' });
+      if (limited('choose', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many requests.' });
+      const key = admin.idOf('client', ip) + ':' + b.platform + ':' + new Date().toISOString().slice(0, 10);
+      if (!picks.has(key)) { picks.set(key, Date.now()); events.record('deploy.platform', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), platform: b.platform }); }
       return send(res, 200, { ok: true });
+    }
+    // 2c) Is this session ID still alive? Answers only { valid, secondsLeft }. It never uses the ID up, never logs or records it, and is rate limited.
+    if (req.method === 'POST' && p === '/api/deploy/check') {
+      if (limited('idcheck', ip, 10, 60 * 1000) || limited('idcheck-h', ip, 60, 60 * 60 * 1000)) return send(res, 429, { error: 'Too many checks. Wait a minute.' });
+      let b; try { b = JSON.parse((await readBody(req)) || '{}'); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
+      const r = typeof b.id === 'string' ? store.peek(b.id) : null;
+      return send(res, 200, r ? { valid: true, secondsLeft: r.secondsLeft } : { valid: false, secondsLeft: 0 });
+    }
+    // 2d) the hosting ZIP, served straight from this site (see downloads/ and tools/prepare-hosting-zip.js)
+    if ((req.method === 'GET' || req.method === 'HEAD') && p === '/api/hosting') {
+      const m = hostingMeta(); if (!m) return send(res, 404, { error: 'The hosting ZIP is not available.' });
+      return send(res, 200, { version: m.version, file: m.file, size: m.size, sha256: m.sha256, url: deployData.ZIP_PATH });
+    }
+    if ((req.method === 'GET' || req.method === 'HEAD') && p === deployData.ZIP_PATH) {
+      const m = hostingMeta(), zipFile = path.join(DOWNLOADS, 'TurboFex-hosting.zip');
+      let st; try { st = fs.statSync(zipFile); } catch (err) { st = null; }
+      if (!m || !st || st.size !== m.size) return send(res, 404, { error: 'The hosting ZIP is not available right now.' });
+      const etag = '"' + m.sha256.slice(0, 32) + '"';
+      const head = { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="' + m.file + '"', 'Content-Length': st.size, 'ETag': etag, 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
+      if (req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': 'no-cache' }); return res.end(); }
+      res.writeHead(200, head);
+      if (req.method === 'HEAD') return res.end();
+      const stream = fs.createReadStream(zipFile);
+      let done = false;
+      res.once('finish', () => { if (!done) { done = true; events.record('hosting.download', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), version: m.version }); } });   // counted only after the whole file was written
+      stream.on('error', () => { done = true; res.destroy(); });
+      return stream.pipe(res), undefined;
     }
 
     // 3) the bot downloads its login with the session ID
@@ -482,6 +510,7 @@ const store = makeStore({
     const now = Date.now();
     for (const [id, j] of jobs) if (j.doneAt && now - j.doneAt > JOB_TTL) jobs.delete(id);
     for (const [k, r] of rids) if (now - r.at > JOB_TTL) rids.delete(k);
+    for (const [k, t] of picks) if (now - t > 26 * 3600 * 1000) picks.delete(k);
     for (const [k, list] of hits) if (!list.some((t) => now - t < 15 * 60 * 1000)) hits.delete(k);
     try {
       store.sweep();
