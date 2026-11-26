@@ -222,6 +222,49 @@
     { id: 'vps', name: 'VPS or computer', text: 'Put index.js in an empty folder, then run it with pm2 (below) or with: node index.js' },
     { id: 'termux', name: 'Termux', text: 'Run: pkg install -y nodejs-lts git. Put index.js in an empty folder (for example mkdir ~/turbofex), cd into it and run: node index.js' }
   ];
+  // ---- smart plans: each host gets only what it needs ----
+  //  file   hosts need ONE thing: the launcher (index.js). Terminal hosts (Termux, VPS) get it with one command; panels and computers get the file.
+  //  bot    hosts (Docker) need the bot files (the ZIP).
+  //  github hosts (Render, Koyeb, other web hosts) need a GitHub repository holding the bot files.
+  var KIND = { termux: 'file', vps: 'file', desktop: 'file', panel: 'file', docker: 'bot', render: 'github', koyeb: 'github', webhost: 'github' };
+  var GIVES = { termux: 'One command', vps: 'One command', desktop: 'One file: index.js', panel: 'One file: index.js', docker: 'Bot files (ZIP)', render: 'GitHub + bot files', koyeb: 'GitHub + bot files', webhost: 'GitHub + bot files' };
+  P.forEach(function (p) { p.kind = KIND[p.id]; p.gives = GIVES[p.id]; });
+  var GITHUB_NEW = 'https://github.com/new';
+  var TERMS = {
+    termux: { label: 'Termux', node: ['pkg update -y && pkg install -y nodejs-lts git'], run: 'node index.js', restart: 'node index.js', stop: 'If the bot is still running, stop it first with Ctrl+C.', keep: 'Android can stop Termux when the screen is off: switch off battery optimisation for Termux and run termux-wake-lock.', after: [] },
+    vps: { label: 'Server', node: ['sudo apt update && sudo apt install -y git curl', 'curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -', 'sudo apt install -y nodejs', 'sudo npm install -g pm2'], run: 'pm2 start index.js --name turbofex && pm2 save', restart: 'pm2 restart turbofex', stop: '', keep: 'Watch it with: pm2 logs turbofex', after: [cmd('Start on boot (once)', ['pm2 startup'], 'pm2 prints one more command that starts with sudo. Run that command too.')] }
+  };
+  var SED = function (id) { return 'sed -i "s/' + PLACEHOLDER + '/\'' + id + '\'/" index.js'; };   // fills the launcher's one quoted placeholder
+  function plan(id, ctx, sessionId, installed) {
+    var p = byId[id]; if (!p) throw new Error('Unknown platform');
+    var c = { origin: ctx.origin, opts: Object.assign(defaults(p), ctx.opts || {}) }, sid = null;
+    if (sessionId) { sid = normalizeId(sessionId); if (!sid) throw new Error('That is not a valid session ID.'); }
+    var url = String(c.origin || '').replace(/\/+$/, '') + LAUNCHER_PATH, cfg = settings(c.opts), out;
+    var cfgFile = cfg.length ? [f('config.env', settingsText(c.opts) + '\n')] : [];
+    if (p.kind === 'file' && TERMS[id]) {
+      var t = TERMS[id], dir = '~/turbofex', fetchLine = 'mkdir -p ' + dir + ' && cd ' + dir + (cfg.length ? ' && ' + printfLines(cfg, 'config.env') : '') + ' && curl -fL -o index.js ' + url;
+      if (!sid) out = { stage: 'get', intro: 'Two commands. The second one downloads the launcher, installs TurboFex and starts it. It will say it has no session ID yet. That is expected.', cmds: [cmd('1 · Get Node ready (once)', t.node), cmd('2 · Install TurboFex', [fetchLine + ' && ' + t.run])], after: t.after, start: [t.keep].filter(Boolean), artifacts: [{ type: 'launcher-noid', label: 'Download index.js instead', note: 'Only if you would rather move the file yourself.' }] };
+      else if (installed) out = { stage: 'launch', intro: 'TurboFex is already installed here, so just add your session ID and restart it.', cmds: [cmd('Add your session ID and restart', ['cd ' + dir + ' && ' + sessionLine(sid) + ' && ' + t.restart])], start: [t.stop, t.keep].filter(Boolean) };
+      else out = { stage: 'launch', intro: 'Do step 1 first, with no ID. Then run step 2 straight away: it installs TurboFex and saves your ID at the end, so be quick.', cmds: [cmd('1 · Get Node ready (before step 2)', t.node), cmd('2 · Install TurboFex with your session ID', [fetchLine + ' && ' + SED(sid) + ' && ' + t.run])], after: t.after, start: [t.keep].filter(Boolean) };
+    } else if (id === 'desktop') {
+      var win = c.opts.os !== 'mac', term = win ? 'PowerShell' : 'Terminal';
+      if (!sid) out = { stage: 'get', intro: 'Install Node.js and Git, then run the launcher. It installs TurboFex and starts it, and will say it has no session ID yet. That is expected.', steps: [{ t: 'Install Node.js (LTS) from nodejs.org and Git from git-scm.com.' }, { t: 'Download index.js below and put it in an empty folder.' }, { t: 'Open a terminal ' + (win ? '(PowerShell) ' : '') + 'in that folder and run the command below.' }], artifacts: [{ type: 'launcher-noid', label: 'Download index.js' }].concat(cfgFile.length ? [{ type: 'file', file: cfgFile[0], label: 'Also put config.env in that folder.' }] : []), cmds: [cmd(term, ['node index.js'])] };
+      else if (installed) out = { stage: 'launch', intro: 'TurboFex is already installed here. Put this file in the TurboFex folder (or run the command) and start the bot again.', files: [f('session_id.txt', 'SESSION_ID=' + sid + '\n')], cmds: [cmd(term, [win ? 'Set-Content -Path session_id.txt -Value ' + ps('SESSION_ID=' + sid) + '; node index.js' : sessionLine(sid) + ' && node index.js'])], start: ['If the bot is still running, stop it first (Ctrl+C).'] };
+      else out = { stage: 'launch', intro: 'Download your launcher, put it in an empty folder and run it. It installs TurboFex and saves your ID at the end, so be quick.', artifacts: [{ type: 'launcher-id', label: 'Download index.js' }].concat(cfgFile.length ? [{ type: 'file', file: cfgFile[0], label: 'Also put config.env in that folder.' }] : []), steps: [{ t: 'Install Node.js (LTS) and Git first if you have not (nodejs.org, git-scm.com).' }], cmds: [cmd(term, ['node index.js'])] };
+    } else if (id === 'panel') {
+      var run = [{ t: 'Upload index.js to the main folder of your server.' }, { t: 'Choose Node.js 18 or newer (20 is best) and set the startup file to index.js.' }, { t: 'Start the server.' }];
+      if (!sid) out = { stage: 'get', intro: 'This file installs TurboFex and starts it. It will say it has no session ID yet. That is expected.', artifacts: [{ type: 'launcher-noid', label: 'Download index.js' }].concat(cfgFile.length ? [{ type: 'file', file: cfgFile[0], label: 'Upload config.env too.' }] : []), steps: run };
+      else if (installed) out = { stage: 'launch', intro: 'TurboFex is already installed on your panel. Upload this one file to the main folder (replace any session_id.txt) and restart the server.', files: [f('session_id.txt', 'SESSION_ID=' + sid + '\n')], alt: 'Or skip the file: in the panel\'s Variables page set SESSION_ID to your ID and restart.', vars: [['SESSION_ID', sid]] };
+      else out = { stage: 'launch', intro: 'Download your launcher and upload it. It installs TurboFex and saves your ID at the end, so upload and start straight away.', artifacts: [{ type: 'launcher-id', label: 'Download index.js' }].concat(cfgFile.length ? [{ type: 'file', file: cfgFile[0], label: 'Upload config.env too.' }] : []), steps: run };
+    } else if (id === 'docker') {
+      out = !sid ? Object.assign({ stage: 'get' }, p.prepare(c), { artifacts: [{ type: 'zip' }] }) : Object.assign({ stage: 'launch' }, p.launch(c, sid));
+    } else {   // github hosts
+      var pre = p.prepare(c);
+      if (!sid) out = { stage: 'get', intro: 'Your host builds from a GitHub repository, so you need one that holds the bot files. Set the service up first and leave the session ID for later.', links: [{ label: 'Open GitHub: create a private repository', href: GITHUB_NEW }], artifacts: [{ type: 'zip' }], steps: pre.steps.slice(1), cmds: pre.cmds, vars: pre.vars, files: pre.files, filesNote: pre.filesNote, warn: p.warn };
+      else out = Object.assign({ stage: 'launch' }, p.launch(c, sid), { warn: 'This assumes your service is already set up and running. If it is not, finish the setup first (open this host again without a session ID), then pair again.' });
+    }
+    out.kind = p.kind; out.id = id; return out;
+  }
   var byId = {}; P.forEach(function (p) { byId[p.id] = p; });
   function defaults(p) { var o = {}; (p.options || []).forEach(function (x) { o[x.id] = x.def; }); return o; }
   // the two generators the page and the tests call
@@ -231,5 +274,5 @@
     var id = normalizeId(sessionId); if (!id) throw new Error('That is not a valid session ID.');
     return p.launch({ origin: ctx.origin, opts: Object.assign(defaults(p), ctx.opts || {}) }, id);
   }
-  return { LAUNCHER_PATH: LAUNCHER_PATH, PLACEHOLDER: PLACEHOLDER, EXTRA_CHOICES: EXTRA_CHOICES, buildLauncher: buildLauncher, PM2: PM2, RUN: RUN, GUIDES: GUIDES, ZIP_PATH: ZIP_PATH, MASK: MASK, platforms: P, byId: byId, ids: P.map(function (p) { return p.id; }), normalizeId: normalizeId, validPrefix: validPrefix, validZone: validZone, sh: sh, ps: ps, zipUrl: zipUrl, prepare: prepare, launch: launch, defaults: defaults };
+  return { plan: plan, GITHUB_NEW: GITHUB_NEW, KIND: KIND, LAUNCHER_PATH: LAUNCHER_PATH, PLACEHOLDER: PLACEHOLDER, EXTRA_CHOICES: EXTRA_CHOICES, buildLauncher: buildLauncher, PM2: PM2, RUN: RUN, GUIDES: GUIDES, ZIP_PATH: ZIP_PATH, MASK: MASK, platforms: P, byId: byId, ids: P.map(function (p) { return p.id; }), normalizeId: normalizeId, validPrefix: validPrefix, validZone: validZone, sh: sh, ps: ps, zipUrl: zipUrl, prepare: prepare, launch: launch, defaults: defaults };
 });

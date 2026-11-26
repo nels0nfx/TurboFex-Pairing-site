@@ -658,3 +658,12 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - `/deploy` now opens on the QUICK flow: the session ID (auto-filled from the pairing in this tab when the person pressed Deploy, or pasted and verified with `POST /api/deploy/check`) is put into the launcher in the BROWSER (`TFXDeploy.buildLauncher`: only the quoted `'__TFX_SESSION_ID__'` changes) and offered as `index.js`, with pm2 and per-host run notes. "Install first, add the ID later" gives the no-ID launcher (`/download/index.js`, placeholder untouched) and leads to the v3.33 step-by-step host wizard (`#hosts`) for the finishing step.
 - Why both: the launcher installs for a few minutes and saves the ID at the END, and a session ID lives 5 minutes. The page shows a live countdown and the "install first" route.
 - `downloads/launcher.js` + `launcher.json` are produced by `tools/prepare-hosting-zip.js` (see downloads/README.md). The launcher itself downloads the bot from its own `ZIP_URL` (GitHub), not from this site's cleaned ZIP.
+
+## v3.35.0 — smart Deploy (entry-aware, host-aware); Deploy in the menu
+- Deploy is in the hamburger menu and the footer (`partials/head2.html`, `foot2.html`).
+- The page decides what to show from TWO things: is there a session ID on the page (from the pairing in this tab, auto-used, or pasted and verified), and what the host needs (`kind` in deploy-data.js):
+  - `file`: Termux and VPS get one command (it fetches the launcher from `/download/index.js`; with an ID it fills the placeholder with sed); Hosting panel and Windows/Mac get the index.js file. Neither is sent to GitHub or given the ZIP.
+  - `bot`: Docker gets the bot ZIP and the `.env` step.
+  - `github`: Render, Koyeb, other web hosts are sent to github.com/new, get the bot ZIP and git commands, and later just one SESSION_ID variable.
+- Menu visitor (no ID) sees "Do this first · no session ID needed" and a Pair button; someone with an ID sees "Do this now": file hosts are asked once whether TurboFex is already installed (not installed: launcher with the ID; installed: write session_id.txt and restart). The full-bot-ZIP route (v3.33 generators `prepare()`/`launch()`) stays as "I want the full bot files instead".
+- `D.plan(id, ctx, sessionId, installed)` is the single entry point; tests run its commands for real (Termux end to end against the shipped bot ZIP).

@@ -250,74 +250,89 @@ const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const META = { version: '1.8.4', file: 'TurboFex-hosting-v1_8_4.zip', size: 674127, sha256: 'ab'.repeat(32) };
 const okHandler = (secondsLeft = 250) => (u, o) => (u === '/api/hosting' ? R(META) : u === '/api/deploy/check' ? R(JSON.parse(o.body).id === REAL_ID ? { valid: true, secondsLeft } : { valid: false, secondsLeft: 0 }) : R({ ok: true }));
 
-test('page is public: no pairing needed, all eight hosts offered, nothing asks for a session ID yet', async () => {
-  const b = fakeBrowser({ job: null, handler: okHandler(), hash: '#hosts' }); await wait();
-  const t = b.text(); assert.match(t, /Where will TurboFex run/); assert.strictEqual(b.all((n) => n.attrs['data-p']).length, 8);
-  assert.ok(!/paste a session ID|Your session ID/.test(t) && !/Pair your WhatsApp first/.test(t));
-  assert.ok(!b.ctx.requests.some((r) => r.u === '/api/deploy/check'));
+
+const SESSIONLESS = (extra) => (u, o) => (u === D.LAUNCHER_PATH ? R(LAUNCHER) : okHandler()(u, o));
+const LIVE_JOB = (secs = 240, extra = {}) => (u, o) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: REAL_ID, idSecondsLeft: secs, expired: false, used: false, ...extra }) : u === D.LAUNCHER_PATH ? R(LAUNCHER) : okHandler()(u, o));
+
+test('menu visitor (no session ID): sees the host list first, no ID box, each host labelled with what it needs', async () => {
+  const b = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait();
+  const t = b.text(); assert.match(t, /Where will TurboFex run/); assert.match(t, /Pick your host\. You get exactly what it needs/); assert.strictEqual(b.all((n) => n.attrs['data-p']).length, 8);
+  assert.ok(!/Your session ID is ready/.test(t) && b.all((n) => n.id === 'dp-id').length === 0, 'no ID box, no ID banner');
+  assert.match(t, /Android phone · One command/); assert.match(t, /Pterodactyl and similar · One file: index\.js/); assert.match(t, /Containers · Bot files \(ZIP\)/); assert.match(t, /Cloud web service · GitHub \+ bot files/);
+  assert.ok(b.btn('I already have a session ID'));
 });
 
-test('wizard walk-through (Termux): Prepare has no ID and a direct ZIP URL; Session asks for it; Files are masked on screen, Copy carries the real ID, nothing is stored or put in an address', async () => {
-  const b = fakeBrowser({ job: null, handler: okHandler(), hash: '#hosts' }); await wait();
-  b.plat('termux').click(); await wait();
-  let t = b.text(); assert.match(t, /Prepare Termux/); assert.match(t, /Prepare first, pair second/); assert.ok(t.includes(ORIGIN + '/download/TurboFex-hosting.zip') && t.includes('npm install') && !t.includes('K7M2'));
-  assert.ok(b.all((n) => n.tag === 'a' && n.attrs.href === '/download/TurboFex-hosting.zip' && n.attrs.download !== undefined).length >= 1, 'a direct download link, not GitHub');
-  assert.ok(!b.btn('Generate for Termux'), 'cannot generate yet');
-  b.btn('I have finished preparing').click(); await wait();
-  assert.match(b.text(), /Your session ID/); assert.ok(b.all((n) => n.id === 'dp-id').length === 1);
-  const inp = b.all((n) => n.id === 'dp-id')[0]; inp.value = 'not an id'; b.btn('Check and use').click(); await wait();
-  assert.match(b.text(), /does not look like a session ID/); assert.ok(!b.ctx.requests.some((r) => r.u === '/api/deploy/check'), 'a malformed ID is rejected locally, nothing is sent');
-  b.all((n) => n.id === 'dp-id')[0].value = 'tfx k7m2 9qxa 4bnp'; b.btn('Check and use').click(); await wait(60);
-  t = b.text(); assert.match(t, /Time left/); assert.match(t, /Generating or downloading files does not use the ID up/);
-  b.btn('Continue').click(); await wait(); b.btn('Generate for Termux').click(); await wait();
-  t = b.text(); assert.ok(!t.includes(REAL_ID) && !t.includes('K7M2') && t.includes(D.MASK), 'the ID is hidden on screen');
-  b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); await wait();
-  assert.ok(b.ctx.copied.some((c) => c === "cd ~/TurboFex && printf 'SESSION_ID=%s\\n' '" + REAL_ID + "' > session_id.txt && tmux new -A -s bot 'npm start'"), 'Copy carries the real one-line launch command');
-  assert.ok(!b.ctx.copied.some((c) => c.includes('npm install') && c.includes(REAL_ID)), 'no install + ID in one block');
-  assert.ok(!b.ctx.storeWrites.some(([, v]) => v.includes('K7M2')), 'nothing holding the ID was written to storage');
-  assert.deepStrictEqual(b.ctx.storeWrites.map(([k]) => k).filter((v, i, a) => a.indexOf(v) === i), ['tfx-deploy']);
-  assert.ok(!b.ctx.requests.some((r) => String(r.u).includes('K7M2')) && b.ctx.requests.filter((r) => String(r.o && r.o.body).includes('K7M2')).every((r) => r.u === '/api/deploy/check'), 'the ID only ever went to the ID check, in its body');
-  assert.ok(b.ctx.requests.some((r) => r.u === '/api/deploy/choose' && !String(r.o.body).includes('K7M2')));
-  assert.match(b.ctx.requests.find((r) => r.u === '/api/deploy/choose').o.body, /termux/);
+test('someone who just paired and pressed Deploy: the ID is already in, the first screen is different, and they skip "get your files"', async () => {
+  const b = fakeBrowser({ job: 'job1234567', handler: LIVE_JOB(), hash: '#session' }); await wait(80);
+  const t = b.text(); assert.match(t, /Your session ID is ready/); assert.match(t, /Pick your host and you get the one step you need now/); assert.ok(!t.includes(REAL_ID), 'hidden on screen'); assert.ok(!/Pick your host\. You get exactly what it needs/.test(t));
+  b.plat('panel').click(); await wait(); const t2 = b.text(); assert.match(t2, /Do this now/); assert.ok(!/Do this first/.test(t2)); assert.match(t2, /Download your launcher and upload it/); assert.ok(b.btn('Download index.js'));
 });
 
-test('page: Clear wipes the ID; an invalid ID is refused with a clear reason; Files cannot be reached without an ID', async () => {
-  const b = fakeBrowser({ job: null, handler: okHandler(), hash: '#hosts' }); await wait(); b.plat('docker').click(); await wait(); b.btn('I have finished preparing').click(); await wait();
-  b.all((n) => n.id === 'dp-id')[0].value = 'TFX-ABCD-EFGH-JKMN'; b.btn('Check and use').click(); await wait(60);
-  assert.match(b.text(), /not valid any more: it expired, was already used/); assert.ok(!b.btn('Continue'));
-  b.all((n) => n.id === 'dp-id')[0].value = REAL_ID; b.btn('Check and use').click(); await wait(60); b.btn('Continue').click(); await wait(); b.btn('Generate for Docker').click(); await wait();
-  assert.ok(b.all((n) => n.className.includes('dp-file')).some((n) => n.textContent.includes('.env')));
-  b.btn('Download').click(); await wait();
-  assert.deepStrictEqual(b.ctx.downloads.map((d) => [d.name, d.blob.type]), [['.env', 'text/plain;charset=utf-8']]); assert.strictEqual(b.ctx.downloads[0].blob.parts[0], `SESSION_ID=${REAL_ID}\n`);
-  b.btn('Clear my session ID from this page').click(); await wait();
-  assert.match(b.text(), /Cleared from this page/); b.ctx.copied.length = 0; b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click());
-  assert.ok(!b.ctx.copied.some((c) => c.includes(REAL_ID)), 'nothing on the page can produce the ID any more');
-});
-
-test('page: an ID that runs out is wiped and the person is told; Prepare stays done', async () => {
-  const b = fakeBrowser({ job: null, handler: okHandler(1), hash: '#hosts' }); await wait(); b.plat('panel').click(); await wait(); b.btn('I have finished preparing').click(); await wait();
-  b.all((n) => n.id === 'dp-id')[0].value = REAL_ID; b.btn('Check and use').click(); await wait(60); b.btn('Continue').click(); await wait(); b.btn('Generate for Hosting panel').click(); await wait();
-  await wait(1500);
-  assert.match(b.text(), /session ID expired and was wiped/); b.ctx.copied.length = 0; b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); assert.ok(!b.ctx.copied.some((c) => c.includes(REAL_ID)));
-  const saved = JSON.parse(b.ctx.storeWrites.at(-1)[1]); assert.strictEqual(saved.prepared, true);
-});
-
-test('page: the pairing in this tab can be used with one tap; a used or missing pairing is not offered; the optional check failing is stated, not hidden', async () => {
-  const live = fakeBrowser({ job: 'job1234567', handler: (u, o) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: REAL_ID, idSecondsLeft: 200, expired: false, used: false }) : okHandler()(u, o)), stored: { 'tfx-deploy': JSON.stringify({ mode: 'hosts', p: 'vps', opts: {}, prepared: true, step: 3 }) } }); await wait(60);
-  assert.match(live.text(), /Use my pairing from this tab/); assert.ok(!live.text().includes(REAL_ID)); live.btn(live.all((n) => n.tag === 'button' && n.textContent.startsWith('Use my pairing'))[0].textContent).click(); await wait(); assert.match(live.text(), /your pairing in this tab/);
-  const used = fakeBrowser({ job: 'job1234567', handler: (u) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: null, idSecondsLeft: 0, expired: false, used: true }) : R(META)), stored: { 'tfx-deploy': JSON.stringify({ mode: 'hosts', p: 'vps', prepared: true, step: 3 }) } }); await wait(60);
-  assert.ok(!/Use my pairing/.test(used.text())); assert.ok(used.all((n) => n.id === 'dp-id').length === 1);
-  const down = fakeBrowser({ job: null, handler: (u) => (u === '/api/deploy/check' ? Promise.reject(new Error('offline')) : R(META)), hash: '#hosts', stored: { 'tfx-deploy': JSON.stringify({ mode: 'hosts', p: 'vps', prepared: true, step: 3 }) } }); await wait();
-  down.all((n) => n.id === 'dp-id')[0].value = REAL_ID; down.btn('Check and use').click(); await wait(60); assert.match(down.text(), /Could not check it just now/);
-});
-
-test('page: each of the eight hosts walks Prepare -> Session without an ID and shows only its own instructions', async () => {
+test('each host gets its OWN thing (menu visitor): terminals get commands, panels/computers get the file, Docker gets the ZIP, GitHub hosts go to GitHub', async () => {
+  const seen = {};
   for (const id of D.ids) {
-    const b = fakeBrowser({ job: null, handler: okHandler(), hash: '#hosts' }); await wait(); b.plat(id).click(); await wait();
-    const t = b.text(); assert.ok(t.includes('Prepare ' + D.byId[id].name), id); assert.ok(!t.includes('K7M2'), id);
-    for (const other of D.ids.filter((x) => x !== id)) assert.ok(!t.includes('Prepare ' + D.byId[other].name), id + ' leaks ' + other);
-    b.btn('I have finished preparing').click(); await wait(); assert.match(b.text(), /Your session ID/, id);
+    const b = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait(); b.plat(id).click(); await wait();
+    const t = b.text(), has = (re) => re.test(t), term = b.all((n) => n.className.includes('dp-term')).length, gh = b.all((n) => n.tag === 'a' && n.attrs.href === 'https://github.com/new').length, zip = b.all((n) => n.tag === 'a' && n.attrs.href === '/download/TurboFex-hosting.zip').length, lf = b.all((n) => n.tag === 'a' && n.attrs.href === '/download/index.js').length;
+    seen[id] = { term, gh, zip, lf }; assert.match(t, /Do this first · no session ID needed/, id); assert.ok(!t.includes('K7M2'), id);
+    assert.ok(b.all((n) => n.tag === 'a' && n.attrs.href === '/pair').length >= 1, id + ' leads on to pairing');
   }
+  assert.deepStrictEqual(['termux', 'vps'].map((i) => [seen[i].term >= 2, seen[i].gh, seen[i].zip]), [[true, 0, 0], [true, 0, 0]], 'terminal hosts: commands, no GitHub, no ZIP');
+  assert.deepStrictEqual(['panel', 'desktop'].map((i) => [seen[i].lf, seen[i].gh, seen[i].zip]), [[1, 0, 0], [1, 0, 0]], 'file hosts: the one file, no GitHub, no ZIP');
+  assert.deepStrictEqual([seen.docker.zip >= 1, seen.docker.gh, seen.docker.lf], [true, 0, 0], 'Docker: the bot ZIP only');
+  for (const i of ['render', 'koyeb', 'webhost']) assert.deepStrictEqual([seen[i].gh, seen[i].zip >= 1, seen[i].lf], [1, true, 0], i + ': GitHub + the bot ZIP');
+});
+
+test('with an ID, each host gets ONE short last step: file hosts get index.js with the ID (or a command), Docker the .env, cloud hosts a single variable', async () => {
+  for (const id of D.ids) {
+    const b = fakeBrowser({ job: 'job1234567', handler: LIVE_JOB(), hash: '#session' }); await wait(80); b.plat(id).click(); await wait();
+    const t = b.text(); assert.match(t, /Do this now/, id); assert.ok(!t.includes(REAL_ID) && !t.includes('K7M2'), id + ': ID hidden'); assert.ok(!/Do this first/.test(t), id);
+    b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); await wait();
+    const copied = b.ctx.copied.join('\n');
+    if (id === 'panel' || id === 'desktop') { assert.ok(b.btn('Download index.js'), id); b.btn('Download index.js').click(); await wait(60); assert.ok(b.ctx.downloads[0].blob.parts[0].includes("const SESSION_ID = '" + REAL_ID + "';"), id + ': the downloaded file has the ID'); }
+    else assert.ok(copied.includes(REAL_ID), id + ': Copy carries the real ID');
+    if (id === 'docker') assert.ok(b.all((n) => n.className.includes('dp-file')).some((n) => n.textContent.includes('.env')));
+    if (['render', 'koyeb', 'webhost'].includes(id)) { assert.deepStrictEqual(b.all((n) => n.className.includes('dp-vars'))[0].children.length, 1, id + ': exactly one variable'); assert.match(t, /assumes your service is already set up/); }
+  }
+});
+
+test('file hosts with an ID ask the one question that matters (already installed?), and the answer changes what they get', async () => {
+  const b = fakeBrowser({ job: 'job1234567', handler: LIVE_JOB(), hash: '#session' }); await wait(80); b.plat('vps').click(); await wait();
+  assert.match(b.text(), /Is TurboFex already installed on this host/); assert.match(b.text(), /Install TurboFex with your session ID/); assert.ok(!/Add your session ID and restart/.test(b.text()));
+  b.btn('It is already installed').click(); await wait(); assert.match(b.text(), /Add your session ID and restart/); assert.ok(!/Install TurboFex with your session ID/.test(b.text()));
+  b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); await wait();
+  assert.ok(b.ctx.copied.some((c) => c === "cd ~/turbofex && printf 'SESSION_ID=%s\\n' '" + REAL_ID + "' > session_id.txt && pm2 restart turbofex"));
+  // someone who already got the no-ID file and comes back is assumed installed
+  const c = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait(); c.plat('panel').click(); await wait(); c.all((n) => n.tag === 'a' && n.attrs.href === '/download/index.js')[0].click(); await wait();
+  assert.strictEqual(JSON.parse(c.ctx.storeWrites.at(-1)[1]).gotFiles, true);
+});
+
+test('ID box path: "I already have a session ID" verifies it, then the host screens use it; invalid and expired IDs get nothing', async () => {
+  const b = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait(); b.btn('I already have a session ID').click(); await wait();
+  b.all((n) => n.id === 'dp-id')[0].value = 'nope'; b.btn('Verify session ID').click(); await wait(); assert.match(b.text(), /does not look like a session ID/);
+  b.all((n) => n.id === 'dp-id')[0].value = 'TFX-ABCD-EFGH-JKMN'; b.btn('Verify session ID').click(); await wait(60); assert.match(b.text(), /not valid any more/); assert.ok(!/Your session ID is ready/.test(b.text()));
+  b.all((n) => n.id === 'dp-id')[0].value = 'tfx k7m2 9qxa 4bnp'; b.btn('Verify session ID').click(); await wait(60); assert.match(b.text(), /Your session ID is ready/);
+  b.btn('Choose my host').click(); await wait(); b.plat('panel').click(); await wait(); b.btn('Download index.js').click(); await wait(60);
+  const d = b.ctx.downloads[0]; assert.strictEqual(d.name, 'index.js'); assert.match(d.blob.type, /^text\/javascript/); assert.strictEqual(d.blob.parts[0], LAUNCHER.replace("'__TFX_SESSION_ID__'", "'" + REAL_ID + "'"));
+  assert.ok(!b.ctx.storeWrites.some(([, v]) => v.includes('K7M2')), 'no storage holds the ID'); assert.ok(b.ctx.requests.filter((r) => String(r.o && r.o.body).includes('K7M2') || String(r.u).includes('K7M2')).every((r) => r.u === '/api/deploy/check'), 'the ID only went to the check, in its body');
+  b.btn('Clear my session ID').click(); await wait(); b.ctx.copied.length = 0; b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); assert.ok(!b.ctx.copied.some((c) => c.includes(REAL_ID)), 'nothing can produce the ID after Clear');
+});
+
+test('expiry wipes the ID; a collected ID shows the honest note; a used ID is not offered again', async () => {
+  const b = fakeBrowser({ job: null, handler: (u, o) => (u === '/api/deploy/check' ? R({ valid: true, secondsLeft: 1 }) : SESSIONLESS()(u, o)) }); await wait(); b.btn('I already have a session ID').click(); await wait();
+  b.all((n) => n.id === 'dp-id')[0].value = REAL_ID; b.btn('Verify session ID').click(); await wait(60); assert.match(b.text(), /Your session ID is ready/); await wait(1500);
+  assert.match(b.text(), /expired and was wiped/); assert.ok(!/Your session ID is ready/.test(b.text()));
+  const c = fakeBrowser({ job: 'job1234567', handler: (u, o) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: null, idSecondsLeft: 0, expired: false, used: true }) : SESSIONLESS()(u, o)), hash: '#session' }); await wait(80);
+  assert.ok(!/Your session ID is ready/.test(c.text()));
+  const down = fakeBrowser({ job: null, handler: (u) => (u === '/api/deploy/check' ? Promise.reject(new Error('offline')) : R(META)) }); await wait(); down.btn('I already have a session ID').click(); await wait();
+  down.all((n) => n.id === 'dp-id')[0].value = REAL_ID; down.btn('Verify session ID').click(); await wait(60); assert.match(down.text(), /Could not check it just now/);
+});
+
+test('optional settings flow into the commands (time zone, prefix) and bad values are refused', async () => {
+  const b = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait(); b.plat('vps').click(); await wait();
+  const [tz, pf] = b.all((n) => n.tag === 'input' && n.attrs.placeholder && (n.attrs.placeholder === 'Africa/Lagos' || n.attrs.placeholder === '.'));
+  tz.value = 'Africa/Lagos'; tz.listeners.input.forEach((f) => f({})); pf.value = '!'; pf.listeners.input.forEach((f) => f({})); await wait();
+  assert.ok(b.text().includes("printf 'TIMEZONE=%s\\nBOT_PREFIX=%s\\n' 'Africa/Lagos' '!' > config.env"));
+  tz.value = "x';rm -rf"; tz.listeners.input.forEach((f) => f({})); await wait(); assert.ok(!b.text().includes("x';rm") && !b.text().includes('TIMEZONE=%s'), 'a bad time zone never reaches a command'); assert.match(b.text(), /Use a time zone name/);
 });
 
 test('mobile and themes (static): viewport meta, only existing design tokens, reduced motion, no fixed widths over 640px, copy/download controls reachable', () => {
@@ -339,7 +354,7 @@ test('pair page: the Deploy button leads into the wizard at the Session step and
 test('static: the Deploy page code never puts the ID in storage, the address or history', () => {
   const js = fs.readFileSync(path.join(PUB, 'deploy.js'), 'utf8');
   assert.ok(!/localStorage|pushState|location\.(search|href)\s*=/.test(js)); assert.ok(!/replaceState/.test(js));
-  assert.ok(/JSON\.stringify\(\{ mode: S\.mode, p: S\.p, opts: S\.opts, tz: S\.tz, prefix: S\.prefix, tzRaw: S\.tzRaw, prefixRaw: S\.prefixRaw, prepared: S\.prepared, step: Math\.min\(S\.step, 3\) \}\)/.test(js), 'only the wizard choices are saved');
+  assert.ok(/JSON\.stringify\(\{ p: S\.p, opts: S\.opts, tz: S\.tz, prefix: S\.prefix, tzRaw: S\.tzRaw, prefixRaw: S\.prefixRaw, gotFiles: S\.gotFiles, installed: S\.installed, manual: S\.manual \}\)/.test(js), 'only the wizard choices are saved');
 });
 
 // ================= the one-file launcher (deploy-index.js) =================
@@ -402,43 +417,69 @@ test('END TO END: the launcher the site generates really installs the bot packag
   app.close();
 });
 
-// ---------- the quick page ----------
-const LAUNCH_HANDLER = (secondsLeft = 250) => (u, o) => (u === D.LAUNCHER_PATH ? R(LAUNCHER) : okHandler(secondsLeft)(u, o));
 
-test('quick page: no ID yet -> an ID box (not a host list); verify -> the file; Download puts the ID in index.js in the browser; nothing is stored or sent but to the check', async () => {
-  const b = fakeBrowser({ job: null, handler: LAUNCH_HANDLER() }); await wait();
-  let t = b.text(); assert.match(t, /Deploy TurboFex/); assert.ok(b.all((n) => n.id === 'dp-id').length === 1); assert.ok(!/Where will TurboFex run/.test(t)); assert.ok(!b.btn('Download index.js'), 'no file before the ID is verified');
-  b.all((n) => n.id === 'dp-id')[0].value = 'nope'; b.btn('Verify session ID').click(); await wait(); assert.match(b.text(), /does not look like a session ID/); assert.ok(!b.btn('Download index.js'));
-  b.all((n) => n.id === 'dp-id')[0].value = 'TFX-ABCD-EFGH-JKMN'; b.btn('Verify session ID').click(); await wait(60); assert.match(b.text(), /not valid any more/); assert.ok(!b.btn('Download index.js'), 'an invalid ID gets no file');
-  b.all((n) => n.id === 'dp-id')[0].value = 'tfx k7m2 9qxa 4bnp'; b.btn('Verify session ID').click(); await wait(60);
-  t = b.text(); assert.match(t, /Session ID verified/); assert.ok(!t.includes(REAL_ID) && !t.includes('K7M2'), 'the ID is not shown');
-  assert.match(t, /installs the bot first, which takes a few minutes/); assert.match(t, /Install first, add the ID later/);
-  assert.ok(b.all((n) => n.tag === 'a' && n.attrs.href === '/download/index.js' && n.attrs.download !== undefined).length === 1, 'the no-ID launcher is a direct download link');
-  b.btn('Download index.js').click(); await wait(60);
-  assert.strictEqual(b.ctx.downloads.length, 1); const d = b.ctx.downloads[0]; assert.strictEqual(d.name, 'index.js'); assert.match(d.blob.type, /^text\/javascript/);
-  assert.strictEqual(d.blob.parts[0], LAUNCHER.replace("'__TFX_SESSION_ID__'", "'" + REAL_ID + "'")); assert.strictEqual(d.blob.parts[0].split(REAL_ID).length - 1, 1);
-  assert.match(b.text(), /Downloaded\. Upload it to your host and start it now/);
-  b.all((n) => n.className.includes('dp-cp')).forEach((c) => c.click()); await wait();
-  assert.ok(b.ctx.copied.some((c) => c.includes('pm2 start index.js --name turbofex && pm2 save')), 'the pm2 command is offered'); assert.ok(!b.ctx.copied.some((c) => c.includes(REAL_ID)), 'no copy button carries the ID');
-  assert.ok(!b.ctx.storeWrites.some(([, v]) => v.includes('K7M2')), 'no storage holds the ID');
-  assert.ok(b.ctx.requests.filter((r) => String(r.o && r.o.body).includes('K7M2') || String(r.u).includes('K7M2')).every((r) => r.u === '/api/deploy/check' && !String(r.u).includes('K7M2')), 'the ID only went to the check, in its body');
-  assert.ok(b.ctx.requests.some((r) => r.u === D.LAUNCHER_PATH), 'the template came from the site, the ID was added here');
-  assert.ok(b.ctx.requests.some((r) => r.u === '/api/deploy/choose' && /"launcher"/.test(r.o.body)));
+// ================= the smart plans, run for real =================
+function stubBin(names) { const bin = tmp('tfx-sb-'); for (const b of names) fs.writeFileSync(path.join(bin, b), '#!/bin/sh\necho "$(basename $0) $*" >> "$HOME/calls.log"\n', { mode: 0o755 }); return bin; }
+const runAsync = (line, home, env) => execFile('bash', ['-c', line], { cwd: home, env: { ...process.env, HOME: home, ...env }, timeout: 90000 });
+
+test('menu and footer link to the Deploy page, and the page is served inside the normal site shell', async () => {
+  assert.match(fs.readFileSync(path.join(ROOT, 'partials', 'head2.html'), 'utf8'), /<li><a href="\/deploy">[\s\S]*?Deploy your bot/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'partials', 'foot2.html'), 'utf8'), /<a href="\/deploy">Deploy your bot<\/a>/);
+  const { app } = boot(); const base = await listen(app); const html = await (await fetch(base + '/deploy')).text(); assert.match(html, /href="\/deploy"/); assert.match(html, /Pair WhatsApp/); app.close();
 });
 
-test('quick page: someone who just paired and pressed Deploy gets the file with their ID in it, with no typing', async () => {
-  const b = fakeBrowser({ job: 'job1234567', handler: (u, o) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: REAL_ID, idSecondsLeft: 240, expired: false, used: false }) : LAUNCH_HANDLER()(u, o)), hash: '#session' }); await wait(80);
-  let t = b.text(); assert.match(t, /Session ID verified/); assert.match(t, /your pairing in this tab/); assert.ok(!t.includes(REAL_ID)); assert.ok(b.all((n) => n.id === 'dp-id').length === 0, 'no box to fill in');
-  b.btn('Download index.js').click(); await wait(60); assert.ok(b.ctx.downloads[0].blob.parts[0].includes("const SESSION_ID = '" + REAL_ID + "';"));
+test('plan(): the "get" stage never holds an ID; the "launch" stage always does; the stage follows the ID, the kind follows the host', () => {
+  const kinds = { termux: 'file', vps: 'file', desktop: 'file', panel: 'file', docker: 'bot', render: 'github', koyeb: 'github', webhost: 'github' };
+  for (const id of D.ids) {
+    const g = D.plan(id, ctx(), ''), q = D.plan(id, ctx(), REAL_ID, false), i = D.plan(id, ctx(), REAL_ID, true);
+    assert.strictEqual(g.stage, 'get'); assert.strictEqual(q.stage, 'launch'); assert.strictEqual(g.kind, kinds[id]);
+    assert.ok(!JSON.stringify(g).includes('K7M2'), id + ': no ID before pairing'); assert.ok(JSON.stringify(i).includes(REAL_ID) || JSON.stringify(q).includes(REAL_ID) || q.artifacts.some((a) => a.type === 'launcher-id'), id);
+  }
+  assert.throws(() => D.plan('vps', ctx(), 'bad id'), /not a valid session ID/);
+  assert.ok(D.plan('render', ctx(), '').links.some((l) => l.href === 'https://github.com/new'), 'GitHub hosts are sent to GitHub');
+  assert.ok(!(D.plan('vps', ctx(), '').links || []).length && !(D.plan('panel', ctx(), '').links || []).length, 'hosts that do not need GitHub are not sent there');
+  assert.ok(D.plan('docker', ctx(), '').artifacts.some((a) => a.type === 'zip') && !D.plan('docker', ctx(), '').artifacts.some((a) => /launcher/.test(a.type)), 'Docker needs the bot files, not index.js');
+  assert.ok(D.plan('termux', ctx(), REAL_ID, false).cmds.every((c) => !c.lines.join('').includes('.zip')), 'the one-file hosts never download the bot ZIP themselves');
 });
 
-test('quick page: expiry wipes the ID and the file button; collected shows the honest note; the host wizard is one tap away and back', async () => {
-  const b = fakeBrowser({ job: null, handler: LAUNCH_HANDLER(1) }); await wait();
-  b.all((n) => n.id === 'dp-id')[0].value = REAL_ID; b.btn('Verify session ID').click(); await wait(60); assert.ok(b.btn('Download index.js')); await wait(1500);
-  assert.match(b.text(), /expired and was wiped/); assert.ok(!b.btn('Download index.js'), 'nothing left to download');
-  const c = fakeBrowser({ job: 'job1234567', handler: (u, o) => (u.startsWith('/api/job/') ? R({ state: 'linked', sessionId: null, idSecondsLeft: 0, expired: false, used: true }) : LAUNCH_HANDLER()(u, o)), hash: '#session' }); await wait(80);
-  assert.ok(!c.btn('Download index.js')); assert.ok(c.all((n) => n.id === 'dp-id').length === 1, 'a used ID is not offered again');
-  const h = fakeBrowser({ job: null, handler: LAUNCH_HANDLER() }); await wait(); h.btn('Prefer step-by-step for a specific host? Choose a host').click(); await wait();
-  assert.match(h.text(), /Where will TurboFex run/); assert.strictEqual(h.all((n) => n.attrs['data-p']).length, 8);
-  h.btn('Back to the one-file launcher').click(); await wait(); assert.match(h.text(), /Deploy TurboFex/);
+test('END TO END (Termux): the generated "install with your session ID" command downloads the launcher from the site, fills the ID, installs the real bot package and saves the ID', async () => {
+  const { app } = boot(); const base = await listen(app), home = tmp('tfx-tm-');
+  const line = D.plan('termux', { origin: base, opts: { tz: 'Africa/Lagos', prefix: '!' } }, REAL_ID, false).cmds[1].lines[0];
+  const r = await runAsync(line, home, { TFX_BOT_ZIP: base + '/download/TurboFex-hosting.zip', TFX_SKIP_INSTALL: '1', TFX_NO_START: '1', SESSION_ID: '' });
+  const dir = path.join(home, 'turbofex');
+  assert.match(r.stdout, /Your session ID is saved/); assert.strictEqual(botReq('core/sessionid.js').parseIds(fs.readFileSync(path.join(dir, 'session_id.txt'), 'utf8'))[0].id, REAL_ID);
+  assert.deepStrictEqual(botReq('core/envfile.js').parse(fs.readFileSync(path.join(dir, 'config.env'), 'utf8')), { TIMEZONE: 'Africa/Lagos', BOT_PREFIX: '!' }, 'the optional settings were kept, not overwritten by the install');
+  assert.ok(fs.existsSync(path.join(dir, 'core', 'boot.js')), 'the real bot was installed');
+  app.close();
+});
+
+test('END TO END (Termux, no ID yet): the "install first" command installs the bot, writes no ID and says so', async () => {
+  const { app } = boot(); const base = await listen(app), home = tmp('tfx-tg-');
+  const line = D.plan('termux', { origin: base, opts: {} }, '').cmds[1].lines[0];
+  const r = await runAsync(line, home, { TFX_BOT_ZIP: base + '/download/TurboFex-hosting.zip', TFX_SKIP_INSTALL: '1', TFX_NO_START: '1', SESSION_ID: '' });
+  assert.match(r.stdout, /No valid session ID is written in this file/); assert.ok(fs.existsSync(path.join(home, 'turbofex', 'core', 'boot.js')));
+  assert.ok(!fs.existsSync(path.join(home, 'turbofex', 'session_id.txt')) || !/SESSION_ID=TFX/.test(fs.readFileSync(path.join(home, 'turbofex', 'session_id.txt'), 'utf8')));
+  app.close();
+});
+
+test('VPS commands run for real: the launcher is fetched from the site, only its placeholder changes, pm2 is called; "installed" just writes the ID and restarts', async () => {
+  const { app } = boot(); const base = await listen(app), bin = stubBin(['pm2']);
+  const home = tmp('tfx-vp-'), env = { PATH: bin + ':' + process.env.PATH };
+  const q = D.plan('vps', { origin: base, opts: {} }, REAL_ID, false).cmds[1].lines[0];
+  await runAsync(q, home, env);
+  const file = fs.readFileSync(path.join(home, 'turbofex', 'index.js'), 'utf8');
+  assert.strictEqual(file, LAUNCHER.replace("'__TFX_SESSION_ID__'", "'" + REAL_ID + "'"), 'the sed edit equals the browser-side edit, byte for byte');
+  assert.strictEqual(fs.readFileSync(path.join(home, 'calls.log'), 'utf8').trim(), 'pm2 start index.js --name turbofex\npm2 save');
+  const home2 = tmp('tfx-vp2-'); fs.mkdirSync(path.join(home2, 'turbofex'), { recursive: true });
+  await runAsync(D.plan('vps', { origin: base, opts: {} }, REAL_ID, true).cmds[0].lines[0], home2, env);
+  assert.strictEqual(botReq('core/sessionid.js').parseIds(fs.readFileSync(path.join(home2, 'turbofex', 'session_id.txt'), 'utf8'))[0].id, REAL_ID);
+  assert.strictEqual(fs.readFileSync(path.join(home2, 'calls.log'), 'utf8').trim(), 'pm2 restart turbofex');
+  for (const bad of ['PowerShell']) assert.ok(!D.plan('vps', ctx(), REAL_ID, false).cmds.some((c) => c.label.includes(bad)));
+  app.close();
+});
+
+test('Termux "already installed" writes the ID file for the real bot to read, then restarts it', async () => {
+  const bin = stubBin(['node']), home = tmp('tfx-ti-'); fs.mkdirSync(path.join(home, 'turbofex'), { recursive: true });
+  await runAsync(D.plan('termux', ctx(), REAL_ID, true).cmds[0].lines[0], home, { PATH: bin + ':' + process.env.PATH });
+  assert.strictEqual(botReq('core/sessionid.js').parseIds(fs.readFileSync(path.join(home, 'turbofex', 'session_id.txt'), 'utf8'))[0].id, REAL_ID); assert.strictEqual(fs.readFileSync(path.join(home, 'calls.log'), 'utf8').trim(), 'node index.js');
 });
