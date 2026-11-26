@@ -653,3 +653,8 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - `/download/TurboFex-hosting.zip` serves `downloads/TurboFex-hosting.zip` directly (no redirect). Build/replace it with `tools/prepare-hosting-zip.js` (see `downloads/README.md`). `/api/hosting` gives version/size/SHA-256.
 - `POST /api/deploy/check {id}` -> `{valid, secondsLeft}` using `store.peek` (never consumes, never logs/records the ID, 10/min and 60/h per visitor).
 - Events: `deploy.platform` (client-reported choice, once per visitor/host/day) and `hosting.download` (after the whole file was written).
+
+## v3.34.0 — one-file launcher in the Deploy Centre
+- `/deploy` now opens on the QUICK flow: the session ID (auto-filled from the pairing in this tab when the person pressed Deploy, or pasted and verified with `POST /api/deploy/check`) is put into the launcher in the BROWSER (`TFXDeploy.buildLauncher`: only the quoted `'__TFX_SESSION_ID__'` changes) and offered as `index.js`, with pm2 and per-host run notes. "Install first, add the ID later" gives the no-ID launcher (`/download/index.js`, placeholder untouched) and leads to the v3.33 step-by-step host wizard (`#hosts`) for the finishing step.
+- Why both: the launcher installs for a few minutes and saves the ID at the END, and a session ID lives 5 minutes. The page shows a live countdown and the "install first" route.
+- `downloads/launcher.js` + `launcher.json` are produced by `tools/prepare-hosting-zip.js` (see downloads/README.md). The launcher itself downloads the bot from its own `ZIP_URL` (GitHub), not from this site's cleaned ZIP.

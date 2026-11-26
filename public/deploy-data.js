@@ -13,6 +13,9 @@
   'use strict';
   var GUIDES = 'https://github.com/nels0nfx/TurboFex#hosting-guides';
   var ZIP_PATH = '/download/TurboFex-hosting.zip';
+  var LAUNCHER_PATH = '/download/index.js';   // the one-file launcher, with the placeholder still in it
+  var PLACEHOLDER = "'__TFX_SESSION_ID__'";
+  var EXTRA_CHOICES = ['launcher', 'launcher-first'];   // counted like hosts: quick launcher, and the no-ID launcher for slow hosts
   var MASK = 'TFX-••••-••••-••••';
   var ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -204,6 +207,21 @@
       start: ['Saving a variable restarts the service. After the first successful start the login is saved on the disk, so the ID is not needed again.'] };
   }
 
+  // ---- the one-file launcher: the ONLY change is the quoted placeholder, and it happens in the visitor's browser ----
+  function buildLauncher(template, sessionId) {
+    var id = normalizeId(sessionId); if (!id) throw new Error('That is not a valid session ID.');
+    var parts = String(template).split(PLACEHOLDER);
+    if (parts.length !== 2) throw new Error('The launcher file is not in the expected format. Please tell the site owner.');
+    return parts[0] + "'" + id + "'" + parts[1];
+  }
+  var PM2 = [
+    cmd('Keep it running with pm2', ['npm install -g pm2', 'pm2 start index.js --name turbofex && pm2 save', 'pm2 logs turbofex'], 'Run these in the folder that holds index.js. pm2 startup makes it start on boot. The first start installs the bot, which takes a few minutes: watch it with pm2 logs.'),
+  ];
+  var RUN = [
+    { id: 'panel', name: 'Hosting panel', text: 'Upload index.js to the main folder, use Node.js 18 or newer (20 is best), set the startup file to index.js, and start the server.' },
+    { id: 'vps', name: 'VPS or computer', text: 'Put index.js in an empty folder, then run it with pm2 (below) or with: node index.js' },
+    { id: 'termux', name: 'Termux', text: 'Run: pkg install -y nodejs-lts git. Put index.js in an empty folder (for example mkdir ~/turbofex), cd into it and run: node index.js' }
+  ];
   var byId = {}; P.forEach(function (p) { byId[p.id] = p; });
   function defaults(p) { var o = {}; (p.options || []).forEach(function (x) { o[x.id] = x.def; }); return o; }
   // the two generators the page and the tests call
@@ -213,5 +231,5 @@
     var id = normalizeId(sessionId); if (!id) throw new Error('That is not a valid session ID.');
     return p.launch({ origin: ctx.origin, opts: Object.assign(defaults(p), ctx.opts || {}) }, id);
   }
-  return { GUIDES: GUIDES, ZIP_PATH: ZIP_PATH, MASK: MASK, platforms: P, byId: byId, ids: P.map(function (p) { return p.id; }), normalizeId: normalizeId, validPrefix: validPrefix, validZone: validZone, sh: sh, ps: ps, zipUrl: zipUrl, prepare: prepare, launch: launch, defaults: defaults };
+  return { LAUNCHER_PATH: LAUNCHER_PATH, PLACEHOLDER: PLACEHOLDER, EXTRA_CHOICES: EXTRA_CHOICES, buildLauncher: buildLauncher, PM2: PM2, RUN: RUN, GUIDES: GUIDES, ZIP_PATH: ZIP_PATH, MASK: MASK, platforms: P, byId: byId, ids: P.map(function (p) { return p.id; }), normalizeId: normalizeId, validPrefix: validPrefix, validZone: validZone, sh: sh, ps: ps, zipUrl: zipUrl, prepare: prepare, launch: launch, defaults: defaults };
 });

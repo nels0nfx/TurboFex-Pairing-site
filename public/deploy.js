@@ -8,7 +8,7 @@
   'use strict';
   var D = window.TFXDeploy, JOBKEY = 'tfx-job', KEY = 'tfx-deploy', app = document.getElementById('app');
   var STEPS = ['Where', 'Prepare', 'Session', 'Files', 'Start'];
-  var S = { step: 1, p: '', opts: {}, tz: '', prefix: '', tzRaw: '', prefixRaw: '', prepared: false };
+  var S = { mode: 'quick', step: 1, p: '', opts: {}, tz: '', prefix: '', tzRaw: '', prefixRaw: '', prepared: false };
   var sid = '', src = '', expAt = 0, total = 300, collected = '', expired = false, gen = null, pairing = null, info = null, attested = false, msg = '', msgBad = false, busy = false;
   var tickT = 0, syncT = 0;
   var EXPIRED_MSG = 'Your session ID expired and was wiped from this page. Pair again for a new one. Your preparation is still done.';
@@ -29,8 +29,9 @@
   function secsLeft() { return Math.max(0, Math.round((expAt - Date.now()) / 1000)); }
   function mask(text) { return sid ? String(text).split(sid).join(D.MASK) : String(text); }
   // only the wizard choices are saved (never the session ID)
-  function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ p: S.p, opts: S.opts, tz: S.tz, prefix: S.prefix, tzRaw: S.tzRaw, prefixRaw: S.prefixRaw, prepared: S.prepared, step: Math.min(S.step, 3) })); } catch (e) { /* storage may be off */ } }
-  function restore() { try { var j = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (j && D.byId[j.p]) { S.p = j.p; S.opts = j.opts || {}; S.tz = D.validZone(j.tz) ? j.tz : ''; S.prefix = D.validPrefix(j.prefix) ? j.prefix : ''; S.tzRaw = j.tzRaw || S.tz; S.prefixRaw = j.prefixRaw || S.prefix; S.prepared = !!j.prepared; S.step = j.step >= 2 && j.step <= 3 ? j.step : 1; } } catch (e) { /* none */ } }
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ mode: S.mode, p: S.p, opts: S.opts, tz: S.tz, prefix: S.prefix, tzRaw: S.tzRaw, prefixRaw: S.prefixRaw, prepared: S.prepared, step: Math.min(S.step, 3) })); } catch (e) { /* storage may be off */ } }
+  function restore() { try { var j = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (j && j.mode === 'hosts') S.mode = 'hosts';
+      if (j && D.byId[j.p]) { S.p = j.p; S.opts = j.opts || {}; S.tz = D.validZone(j.tz) ? j.tz : ''; S.prefix = D.validPrefix(j.prefix) ? j.prefix : ''; S.tzRaw = j.tzRaw || S.tz; S.prefixRaw = j.prefixRaw || S.prefix; S.prepared = !!j.prepared; S.step = j.step >= 2 && j.step <= 3 ? j.step : 1; } } catch (e) { /* none */ } }
 
   // ---------- copy / download ----------
   function copyText(text, btn, label) {
@@ -125,7 +126,8 @@
       b.addEventListener('click', function () { choose(p.id); });
       list.appendChild(el('li', {}, [b]));
     });
-    var kids = [el('h2', { text: 'Where will TurboFex run?' }), el('p', { text: 'Pick one. You do not need a session ID to look around.' }), list];
+    var back = el('button', { type: 'button', class: 'dp-link', text: 'Back to the one-file launcher' }); back.addEventListener('click', toQuick);
+    var kids = [el('h2', { text: 'Where will TurboFex run?' }), el('p', { text: 'Pick one. You do not need a session ID to look around.' }), list, el('div', {}, [back])];
     if (pairing) kids.splice(2, 0, el('div', { class: 'dp-warn' }, ['Your pairing is ready (' + mmss(pairLeft()) + ' left). Its session ID lives 5 minutes, which is usually too short to install a bot. Prepare your host first, then pair again, or carry on and be quick.']));
     return el('div', { class: 'dp-view' }, kids);
   }
@@ -251,10 +253,56 @@
     return v;
   }
 
+  // ---------- the one-file launcher (the quick way) ----------
+  var reported = {}, fileMsg = '', fileBad = false, downloaded = false;
+  function report(id) { if (reported[id]) return; reported[id] = 1; try { fetch('/api/deploy/choose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: id }) }).catch(function () {}); } catch (e) { /* ignore */ } }
+  function getLauncher() {   // the ID is put into the file HERE, in this browser: the server only ever serves the file with its placeholder
+    fileMsg = ''; if (!sid) return;
+    fetch(D.LAUNCHER_PATH, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('The launcher could not be loaded (' + r.status + ').'); return r.text(); })
+      .then(function (t) { download({ name: 'index.js', text: D.buildLauncher(t, sid), mime: 'text/javascript;charset=utf-8' }); downloaded = true; fileBad = false; fileMsg = 'Downloaded. Upload it to your host and start it now.'; report('launcher'); render(); })
+      .catch(function (e) { fileBad = true; fileMsg = (e && e.message) || 'Could not build the file.'; render(); });
+  }
+  function viewQuick() {
+    var v = el('div', { class: 'dp-view' });
+    v.appendChild(el('h2', { text: 'Deploy TurboFex' }));
+    v.appendChild(el('p', { text: 'One file starts your bot. It downloads TurboFex, installs it, links your WhatsApp with your session ID and starts.' }));
+    if (expired) v.appendChild(el('div', { class: 'dp-warn', text: 'Your session ID expired and was wiped from this page. Pair again, or paste a new one.' }));
+    if (collected) { v.appendChild(collectedNote()); var again = el('button', { type: 'button', class: 'dp-link', text: 'Deploy again with a new session ID' }); again.addEventListener('click', function () { collected = ''; downloaded = false; fileMsg = ''; render(); }); v.appendChild(again); }
+    else if (!sid) {
+      if (pairing) { var u = el('button', { type: 'button', class: 'dp-btn p' }, ['Use my session ID (' + mmss(pairLeft()) + ' left)']); u.addEventListener('click', usePairing); v.appendChild(el('div', { class: 'dp-row' }, [u])); }
+      var inp = el('input', { type: 'text', id: 'dp-id', class: 'mono', placeholder: 'TFX-XXXX-XXXX-XXXX', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'characters', autocorrect: 'off', 'aria-label': 'Session ID' });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') usePasted(); });
+      var chk = el('button', { type: 'button', class: 'dp-btn p' }, [busy ? 'Verifying…' : 'Verify session ID']); chk.disabled = busy; chk.addEventListener('click', usePasted);
+      v.appendChild(el('div', { class: 'dp-sec' }, [el('label', { class: 'dp-field' }, [el('span', { text: 'Your session ID' }), inp]), el('div', { class: 'dp-row' }, [chk]), msg ? el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }) : null,
+        el('p', { class: 'dp-note' }, ['No session ID yet? ', el('a', { href: '/pair', text: 'Pair WhatsApp' }), ' first. It works once and expires 5 minutes after pairing. It stays in this page only: it is not saved, not put in the address and not sent anywhere. Verifying only asks TurboFex whether it is still alive.'])]));
+    } else {
+      var left = secsLeft();
+      v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Session ID verified' }), el('div', { class: 'dp-time' + (left <= 60 ? ' low' : ''), id: 'dp-timewrap' }, [el('b', { id: 'dp-time', text: mmss(left) }), el('span', { text: 'left' })]), el('div', { class: 'dp-bar' }, [el('i', { id: 'dp-barfill', style: 'width:' + Math.round(left / total * 100) + '%' })]),
+        el('p', { class: 'dp-note', text: 'Source: ' + (src === 'pairing' ? 'your pairing in this tab.' : 'the ID you pasted.') + ' Downloading the file does not use it up. It is used when your bot starts.' })]));
+      if (msg) v.appendChild(el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }));
+      var dl = el('button', { type: 'button', class: 'dp-btn p' }, [icon('i-arrow'), document.createTextNode('Download index.js')]); dl.addEventListener('click', getLauncher);
+      v.appendChild(el('div', { class: 'dp-row' }, [dl]));
+      if (fileMsg) v.appendChild(el('p', { class: fileBad ? 'dp-err' : 'dp-note', text: fileMsg }));
+      v.appendChild(el('div', { class: 'dp-warn', text: 'The file contains your session ID: keep it private and delete it from shared devices after use. Starting it installs the bot first, which takes a few minutes, and the ID is saved at the end. If the countdown is short, or your host is slow or new, use "Install first" below instead.' }));
+      var run = el('div', { class: 'dp-sec' }, [el('h3', { text: 'Run it' })]);
+      D.RUN.forEach(function (r) { run.appendChild(el('p', {}, [el('b', { text: r.name + ': ' }), r.text])); });
+      D.PM2.forEach(function (c) { run.appendChild(term(c, false)); });
+      v.appendChild(run);
+      v.appendChild(el('details', { class: 'dp-acc' }, [el('summary', { text: 'Install first, add the ID later (for slow or new hosts)' }), el('div', {}, [
+        'A session ID lives only 5 minutes. This file has no ID: it installs and starts the bot, which will say it has no session ID yet. That is expected. When it is installed, finish with the step-by-step guide for your host: a one-line command or one small file that adds the ID.',
+        el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn', href: D.LAUNCHER_PATH, download: '', text: 'Download index.js without an ID' }), (function () { var b = el('button', { type: 'button', class: 'dp-btn', text: 'Show the finishing steps' }); b.addEventListener('click', function () { report('launcher-first'); toHosts(); }); return b; })()])])]));
+      var clr = el('button', { type: 'button', class: 'dp-link', text: 'Clear my session ID from this page' }); clr.addEventListener('click', function () { clearSid('manual'); downloaded = false; fileMsg = ''; render(); }); v.appendChild(clr);
+    }
+    var hosts = el('button', { type: 'button', class: 'dp-link', text: 'Prefer step-by-step for a specific host? Choose a host' }); hosts.addEventListener('click', toHosts); v.appendChild(el('div', {}, [hosts]));
+    return v;
+  }
+  function toHosts() { S.mode = 'hosts'; S.step = 1; save(); render(true); }
+  function toQuick() { S.mode = 'quick'; save(); render(true); }
+
   function render(focus) {
     while (app.firstChild) app.removeChild(app.firstChild);
-    app.appendChild(head());
-    var view = S.step === 1 ? stepWhere() : !S.p ? stepWhere() : S.step === 2 ? stepPrepare() : S.step === 3 ? stepSession() : S.step === 4 ? stepFiles() : stepStart();
+    if (S.mode !== 'quick') app.appendChild(head());
+    var view = S.mode === 'quick' ? viewQuick() : S.step === 1 ? stepWhere() : !S.p ? stepWhere() : S.step === 2 ? stepPrepare() : S.step === 3 ? stepSession() : S.step === 4 ? stepFiles() : stepStart();
     app.appendChild(view);
     if (focus) { var h = view.querySelector ? view.querySelector('h2') : null; if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } if (window.scrollTo) window.scrollTo(0, 0); }
   }
@@ -262,13 +310,17 @@
   window.addEventListener('pagehide', function () { sid = ''; gen = null; });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && sid) resync(); });
   restore();
-  if (location.hash === '#session' && S.p && S.prepared) S.step = 3;
+  if (location.hash === '#hosts') S.mode = 'hosts';
+  if (S.mode === 'hosts' && location.hash === '#session' && S.p && S.prepared) S.step = 3;
+  else if (location.hash === '#session') S.mode = S.mode === 'hosts' && S.p && S.prepared ? 'hosts' : 'quick';
   render();
   fetch('/api/hosting', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.sha256) { info = j; if (S.step === 2) render(); } }).catch(function () {});
   lookJob().then(function (j) {
     if (!j) return;
     if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0 && !j.used && !j.expired) pairing = { id: String(j.sessionId), secs: j.idSecondsLeft, at: Date.now() };
     if (pairing && location.hash === '#session' && S.p && S.prepared && S.step === 3) { /* the person is ready: offer it on the Session step */ }
+    // someone who just got their session ID and pressed Deploy: put it in the file for them, no typing
+    if (S.mode === 'quick' && pairing && !sid && !collected) { usePairing(); return; }
     if (!sid) render();
   });
 })();

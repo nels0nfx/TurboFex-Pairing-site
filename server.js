@@ -410,7 +410,7 @@ const store = makeStore({
     //     visitor, host and day, and it carries no session ID. Never used as proof of anything.
     if (req.method === 'POST' && p === '/api/deploy/choose') {
       let b; try { b = JSON.parse((await readBody(req)) || '{}'); } catch (err) { return send(res, 400, { error: 'Bad request.' }); }
-      if (typeof b.platform !== 'string' || !deployData.byId[b.platform]) return send(res, 400, { error: 'Not counted.' });
+      if (typeof b.platform !== 'string' || !(deployData.byId[b.platform] || deployData.EXTRA_CHOICES.includes(b.platform))) return send(res, 400, { error: 'Not counted.' });
       if (limited('choose', ip, 30, 60 * 1000)) return send(res, 429, { error: 'Too many requests.' });
       const key = admin.idOf('client', ip) + ':' + b.platform + ':' + new Date().toISOString().slice(0, 10);
       if (!picks.has(key)) { picks.set(key, Date.now()); events.record('deploy.platform', { client: admin.idOf('client', ip), ipm: admin.maskIp(ip), platform: b.platform }); }
@@ -424,6 +424,13 @@ const store = makeStore({
       return send(res, 200, r ? { valid: true, secondsLeft: r.secondsLeft } : { valid: false, secondsLeft: 0 });
     }
     // 2d) the hosting ZIP, served straight from this site (see downloads/ and tools/prepare-hosting-zip.js)
+    // 2d') the one-file launcher (placeholder still in it). The page fills in the session ID in the visitor's browser, so the ID never reaches this server.
+    if ((req.method === 'GET' || req.method === 'HEAD') && p === deployData.LAUNCHER_PATH) {
+      let m, buf; try { m = JSON.parse(fs.readFileSync(path.join(DOWNLOADS, 'launcher.json'), 'utf8')); buf = fs.readFileSync(path.join(DOWNLOADS, 'launcher.js')); } catch (err) { buf = null; }
+      if (!buf || !m || buf.length !== m.size || !buf.toString('utf8').includes(deployData.PLACEHOLDER)) return send(res, 404, { error: 'The launcher is not available right now.' });
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Content-Disposition': 'attachment; filename="index.js"', 'Content-Length': buf.length, 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
+      return res.end(req.method === 'HEAD' ? undefined : buf);
+    }
     if ((req.method === 'GET' || req.method === 'HEAD') && p === '/api/hosting') {
       const m = hostingMeta(); if (!m) return send(res, 404, { error: 'The hosting ZIP is not available.' });
       return send(res, 200, { version: m.version, file: m.file, size: m.size, sha256: m.sha256, url: deployData.ZIP_PATH });
