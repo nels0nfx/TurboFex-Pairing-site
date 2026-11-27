@@ -1,9 +1,9 @@
 {
-  "version": "1.8.4",
-  "file": "TurboFex-hosting-v1_8_4.zip",
-  "size": 674127,
-  "sha256": "b7972f9a03482ce55a14bb33edd2bf799d958dcadd104019a90b1383cce1e1ff",
-  "files": 401,
+  "version": "1.8.8",
+  "file": "TurboFex-hosting-v1_8_8.zip",
+  "size": 690714,
+  "sha256": "d02337524daea4bd39dab7b69a59e8fa36ef521e0f5606fab4f38028175062ed",
+  "files": 409,
   "removed": [
     ".cursorrules",
     "AGENTS.md",
@@ -90,11 +90,13 @@
     "tests/v179.test.js",
     "tests/v180.test.js",
     "tests/v181.test.js",
+    "tests/v182.test.js",
+    "tests/v187.test.js",
     "tests/watermark.test.js",
     "tests/webpexif.test.js",
     "tools/protect.private.sh",
     "tools/release.private.sh"
   ],
-  "sourceSha256": "913567b1b3ee76d18ff03c57f4966680b55e5b8b4e6b3e458c6f93f015b50a7a",
-  "builtAt": "2026-11-25T22:26:02.955Z"
+  "sourceSha256": "0a1009be80dbfd84afa3b601988c591cac5beb3ab25541fc17087d5e450acbfc",
+  "builtAt": "2026-11-27T13:01:46.970Z"
 }
