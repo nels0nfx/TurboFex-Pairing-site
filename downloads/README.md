@@ -1,6 +1,6 @@
 # Hosting ZIP (served at /download/TurboFex-hosting.zip)
 
-`TurboFex-hosting.zip` and `hosting.json` here are what the Deploy Centre serves. Do not edit them by hand.
+`TurboFex-hosting.zip` and `hosting.json` here are served at /download/TurboFex-hosting.zip. Since v3.36.0 the Deploy page uses the ZIP ONLY for Render, Koyeb and other web hosts (they build from a GitHub repository, so they need the bot files). Every other host runs on the one-file launcher (index.js) and never touches the ZIP. Do not edit these files by hand.
 
 ## Replace it with each new bot release
 ```

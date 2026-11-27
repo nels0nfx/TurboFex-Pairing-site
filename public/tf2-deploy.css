@@ -1,63 +1,23 @@
-/* Deploy Centre v2 (v3.33.0): a plain wizard. Whitespace, type and thin dividers; only code blocks have a frame. Uses tf2.css tokens (light + dark). */
-.dp { --g1: rgb(var(--acc)); --g2: rgb(var(--cyan)); padding-bottom: 88px; }
-.dp .col { max-width: 640px; }
-.dp h2 { font-size: 22px; letter-spacing: -.01em; margin: 0 0 6px; font-weight: 600; }
-.dp p { color: var(--m); font-size: 15px; line-height: 1.55; margin: 6px 0 0; }
-.dp a { color: rgb(var(--acc)); }
-.dp-steps { display: flex; gap: 6px; list-style: none; margin: 4px 0 26px; padding: 0; overflow-x: auto; scrollbar-width: none; }
-.dp-steps::-webkit-scrollbar { display: none; }
-.dp-steps li { flex: 1 0 auto; font-size: 12px; color: var(--d); padding-bottom: 8px; border-bottom: 2px solid var(--line2); white-space: nowrap; transition: color .3s, border-color .3s; }
-.dp-steps li.on { color: var(--t); border-color: rgb(var(--acc)); }
-.dp-steps li.past { color: var(--m); border-color: rgb(var(--acc) / .45); }
-.dp-sec { padding: 20px 0; border-top: 1px solid var(--line); }
-.dp-sec:first-of-type { border-top: 0; padding-top: 0; }
-.dp-sec h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--d); margin: 0 0 10px; font-weight: 500; }
-/* step 1: simple rows */
-.dp-list { list-style: none; margin: 12px 0 0; padding: 0; }
-.dp-list li { border-top: 1px solid var(--line); }
-.dp-list li:last-child { border-bottom: 1px solid var(--line); }
-.dp-plat { width: 100%; display: flex; gap: 14px; align-items: center; padding: 16px 2px; background: none; border: 0; color: var(--t); font: inherit; text-align: left; cursor: pointer; }
-.dp-plat .ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(145deg, rgb(var(--acc) / .2), rgb(var(--cyan) / .1)); color: rgb(var(--acc)); transition: transform .25s; }
-.dp-plat .ic svg { width: 20px; height: 20px; }
-.dp-plat .tx { flex: 1; min-width: 0; } .dp-plat b { display: block; font-weight: 600; font-size: 16px; } .dp-plat small { display: block; color: var(--m); font-size: 13px; margin-top: 1px; }
-.dp-plat .go { color: var(--d); width: 18px; height: 18px; transition: transform .25s, color .25s; }
-@media (hover: hover) { .dp-plat:hover .go { transform: translateX(4px); color: rgb(var(--acc)); } .dp-plat:hover .ic { transform: scale(1.06); } }
-/* buttons and inputs */
-.dp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--line2); background: transparent; color: var(--t); font: inherit; font-weight: 500; cursor: pointer; text-decoration: none; }
-.dp-btn.p { background: linear-gradient(135deg, var(--g1), rgb(var(--sky))); color: #fff; border-color: transparent; box-shadow: 0 10px 26px rgb(var(--acc) / .26); }
-.dp-btn.q { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 10px; }
-.dp-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
-.dp-btn svg { width: 16px; height: 16px; }
-.dp-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.dp-row .dp-btn.p { flex: 1 1 220px; }
-.dp-link { background: none; border: 0; color: var(--m); font: inherit; font-size: 14px; padding: 8px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.dp-field { display: block; margin-top: 12px; } .dp-field span { display: block; font-size: 13px; color: var(--m); margin-bottom: 6px; }
-.dp-field input, .dp-field select { width: 100%; height: 50px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line2); background: var(--s1); color: var(--t); font: inherit; font-size: 16px; }
-.dp-field input.mono { font-family: var(--mono); letter-spacing: .04em; }
-.dp-field input:focus, .dp-field select:focus { outline: 2px solid rgb(var(--acc)); outline-offset: 1px; }
-.dp-err { color: rgb(var(--bad)); font-size: 13px; margin-top: 6px; }
-.dp-check { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 15px; color: var(--t); } .dp-check input { width: 20px; height: 20px; accent-color: rgb(var(--acc)); }
-.dp-warn { margin-top: 14px; padding: 2px 0 2px 14px; border-left: 3px solid rgb(var(--warn)); color: var(--b); font-size: 14px; line-height: 1.5; }
-.dp-ok { color: rgb(var(--ok)); } .dp-bad { color: rgb(var(--bad)); }
-.dp-need { list-style: none; margin: 0; padding: 0; } .dp-need li { padding: 5px 0 5px 18px; position: relative; font-size: 14px; color: var(--b); }
-.dp-need li::before { content: ""; position: absolute; left: 2px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--acc)); }
-.dp-ol { counter-reset: n; list-style: none; margin: 0; padding: 0; } .dp-ol li { counter-increment: n; position: relative; padding: 8px 0 8px 34px; font-size: 15px; color: var(--b); line-height: 1.5; }
-.dp-ol li::before { content: counter(n); position: absolute; left: 0; top: 8px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line2); font-size: 12px; display: grid; place-items: center; color: var(--m); font-family: var(--mono); }
-/* code blocks keep a frame */
-.dp-term { margin-top: 12px; border: 1px solid var(--line2); border-radius: 14px; background: #08080a; overflow: hidden; }
-.dp-term .bar { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 14px; border-bottom: 1px solid rgb(255 255 255 / .07); font-size: 12px; color: #8a8a95; } .dp-term .bar span { flex: 1; }
-.dp-cp { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgb(255 255 255 / .16); background: transparent; color: #e4e4ec; font: inherit; font-size: 12px; cursor: pointer; }
-.dp-cp svg { width: 14px; height: 14px; } .dp-cp.ok { color: rgb(52 211 153); border-color: rgb(52 211 153 / .6); } .dp-cp:disabled { opacity: .45; cursor: not-allowed; }
-.dp-term pre { margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; color: #d9d9e2; overflow-x: auto; white-space: pre; }
-.dp-term pre span::before { content: "$ "; color: #6b6b78; user-select: none; }
-.dp-note { font-size: 13px; color: var(--m); margin-top: 8px; line-height: 1.5; }
-.dp-vars { margin-top: 12px; border-top: 1px solid var(--line); } .dp-vars div { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px; }
-.dp-vars .k { flex: none; color: var(--t); } .dp-vars .v { flex: 1; min-width: 0; color: var(--m); overflow-wrap: anywhere; } .dp-vars .dp-cp { color: var(--t); border-color: var(--line2); } .dp-vars .dp-cp.ok { color: rgb(var(--ok)); }
-.dp-file { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); margin-top: 12px; } .dp-file b { font-family: var(--mono); font-size: 14px; font-weight: 500; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.dp-acc summary { padding: 12px 0; cursor: pointer; font-size: 15px; border-top: 1px solid var(--line); } .dp-acc div { padding: 0 0 12px; color: var(--m); font-size: 14px; line-height: 1.5; }
-.dp-time { display: flex; align-items: baseline; gap: 10px; } .dp-time b { font-family: var(--mono); font-size: 34px; font-weight: 500; letter-spacing: -.02em; } .dp-time.low b { color: rgb(var(--warn)); }
-.dp-bar { height: 4px; border-radius: 99px; background: var(--line2); overflow: hidden; margin-top: 10px; } .dp-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--g1), var(--g2)); transition: width 1s linear; }
+/* Deploy page (v3.36.0). The page uses the site's own components (tabs, .panel .steps, .code, .warnbox, details) from tf2.css and tf2-install.css;
+   this file only adds what they do not have: the session ID field (the pair page's input look), hints and small links. */
+#app > h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; color: var(--t); }
+.sub { color: var(--m); font-size: 14px; }
+.panel.dp-inner, .dp-inner { padding: 16px; }
+.dp-inner label { display: block; font-size: 13px; color: var(--m); margin-bottom: 8px; }
+.fld { border: 1px solid var(--line2); border-radius: 14px; background: var(--bg); height: 56px; display: flex; }
+.fld:focus-within { border-color: rgb(var(--acc)); box-shadow: 0 0 0 3px rgb(var(--acc) / .2); }
+.fld input { flex: 1; min-width: 0; padding: 0 14px; border: 0; background: transparent; outline: 0; font-size: 17px; font-family: var(--mono); letter-spacing: .04em; color: var(--t); border-radius: 14px; }
+.fld input::placeholder { color: var(--d); letter-spacing: .02em; }
+.dp-inner .btns, .steps .tx .btns { margin-top: 12px; flex-wrap: wrap; }
+.hint { margin: 10px 0 0; color: var(--m); font-size: 13px; line-height: 1.5; }
+.hint.ok { color: rgb(var(--ok)); } .hint.ok b { font-family: var(--mono); font-weight: 500; }
+.hint.warn { margin-top: 12px; padding: 11px 13px; border: 1px solid rgb(var(--warn) / .45); border-radius: 12px; background: rgb(var(--warn) / .07); color: var(--b); }
+.hint.warn b { color: var(--t); font-weight: 500; }
+.err { margin: 10px 0 0; font-size: 14px; color: rgb(var(--bad)); }
+.lnk { background: none; border: 0; padding: 0; color: var(--t); font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 3px; }
+.cb.ok { color: rgb(52 211 153); border-color: rgb(52 211 153 / .6); }
+.steps .tx .code { margin-top: 12px; }
+.steps .tx .btns .btn svg { width: 16px; height: 16px; }
+.dp-ans { padding: 0 16px 16px; color: var(--b); font-size: 14px; } .dp-ans p { padding: 0; } .dp-ans .steps li { padding: 12px 0; }
+.dp-list { list-style: disc; padding-left: 18px; margin: 0 0 6px; } .dp-list li { margin: 4px 0; }
 .dp-toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 99px; background: var(--t); color: var(--bg); font-size: 14px; box-shadow: 0 10px 30px rgb(0 0 0 / .35); }
-.dp-btn:focus-visible, .dp-plat:focus-visible, .dp-cp:focus-visible, .dp-link:focus-visible { outline: 2px solid rgb(var(--acc)); outline-offset: 2px; }
-@media (prefers-reduced-motion: no-preference) { .dp-view { animation: dpin .35s ease both; } @keyframes dpin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } } }
-@media (prefers-reduced-motion: reduce) { .dp-bar i, .dp-plat .ic, .dp-plat .go { transition: none; } }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TurboFex | Deploy your bot</title>
-<meta name="description" content="Deploy TurboFex with one file: add your session ID, download index.js and start it on your host, or follow step-by-step guides for Termux, a VPS, Docker, a panel, Render, Koyeb or a computer.">
+<meta name="description" content="Deploy TurboFex: pick your host, add your session ID and get the exact file or commands to start your bot on Termux, a VPS, Docker, a hosting panel, Render, Koyeb or a computer.">
 <meta name="theme-color" content="#050506">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -14,21 +14,23 @@
 <script src="/tf2-load.js"></script>
 <link rel="stylesheet" href="/tf2.css">
 <link rel="stylesheet" href="/tf2-icons.css">
+<link rel="stylesheet" href="/tf2-install.css">
 <link rel="stylesheet" href="/tf2-deploy.css">
 </head>
 <body>
 <!--tfx:head2-->
-<main id="main" class="dp">
+<main id="main">
 <section class="wrap ph"><div class="col">
   <p class="eyebrow">Deploy</p>
   <h1 class="page">Deploy your bot</h1>
-  <p class="lead">Add your session ID and get one file that installs and starts TurboFex.</p>
+  <p class="lead">Pick where it runs, add your session ID, and get the one file or command it needs.</p>
 </div></section>
-<section class="wrap"><div class="col" id="app" aria-live="polite">
-  <noscript><p>JavaScript is needed to prepare your files. The <a href="/install">Install page</a> has the same steps without it, and you can still <a href="/download/TurboFex-hosting.zip">download the hosting ZIP</a>.</p></noscript>
+<section class="wrap sec"><div class="col" id="app" aria-live="polite">
+  <noscript><p class="sub">JavaScript is needed to make your files. The <a href="/install">Install page</a> has the same steps without it.</p></noscript>
 </div></section>
 </main>
 <div class="dp-toast" id="dp-toast" role="status" aria-live="polite" hidden></div>
+<script src="/zip-lite.js"></script>
 <script src="/deploy-data.js"></script>
 <script src="/deploy.js"></script>
 <script src="/tf2.js"></script>

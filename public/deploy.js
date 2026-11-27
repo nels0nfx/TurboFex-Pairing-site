@@ -1,17 +1,17 @@
-/* Deploy Centre v2: a five step wizard (Where, Prepare, Session, Files, Start). Public: nothing needs a pairing to look around.
-   Files and commands are generated HERE, in the browser, by deploy-data.js. The session ID:
+/* Deploy page. Built from the site's own components (tabs, step panels, code blocks, hints). Pick a host; on every host that runs on index.js
+   the session ID comes FIRST (auto-filled when the person just paired, otherwise a box that verifies it) and the page then makes exactly the
+   file or commands that host needs. The session ID:
    - is held only in this script's memory (never in the address, storage, a request to a host, analytics or a log);
-   - is asked for only at the Session step, and generating or downloading never uses it up (only the bot starting does);
-   - is cleared on demand, when it expires, when the bot has collected it, and when the page is closed.
-   The only server calls that mention an ID are the pairing page's own job lookup and POST /api/deploy/check, which answers valid / seconds left. */
+   - is checked with POST /api/deploy/check (valid + seconds left); making or downloading a file does not use it up, only the bot starting does;
+   - is wiped on Clear, on expiry, once the bot has collected it, and when the page is closed. */
 (function () {
   'use strict';
   var D = window.TFXDeploy, JOBKEY = 'tfx-job', KEY = 'tfx-deploy', app = document.getElementById('app');
-    var S = { view: 'where', p: '', opts: {}, tz: '', prefix: '', tzRaw: '', prefixRaw: '', gotFiles: false, installed: null, manual: false };
-  var sid = '', src = '', expAt = 0, total = 300, collected = '', expired = false, pairing = null, info = null, msg = '', msgBad = false, busy = false;
-  var tickT = 0, syncT = 0, reported = {}, fileMsg = '', fileBad = false;
-  var EXPIRED_MSG = 'Your session ID expired and was wiped from this page. Pair again for a new one. Your preparation is still done.';
-  function pairLeft() { return pairing ? Math.max(0, Math.round(pairing.secs - (Date.now() - pairing.at) / 1000)) : 0; }
+  var ORDER = ['termux', 'vps', 'docker', 'panel', 'render', 'koyeb', 'webhost', 'desktop'];
+  var S = { p: 'termux', installed: false };
+  var sid = '', src = '', expAt = 0, total = 300, collected = '', expired = false, pairing = null, info = null, msg = '', msgBad = false, busy = false, fileMsg = '', fileBad = false;
+  var tickT = 0, syncT = 0, reported = {};
+  var EXPIRED_MSG = 'Your session ID expired and was wiped from this page. Pair again for a new one.';
 
   // ---------- tiny helpers ----------
   function el(tag, attrs, kids) {
@@ -23,13 +23,13 @@
   function icon(id) { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); var u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '#' + id); s.appendChild(u); return s; }
   function toast(m) { var t = document.getElementById('dp-toast'); if (!t) return; t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2200); }
   function origin() { return location.origin || (location.protocol + '//' + location.host); }
-  function ctx() { return { origin: origin(), opts: Object.assign({}, S.opts, { tz: S.tz || '', prefix: S.prefix || '' }) }; }
   function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
   function secsLeft() { return Math.max(0, Math.round((expAt - Date.now()) / 1000)); }
   function mask(text) { return sid ? String(text).split(sid).join(D.MASK) : String(text); }
-  // only the wizard choices are saved (never the session ID)
-  function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ p: S.p, opts: S.opts, tz: S.tz, prefix: S.prefix, tzRaw: S.tzRaw, prefixRaw: S.prefixRaw, gotFiles: S.gotFiles, installed: S.installed, manual: S.manual })); } catch (e) { /* storage may be off */ } }
-  function restore() { try { var j = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (j && D.byId[j.p]) { S.p = j.p; S.opts = j.opts || {}; S.tz = D.validZone(j.tz) ? j.tz : ''; S.prefix = D.validPrefix(j.prefix) ? j.prefix : ''; S.tzRaw = j.tzRaw || S.tz; S.prefixRaw = j.prefixRaw || S.prefix; S.gotFiles = !!j.gotFiles; S.installed = typeof j.installed === 'boolean' ? j.installed : null; S.manual = !!j.manual; S.view = 'host'; } } catch (e) { /* none */ } }
+  function pairLeft() { return pairing ? Math.max(0, Math.round(pairing.secs - (Date.now() - pairing.at) / 1000)) : 0; }
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify({ p: S.p, installed: S.installed })); } catch (e) { /* storage may be off */ } }   // the host only: never the session ID
+  function restore() { try { var j = JSON.parse(sessionStorage.getItem(KEY) || 'null'); if (j && D.byId[j.p]) { S.p = j.p; S.installed = !!j.installed; } } catch (e) { /* none */ } }
+  function report(id) { if (reported[id]) return; reported[id] = 1; try { fetch('/api/deploy/choose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: id }) }).catch(function () {}); } catch (e) { /* ignore */ } }
 
   // ---------- copy / download ----------
   function copyText(text, btn, label) {
@@ -37,40 +37,31 @@
     function legacy() { try { var ta = el('textarea', { 'aria-hidden': 'true' }); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); document.body.removeChild(ta); done(ok); } catch (e) { done(false); } }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, legacy); else legacy();
   }
-  function copyBtn(getText, label) { var l = label || 'Copy', b = el('button', { type: 'button', class: 'dp-cp' }, [icon('i-copy'), document.createTextNode(l)]); b.addEventListener('click', function () { copyText(getText(), b, l); }); return b; }
-  function download(file, btn) {
-    try { var blob = new Blob([file.text], { type: file.mime }), url = URL.createObjectURL(blob), a = el('a', { href: url, download: file.name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 1500); toast('Downloaded ' + file.name); }
+  function copyBtn(getText, label) { var l = label || 'Copy', b = el('button', { type: 'button', class: 'cb' }, [icon('i-copy'), el('span', { text: l })]); b.addEventListener('click', function () { copyText(getText(), b, l); }); return b; }
+  function download(file) {
+    try { var blob = new Blob([file.data || file.text], { type: file.mime }), url = URL.createObjectURL(blob), a = el('a', { href: url, download: file.name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 1500); toast('Downloaded ' + file.name); }
     catch (e) { toast('Download failed. Use Copy instead.'); }
   }
-  function term(c, real) {
-    var pre = el('pre', {}, c.lines.map(function (l) { return el('span', { text: (real ? mask(l) : l) + '\n' }); }));
-    return el('div', { class: 'dp-term' }, [el('div', { class: 'bar' }, [el('span', { text: c.label }), copyBtn(function () { return c.lines.join('\n'); })]), pre, c.note ? el('p', { class: 'dp-note', style: 'padding:0 14px 10px' , text: c.note }) : null]);
+  function code(c) {   // the Install page's code block, with the session ID hidden on screen (Copy still has it)
+    var pre = el('pre', {}, c.lines.map(function (l) { return el('span', { class: 'ln', text: mask(l) + '\n' }); }));
+    return el('div', { class: 'code' }, [el('div', { class: 'bar2' }, [el('span', { text: c.label }), copyBtn(function () { return c.lines.join('\n'); })]), pre, c.note ? el('p', { class: 'cap', text: c.note }) : null]);
   }
-  function vars(rows, real) {
-    var box = el('div', { class: 'dp-vars' });
-    rows.forEach(function (kv) { box.appendChild(el('div', {}, [el('span', { class: 'k', text: kv[0] }), el('span', { class: 'v', text: real ? mask(kv[1]) : kv[1] }), copyBtn(function () { return kv[1]; })])); });
-    return box;
+  function varRows(rows) {
+    var pre = el('pre', { class: 'plain' }, rows.map(function (kv) { return el('span', { class: 'ln', text: kv[0] + '=' + mask(kv[1]) + '\n' }); }));
+    return el('div', { class: 'code' }, [el('div', { class: 'bar2' }, [el('span', { text: 'Variables' }), copyBtn(function () { return rows.map(function (kv) { return kv[0] + '=' + kv[1]; }).join('\n'); }, 'Copy all')]), pre]);
   }
-  function fileRow(f, real) {
-    var b = el('button', { type: 'button', class: 'dp-btn q' }, [icon('i-arrow'), document.createTextNode('Download')]);
-    b.addEventListener('click', function () { download(f); });
-    return el('div', { class: 'dp-file' }, [el('b', { text: f.name }), copyBtn(function () { return f.text; }, 'Copy file'), b]);
-  }
-  function zipRow() {
-    var meta = info ? 'Version ' + info.version + ' · ' + (info.size / 1048576).toFixed(2) + ' MB' : 'Direct download from this site';
-    var a = el('a', { class: 'dp-btn', href: D.ZIP_PATH, download: '' }, [icon('i-arrow'), document.createTextNode('Download hosting ZIP')]);
-    var kids = [el('div', { class: 'dp-row' }, [a]), el('p', { class: 'dp-note', text: meta + '. This is the file your host needs; it downloads straight from TurboFex.' })];
-    if (info) kids.push(el('details', { class: 'dp-acc' }, [el('summary', { text: 'Check the download (optional)' }), el('div', {}, ['SHA-256: ' + info.sha256 + '. Compare with: sha256sum TurboFex-hosting.zip'])]));
-    return el('div', {}, kids);
+  function fileBox(f) {
+    var b = el('button', { type: 'button', class: 'btn p' }, [icon('i-arrow'), document.createTextNode('Download ' + f.name)]); b.addEventListener('click', function () { download({ name: f.name, text: f.text, mime: 'text/plain;charset=utf-8' }); });
+    return el('div', { class: 'btns' }, [b]);
   }
 
-  // ---------- session handling ----------
-  function setSid(id, from, secs) { sid = id; src = from; total = Math.max(secs, 1); expAt = Date.now() + secs * 1000; collected = ''; expired = false; msg = ''; schedule(); }
-  function clearSid(why) { sid = ''; src = ''; expAt = 0; clearTimeout(syncT); clearInterval(tickT); if (why === 'expired') expired = true; if (why === 'manual') { msg = 'Cleared from this page.'; msgBad = false; } }
+  // ---------- session ID (the server is the judge) ----------
+  function setSid(id, from, secs) { sid = id; src = from; total = Math.max(secs, 1); expAt = Date.now() + secs * 1000; collected = ''; expired = false; msg = ''; fileMsg = ''; schedule(); }
+  function clearSid(why) { sid = ''; src = ''; expAt = 0; clearTimeout(syncT); clearInterval(tickT); if (why === 'expired') expired = true; if (why === 'manual') { msg = ''; } }
   function schedule() { clearInterval(tickT); clearTimeout(syncT); if (!sid) return; tickT = setInterval(tick, 1000); syncT = setTimeout(resync, 20000); }
   function tick() {
-    var left = secsLeft(), t = document.getElementById('dp-time'), b = document.getElementById('dp-barfill'), w = document.getElementById('dp-timewrap');
-    if (t) t.textContent = mmss(left); if (b) b.style.width = Math.round(left / total * 100) + '%'; if (w) w.className = 'dp-time' + (left <= 60 ? ' low' : '');
+    var left = secsLeft(), t = document.getElementById('dp-time');
+    if (t) t.textContent = mmss(left);
     if (left <= 0) { clearSid('expired'); render(); }
   }
   function readJobId() { try { var j = JSON.parse(sessionStorage.getItem(JOBKEY) || 'null'); return j && typeof j.job === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(j.job) ? j.job : ''; } catch (e) { return ''; } }
@@ -78,16 +69,16 @@
     var id = readJobId(); if (!id) return Promise.resolve(null);
     return fetch('/api/job/' + encodeURIComponent(id), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
-  function resync() {   // is my ID still alive, or did the bot already collect it?
-    if (!sid) return;
-    var p = src === 'pairing' ? lookJob().then(function (j) { if (!j) return; if (j.used) return gone('confirmed'); if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0) { expAt = Date.now() + j.idSecondsLeft * 1000; } }) :
-      checkId(sid).then(function (r) { if (r && r.valid === false && secsLeft() > 5) gone('likely'); else if (r && r.valid) expAt = Date.now() + r.secondsLeft * 1000; });
-    p.then(function () { if (sid) syncT = setTimeout(resync, 20000); });
-  }
-  function gone(kind) { collected = kind; clearSid(); render(); }   // the ID is no use any more: wipe it
   function checkId(id) {
     return fetch('/api/deploy/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: id }) }).then(function (r) { if (r.status === 429) return { limited: true }; return r.ok ? r.json() : null; }).catch(function () { return null; });
   }
+  function resync() {   // still alive, or did the bot already collect it?
+    if (!sid) return;
+    var p = src === 'pairing' ? lookJob().then(function (j) { if (!j) return; if (j.used) return gone('confirmed'); if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0) expAt = Date.now() + j.idSecondsLeft * 1000; }) :
+      checkId(sid).then(function (r) { if (r && r.valid === false && secsLeft() > 5) gone('likely'); else if (r && r.valid) expAt = Date.now() + r.secondsLeft * 1000; });
+    p.then(function () { if (sid) syncT = setTimeout(resync, 20000); });
+  }
+  function gone(kind) { collected = kind; clearSid(); render(); }   // no use any more: wipe it
   function usePasted() {
     var inp = document.getElementById('dp-id'), norm = D.normalizeId(inp && inp.value);
     if (!norm) { msg = 'That does not look like a session ID. It is TFX- followed by 12 letters and numbers.'; msgBad = true; return render(); }
@@ -97,166 +88,110 @@
       if (!r) { setSid(norm, 'pasted', 300); msg = 'Could not check it just now. Treat the countdown as a guess and move fast.'; msgBad = true; }   // never claim a validity we could not confirm
       else if (r.limited) { msg = 'Too many checks. Wait a minute and try again.'; msgBad = true; }
       else if (!r.valid) { msg = 'This ID is not valid any more: it expired, was already used by a bot, or did not come from this site. Pair again to get a new one.'; msgBad = true; }
-      else { setSid(norm, 'pasted', r.secondsLeft); }
+      else setSid(norm, 'pasted', r.secondsLeft);
       render();
     });
   }
   function usePairing() { if (!pairing) return; var left = pairLeft(); if (left <= 0) { pairing = null; return render(); } setSid(pairing.id, 'pairing', left); pairing = null; render(); }
+  function collectedNote() {
+    return el('div', { class: 'hint warn', text: collected === 'confirmed' ? 'Your bot collected its login (TurboFex confirmed the ID was used). The ID is wiped from this page. That does not yet prove WhatsApp connected: check the log for "is online as".' : 'The ID stopped being valid before its time ran out, which usually means your bot collected it. TurboFex cannot tell this from other causes. The ID is wiped from this page. Check your bot log for "is online as".' });
+  }
 
-  // ---------- the smart part: what THIS person needs, given their host and whether they have a session ID ----------
-  function report(id) { if (reported[id]) return; reported[id] = 1; try { fetch('/api/deploy/choose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: id }) }).catch(function () {}); } catch (e) { /* ignore */ } }
-  function getLauncher() {   // the ID is put into the file HERE, in this browser: the server only ever serves the file with its placeholder
+  // ---------- the launcher / Docker files are made HERE, in the browser ----------
+  function fetchTemplate() { return fetch(D.LAUNCHER_PATH, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('The launcher could not be loaded (' + r.status + ').'); return r.text(); }); }
+  function makeFile(kind) {
     fileMsg = ''; if (!sid) return;
-    fetch(D.LAUNCHER_PATH, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('The launcher could not be loaded (' + r.status + ').'); return r.text(); })
-      .then(function (t) { download({ name: 'index.js', text: D.buildLauncher(t, sid), mime: 'text/javascript;charset=utf-8' }); fileBad = false; fileMsg = 'Downloaded. Put it on your host and start it now.'; S.gotFiles = true; save(); report('launcher'); render(); })
-      .catch(function (e) { fileBad = true; fileMsg = (e && e.message) || 'Could not build the file.'; render(); });
+    fetchTemplate().then(function (t) {
+      if (kind === 'docker-zip') { download({ name: 'turbofex-docker.zip', data: window.TFXZip.build(D.dockerFiles(t, sid)), mime: 'application/zip' }); report('docker'); }
+      else { download({ name: 'index.js', text: D.buildLauncher(t, sid), mime: 'text/javascript;charset=utf-8' }); report('launcher'); }
+      fileBad = false; fileMsg = 'Downloaded. Do the next steps now.'; render();
+    }).catch(function (e) { fileBad = true; fileMsg = (e && e.message) || 'Could not build the file.'; render(); });
   }
-  function currentInstalled(p) { return S.installed === null ? !!S.gotFiles : S.installed; }   // came back after getting the files? then it is probably installed
-  function banner() {   // shown whenever a session ID is on this page
-    if (!sid) return null;
-    var left = secsLeft(), clr = el('button', { type: 'button', class: 'dp-link', text: 'Clear my session ID' }); clr.addEventListener('click', function () { clearSid('manual'); render(); });
-    return el('div', { class: 'dp-sec' }, [el('h3', { text: 'Your session ID is ready' }), el('div', { class: 'dp-time' + (left <= 60 ? ' low' : ''), id: 'dp-timewrap' }, [el('b', { id: 'dp-time', text: mmss(left) }), el('span', { text: 'left' })]), el('div', { class: 'dp-bar' }, [el('i', { id: 'dp-barfill', style: 'width:' + Math.round(left / total * 100) + '%' })]),
-      el('p', { class: 'dp-note', text: (src === 'pairing' ? 'From your pairing in this tab. ' : 'Verified. ') + 'Making a file or command does not use it up. It is used when your bot starts. It stays on this page only.' }), msg ? el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }) : null, clr]);
-  }
-  function statusNotes(v) {
-    if (expired) v.appendChild(el('div', { class: 'dp-warn', text: EXPIRED_MSG }));
-    if (collected) { v.appendChild(collectedNote()); var again = el('button', { type: 'button', class: 'dp-link', text: 'Deploy again with a new session ID' }); again.addEventListener('click', function () { collected = ''; expired = false; render(); }); v.appendChild(again); }
-  }
-  function go(view) { S.view = view; save(); render(true); }
 
   // ---------- views ----------
-  function viewWhere() {
-    var v = el('div', { class: 'dp-view' }), list = el('ul', { class: 'dp-list' });
-    v.appendChild(el('h2', { text: 'Where will TurboFex run?' }));
-    v.appendChild(el('p', { text: sid ? 'Your session ID is ready. Pick your host and you get the one step you need now.' : 'Pick your host. You get exactly what it needs, nothing more.' }));
-    statusNotes(v); var b = banner(); if (b) v.appendChild(b);
-    D.platforms.forEach(function (p) {
-      var btn = el('button', { type: 'button', class: 'dp-plat', 'data-p': p.id }, [el('span', { class: 'ic' }, [icon(p.icon)]), el('span', { class: 'tx' }, [el('b', { text: p.name }), el('small', { text: p.tag + ' · ' + p.gives })]), icon('i-arrow')]);
-      btn.lastChild.setAttribute('class', 'go'); btn.addEventListener('click', function () { choose(p.id); }); list.appendChild(el('li', {}, [btn]));
+  function stepsList(steps) {
+    var ol = el('ol', { class: 'panel steps mt' });
+    steps.forEach(function (s, i) {
+      var tx = el('div', { class: 'tx' }, [el('b', { text: s.title }), s.text ? el('p', { text: s.text }) : null]);
+      if (s.action === 'launcher-id' || s.action === 'docker-zip') { var b = el('button', { type: 'button', class: 'btn p' }, [icon('i-arrow'), document.createTextNode(s.action === 'docker-zip' ? 'Download turbofex-docker.zip' : 'Download index.js')]); b.addEventListener('click', function () { makeFile(s.action); }); tx.appendChild(el('div', { class: 'btns' }, [b])); if (fileMsg) tx.appendChild(el('p', { class: fileBad ? 'err' : 'hint', text: fileMsg })); }
+      if (s.action === 'launcher-noid') { var a = el('a', { class: 'btn p', href: D.LAUNCHER_PATH, download: '' }, [icon('i-arrow'), document.createTextNode('Download index.js')]); a.addEventListener('click', function () { report('launcher-first'); }); tx.appendChild(el('div', { class: 'btns' }, [a])); }
+      if (s.action === 'bot-zip') tx.appendChild(el('div', { class: 'btns' }, [el('a', { class: 'btn p', href: D.ZIP_PATH, download: '' }, [icon('i-arrow'), document.createTextNode('Download the bot files')])]));
+      if (s.action === 'github') tx.appendChild(el('div', { class: 'btns' }, [el('a', { class: 'btn p', href: D.GITHUB_NEW, target: '_blank', rel: 'noopener noreferrer' }, [icon('i-arrow'), document.createTextNode('Open GitHub')])]));
+      (s.cmds || []).forEach(function (c) { tx.appendChild(code(c)); });
+      if (s.file) tx.appendChild(fileBox(s.file));
+      if (s.vars) tx.appendChild(varRows(s.vars));
+      if (s.action === 'id' && !sid) tx.appendChild(idBox(true));
+      ol.appendChild(el('li', {}, [el('span', { class: 'num', text: String(i + 1) }), tx]));
     });
-    v.appendChild(list);
-    if (!sid && !collected) { var have = el('button', { type: 'button', class: 'dp-link', text: 'I already have a session ID' }); have.addEventListener('click', function () { go('id'); }); v.appendChild(el('div', {}, [have])); }
-    return v;
+    return ol;
   }
-  function choose(id) { if (S.p !== id) { S.p = id; S.opts = D.defaults(D.byId[id]); S.gotFiles = false; S.installed = null; S.manual = false; } report(id); go('host'); }
-
-  function viewId() {
-    var v = el('div', { class: 'dp-view' });
-    v.appendChild(el('h2', { text: 'Your session ID' }));
-    v.appendChild(el('p', { text: 'Paste it and we check it is still alive. It works once and expires 5 minutes after pairing.' }));
-    statusNotes(v);
-    if (sid) { var b = banner(); v.appendChild(b); var nx = el('button', { type: 'button', class: 'dp-btn p' }, [S.p ? 'Continue' : 'Choose my host']); nx.addEventListener('click', function () { go(S.p ? 'host' : 'where'); }); v.appendChild(el('div', { class: 'dp-row' }, [nx])); return v; }
-    if (pairing) { var u = el('button', { type: 'button', class: 'dp-btn p' }, ['Use my session ID (' + mmss(pairLeft()) + ' left)']); u.addEventListener('click', usePairing); v.appendChild(el('div', { class: 'dp-row' }, [u])); }
-    var inp = el('input', { type: 'text', id: 'dp-id', class: 'mono', placeholder: 'TFX-XXXX-XXXX-XXXX', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'characters', autocorrect: 'off', 'aria-label': 'Session ID' });
+  function idBox(inline) {
+    var inp = el('input', { type: 'text', id: 'dp-id', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'characters', autocorrect: 'off', placeholder: 'TFX-XXXX-XXXX-XXXX', 'aria-label': 'Session ID' });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') usePasted(); });
-    var chk = el('button', { type: 'button', class: 'dp-btn p' }, [busy ? 'Verifying…' : 'Verify session ID']); chk.disabled = busy; chk.addEventListener('click', usePasted);
-    v.appendChild(el('div', { class: 'dp-sec' }, [el('label', { class: 'dp-field' }, [el('span', { text: 'Session ID' }), inp]), el('div', { class: 'dp-row' }, [chk]), msg ? el('p', { class: msgBad ? 'dp-err' : 'dp-note', text: msg }) : null,
-      el('p', { class: 'dp-note' }, ['No session ID yet? ', el('a', { href: '/pair', text: 'Pair WhatsApp' }), '. It stays in this page only: not saved, not in the address, not sent to any host. Verifying only asks TurboFex whether it is still alive.'])]));
-    var back = el('button', { type: 'button', class: 'dp-link', text: 'Back' }); back.addEventListener('click', function () { go(S.p ? 'host' : 'where'); }); v.appendChild(el('div', {}, [back]));
+    var go = el('button', { type: 'button', class: 'btn p' }, [busy ? 'Checking…' : 'Verify']); go.disabled = busy; go.addEventListener('click', usePasted);
+    var kids = [el('label', { for: 'dp-id', text: 'Session ID' }), el('div', { class: 'fld' }, [inp]), el('div', { class: 'btns' }, [go])];
+    if (pairing) { var u = el('button', { type: 'button', class: 'btn' }, ['Use my session ID (' + mmss(pairLeft()) + ' left)']); u.addEventListener('click', usePairing); kids.push(el('div', { class: 'btns' }, [u])); }
+    if (msg) kids.push(el('p', { class: msgBad ? 'err' : 'hint', text: msg }));
+    kids.push(el('p', { class: 'hint' }, ['No session ID yet? ', el('a', { href: '/pair', text: 'Pair WhatsApp' }), '. It works once and expires 5 minutes after pairing. It stays on this page only: not saved, not in the address, not sent to your host. Verifying only asks TurboFex whether it is still alive.']));
+    return el('div', { class: inline ? 'dp-inner' : 'panel mt dp-inner' }, kids);
+  }
+  function idLine(h) {
+    var left = secsLeft(), clr = el('button', { type: 'button', class: 'lnk', text: 'Clear' }); clr.addEventListener('click', function () { clearSid('manual'); render(); });
+    var kids = [el('p', { class: 'hint ok' }, ['Session ID verified · ', el('b', { id: 'dp-time', text: mmss(left) }), ' left · ', clr])];
+    if (msg) kids.push(el('p', { class: msgBad ? 'err' : 'hint', text: msg }));
+    if (h.kind !== 'github') kids.push(el('p', { class: 'hint warn' }, [el('b', { text: 'Start right away. ' }), 'Installing takes a few minutes and your ID is saved at the end. It is used when your bot starts, not when you download.']));
+    return el('div', {}, kids);
+  }
+  function plusIcon() { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.8'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('aria-hidden', 'true'); p.setAttribute('d', 'M12 5v14M5 12h14'); s.appendChild(p); return s; }
+  function faq(h) {
+    var plus = plusIcon;
+    var rows = [el('details', {}, [el('summary', {}, ['How to tell it worked', plus()]), el('div', { class: 'dp-ans' }, [el('ul', { class: 'dp-list' }, h.verify.map(function (t) { return el('li', { text: t }); })), el('p', { class: 'hint', text: 'TurboFex can tell that your bot collected its ID. Only you can confirm that WhatsApp connected.' })])])];
+    h.trouble.forEach(function (t) { rows.push(el('details', {}, [el('summary', {}, [t.q, plus()]), el('p', { text: t.a })])); });
+    return el('div', { class: 'panel mt' }, rows);
+  }
+  function slowHost(h) {
+    var first = D.plan(h.id, { origin: origin() }, '', { first: true }); if (!first || !first.steps) return null;
+    return el('div', { class: 'panel mt' }, [el('details', {}, [el('summary', {}, ['My host is slow to install', plusIcon()]), el('div', { class: 'dp-ans' }, [el('p', { text: 'A session ID lives only 5 minutes. If your host takes longer, install first without an ID. It will say it has no session ID yet. Then come back, press "TurboFex is already installed" and add your ID in one short step.' }), stepsList(first.steps)])])]);
+  }
+  function view() {
+    var h = D.byId[S.p], v = el('div', {});
+    var tabs = el('div', { class: 'tabs mt', role: 'tablist', 'aria-label': 'Where to run it' });
+    ORDER.forEach(function (id) { var b = el('button', { type: 'button', role: 'tab', 'data-p': id, 'aria-selected': id === S.p ? 'true' : 'false', text: D.byId[id].name }); b.addEventListener('click', function () { if (S.p !== id) { S.p = id; S.installed = false; fileMsg = ''; save(); report(id); render(); } }); tabs.appendChild(b); });
+    v.appendChild(tabs);
+    v.appendChild(el('p', { class: 'sub mt', text: h.blurb }));
+    if (h.warn) v.appendChild(el('div', { class: 'warnbox mt' }, [icon('i-alert'), el('div', {}, [el('b', { text: 'Check your plan' }), el('p', { text: h.warn })])]));
+    if (expired) v.appendChild(el('div', { class: 'hint warn', text: EXPIRED_MSG }));
+    if (collected) { v.appendChild(collectedNote()); var again = el('button', { type: 'button', class: 'lnk', text: 'Deploy again with a new session ID' }); again.addEventListener('click', function () { collected = ''; expired = false; render(); }); v.appendChild(el('p', { class: 'hint' }, [again])); }
+    if (h.kind === 'github') {
+      v.appendChild(stepsList(D.plan(h.id, { origin: origin() }, sid || '', {}).steps)); if (sid) v.appendChild(idLine(h));
+    } else if (!sid) {
+      v.appendChild(idBox(false));
+    } else {
+      v.appendChild(idLine(h));
+      if (h.kind === 'file') {   // one question, only when it changes what they get
+        var tog = el('button', { type: 'button', class: 'lnk', text: S.installed ? 'Not installed yet? Install with this ID' : 'TurboFex is already installed on this host' }); tog.addEventListener('click', function () { S.installed = !S.installed; save(); render(); }); v.appendChild(el('p', { class: 'hint' }, [tog]));
+      }
+      v.appendChild(stepsList(D.plan(h.id, { origin: origin() }, sid, { installed: S.installed }).steps));
+      if (h.kind === 'file' && !S.installed) { var sh = slowHost(h); if (sh) v.appendChild(sh); }
+    }
+    v.appendChild(faq(h));
     return v;
   }
-
-  function artifact(a) {
-    if (a.type === 'launcher-noid') {
-      var l = el('a', { class: 'dp-btn p', href: D.LAUNCHER_PATH, download: '' }, [icon('i-arrow'), document.createTextNode(a.label || 'Download index.js')]);
-      l.addEventListener('click', function () { S.gotFiles = true; save(); report('launcher-first'); });
-      return el('div', {}, [el('div', { class: 'dp-row' }, [l]), el('p', { class: 'dp-note', text: a.note || 'This file has no session ID in it.' })]);
-    }
-    if (a.type === 'launcher-id') {
-      var b = el('button', { type: 'button', class: 'dp-btn p' }, [icon('i-arrow'), document.createTextNode(a.label || 'Download index.js')]); b.addEventListener('click', getLauncher);
-      return el('div', {}, [el('div', { class: 'dp-row' }, [b]), fileMsg ? el('p', { class: fileBad ? 'dp-err' : 'dp-note', text: fileMsg }) : el('p', { class: 'dp-note', text: 'Your session ID is put in the file here in your browser. Keep it private and delete it from shared devices after use.' })]);
-    }
-    if (a.type === 'zip') return zipRow();
-    if (a.type === 'file') return el('div', {}, [fileRow(a.file), a.label ? el('p', { class: 'dp-note', text: a.label }) : null]);
-    return null;
-  }
-  function renderPlan(r, real) {
-    var out = el('div', {});
-    if (r.intro) out.appendChild(el('p', { text: r.intro }));
-    if (r.warn) out.appendChild(el('div', { class: 'dp-warn', text: r.warn }));
-    (r.links || []).forEach(function (l) { out.appendChild(el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn p', href: l.href, target: '_blank', rel: 'noopener noreferrer' }, [icon('i-arrow'), document.createTextNode(l.label)])])); });
-    (r.artifacts || []).forEach(function (a) { var n = artifact(a); if (n) out.appendChild(el('div', { class: 'dp-sec' }, [n])); });
-    if (r.steps && r.steps.length) { var ol = el('ol', { class: 'dp-ol' }); r.steps.forEach(function (s) { ol.appendChild(el('li', { text: s.t })); }); out.appendChild(el('div', { class: 'dp-sec' }, [ol])); }
-    var body = el('div', { class: 'dp-sec' }), any = false;
-    (r.cmds || []).forEach(function (c) { body.appendChild(term(c, real)); any = true; });
-    (r.files || []).forEach(function (f) { body.appendChild(fileRow(f, real)); any = true; });
-    if (r.filesNote) body.appendChild(el('p', { class: 'dp-note', text: r.filesNote }));
-    if (r.alt) body.appendChild(el('p', { class: 'dp-note', text: r.alt }));
-    if (r.vars && r.vars.length) { body.appendChild(vars(r.vars, real)); any = true; }
-    (r.after || []).forEach(function (c) { body.appendChild(term(c, false)); any = true; });
-    if (r.check) { body.appendChild(el('h3', { style: 'margin-top:18px', text: 'Check' })); body.appendChild(term(r.check, false)); any = true; }
-    if (any) out.appendChild(body);
-    (r.start || []).forEach(function (t) { out.appendChild(el('p', { class: 'dp-note', text: t })); });
-    return out;
-  }
-
-  function optionsBox(p, onChange) {
-    var box = el('div', {});
-    (p.options || []).forEach(function (o) {
-      if (o.type === 'bool') { var cb = el('input', { type: 'checkbox' }); cb.checked = S.opts[o.id] !== false; cb.addEventListener('change', function () { S.opts[o.id] = cb.checked; save(); onChange(); }); box.appendChild(el('label', { class: 'dp-check' }, [cb, o.label])); }
-      else { var sel = el('select'); o.choices.forEach(function (c) { var op = el('option', { value: c[0], text: c[1] }); if ((S.opts[o.id] || o.def) === c[0]) op.selected = true; sel.appendChild(op); }); sel.addEventListener('change', function () { S.opts[o.id] = sel.value; save(); onChange(); }); box.appendChild(el('label', { class: 'dp-field' }, [el('span', { text: o.label }), sel])); }
-    });
-    var tz = el('input', { type: 'text', placeholder: 'Africa/Lagos', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', value: S.tzRaw }), pf = el('input', { type: 'text', placeholder: '.', autocomplete: 'off', spellcheck: 'false', maxlength: '3', value: S.prefixRaw }), tzErr = el('p', { class: 'dp-err', hidden: 'hidden' }), pfErr = el('p', { class: 'dp-err', hidden: 'hidden' });
-    function upd() {
-      S.tzRaw = tz.value.trim(); S.prefixRaw = pf.value; var tzOk = !S.tzRaw || D.validZone(S.tzRaw), pfOk = !S.prefixRaw || D.validPrefix(S.prefixRaw);
-      S.tz = tzOk ? S.tzRaw : ''; S.prefix = pfOk ? S.prefixRaw : ''; tzErr.hidden = tzOk; tzErr.textContent = tzOk ? '' : 'Use a time zone name like Africa/Lagos or Europe/London.'; pfErr.hidden = pfOk; pfErr.textContent = pfOk ? '' : 'Use 1 to 3 characters with no spaces or slashes.'; save(); onChange();
-    }
-    tz.addEventListener('input', upd); pf.addEventListener('input', upd);
-    box.appendChild(el('details', { class: 'dp-acc' }, [el('summary', { text: 'Optional settings (time zone, command prefix)' }), el('div', {}, [el('label', { class: 'dp-field' }, [el('span', { text: 'Time zone (the bot defaults to Africa/Johannesburg)' }), tz, tzErr]), el('label', { class: 'dp-field' }, [el('span', { text: 'Command prefix (default is .)' }), pf, pfErr])])]));
-    return box;
-  }
-
-  function viewHost() {
-    var p = D.byId[S.p], v = el('div', { class: 'dp-view' }), out = el('div', { id: 'dp-plan' });
-    var chg = el('button', { type: 'button', class: 'dp-link', text: 'Change host' }); chg.addEventListener('click', function () { go('where'); });
-    v.appendChild(el('h2', { text: p.name })); v.appendChild(el('p', { text: p.blurb + ' You need: ' + p.gives.toLowerCase() + '.' })); v.appendChild(el('div', {}, [chg]));
-    statusNotes(v);
-    var b = banner(); if (b) v.appendChild(b);
-    if (p.warn && !sid) v.appendChild(el('div', { class: 'dp-warn', text: p.warn }));
-    var fresh = function () { drawPlan(out, p); };
-    var fileKind = p.kind === 'file';
-    if (sid && fileKind && !S.manual) {   // a file host with an ID: has TurboFex been installed here already?
-      var inst = currentInstalled(p), yes = el('button', { type: 'button', class: 'dp-btn q' + (inst ? ' p' : ''), text: 'It is already installed' }), no = el('button', { type: 'button', class: 'dp-btn q' + (!inst ? ' p' : ''), text: 'Not installed yet' });
-      yes.addEventListener('click', function () { S.installed = true; save(); render(); }); no.addEventListener('click', function () { S.installed = false; save(); render(); });
-      v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'Is TurboFex already installed on this host?' }), el('div', { class: 'dp-row' }, [no, yes])]));
-    }
-    v.appendChild(optionsBox(p, fresh));
-    drawPlan(out, p); v.appendChild(out);
-    if (fileKind) { var man = el('button', { type: 'button', class: 'dp-link', text: S.manual ? 'Back to the one-file way' : 'I want the full bot files (ZIP) instead' }); man.addEventListener('click', function () { S.manual = !S.manual; save(); render(); }); v.appendChild(el('div', {}, [man])); }
-    if (!sid) {
-      var next = el('div', { class: 'dp-sec' }, [el('h3', { text: 'Next' }), el('p', { text: 'When it is running, pair WhatsApp. You come back here and get one short last step: your session ID goes in for you.' }), el('div', { class: 'dp-row' }, [el('a', { class: 'dp-btn p', href: '/pair', text: 'Pair WhatsApp' })])]);
-      var have = el('button', { type: 'button', class: 'dp-link', text: 'I already have a session ID' }); have.addEventListener('click', function () { go('id'); }); next.appendChild(have); v.appendChild(next);
-    }
-    v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'How to tell it worked' }), el('ul', { class: 'dp-need' }, p.verify.map(function (t) { return el('li', { text: t }); })), el('p', { class: 'dp-note', text: 'TurboFex can tell that your bot collected its ID. Only you can confirm that WhatsApp connected.' })]));
-    v.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: 'If something is wrong' })].concat(p.trouble.map(function (t) { return el('details', { class: 'dp-acc' }, [el('summary', { text: t.q }), el('div', { text: t.a })]); }))));
-    return v;
-  }
-  function drawPlan(out, p) {
-    while (out.firstChild) out.removeChild(out.firstChild);
-    var r;
-    try {
-      if (S.manual) r = sid ? D.launch(S.p, ctx(), sid) : D.prepare(S.p, ctx());
-      else r = D.plan(S.p, ctx(), sid || '', sid ? currentInstalled(p) : false);
-    } catch (e) { out.appendChild(el('p', { class: 'dp-err', text: e.message })); return; }
-    out.appendChild(el('div', { class: 'dp-sec' }, [el('h3', { text: (S.manual ? 'Full bot files · ' : '') + (sid ? 'Do this now' : 'Do this first · no session ID needed') }), renderPlan(r, !!sid)]));
-  }
-
-  function render(focus) {
+  function render() {
+    var keep = window.scrollY, focused = document.activeElement && document.activeElement.id === 'dp-id';
     while (app.firstChild) app.removeChild(app.firstChild);
-    var view = S.view === 'id' ? viewId() : S.view === 'host' && S.p ? viewHost() : viewWhere();
-    app.appendChild(view);
-    if (focus) { var h = view.querySelector ? view.querySelector('h2') : null; if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } if (window.scrollTo) window.scrollTo(0, 0); }
+    app.appendChild(el('h2', { text: 'Where will it run?' }));
+    app.appendChild(view());
+    if (window.scrollTo && keep) window.scrollTo(0, keep);
   }
 
   window.addEventListener('pagehide', function () { sid = ''; });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && sid) resync(); });
-  restore();
-  render();
-  fetch('/api/hosting', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.sha256) { info = j; if (!sid) render(); } }).catch(function () {});
+  restore(); render();
   lookJob().then(function (j) {
     if (!j) return;
     if (j.state === 'linked' && j.sessionId && j.idSecondsLeft > 0 && !j.used && !j.expired) pairing = { id: String(j.sessionId), secs: j.idSecondsLeft, at: Date.now() };
-    // someone who just got their session ID: put it to use at once. No box to fill in, and they skip the "get your files" step.
+    // someone who just got their session ID: put it to use at once. No box to fill in.
     if (pairing && !sid && !collected) { usePairing(); return; }
     if (!sid) render();
   });
