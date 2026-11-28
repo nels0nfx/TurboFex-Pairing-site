@@ -258,7 +258,7 @@ const flat = (r) => JSON.stringify(r);
 test('plan(): ID-first hosts ask for the ID before anything; GitHub hosts set up first; the ZIP and GitHub appear only where they are needed', () => {
   assert.deepStrictEqual([...D.ids].sort(), [...HOSTS.file, ...HOSTS.docker, ...HOSTS.github].sort());
   for (const id of [...HOSTS.file, ...HOSTS.docker]) { const p = D.plan(id, ctx(), ''); assert.strictEqual(p.needsId, true, id); assert.deepStrictEqual(p.steps, [], id + ': nothing is given out before the ID'); }
-  for (const id of HOSTS.github) { const p = D.plan(id, ctx(), ''); assert.ok(p.steps.length >= 5, id); assert.ok(p.steps.some((s) => s.action === 'github') && p.steps.some((s) => s.action === 'bot-zip'), id + ': GitHub + the bot files'); assert.ok(p.steps.some((s) => s.action === 'id'), id + ': the ID comes last'); assert.ok(!flat(p).includes('K7M2')); }
+  for (const id of HOSTS.github) { const p = D.plan(id, ctx(), ''); assert.ok(p.steps.length >= 5, id); assert.ok(p.steps.some((s) => s.action === 'github') && p.steps.some((s) => s.action === 'bot-zip'), id + ': GitHub + the bot files'); assert.ok(p.steps.at(-1).action === 'id', id + ': the ID comes last'); assert.ok(!flat(p).includes('K7M2')); }
   for (const id of [...HOSTS.file, ...HOSTS.docker]) { const s = flat(D.plan(id, ctx(), REAL_ID, {})); assert.ok(!/bot-zip|"github"|TurboFex-hosting\.zip|github\.com\/new/.test(s), id + ' is not sent to GitHub and gets no bot ZIP'); }
   assert.ok(D.plan('docker', ctx(), REAL_ID).steps.some((s) => s.action === 'docker-zip'), 'Docker gets its three small files');
   for (const id of ['panel', 'desktop']) assert.ok(D.plan(id, ctx(), REAL_ID, {}).steps.some((s) => s.action === 'launcher-id'), id + ': the index.js file with the ID');
@@ -336,7 +336,7 @@ test('GitHub hosts: set-up steps first, GitHub and the bot files where they belo
   for (const id of ['render', 'koyeb', 'webhost']) {
     const b = fakeBrowser({ job: null, handler: SESSIONLESS() }); await wait(); const t = await hostText(b, id);
     assert.ok(b.all((n) => n.tag === 'a' && n.attrs.href === 'https://github.com/new').length === 1, id + ': GitHub'); assert.ok(b.all((n) => n.tag === 'a' && n.attrs.href === '/download/TurboFex-hosting.zip').length === 1, id + ': the bot files');
-    assert.match(t, /Last: add your session ID/); assert.ok(b.all((n) => n.id === 'dp-id').length === 1, id + ': ID box at the end'); assert.match(t, /Add these variables/);
+    assert.match(t, /Add your session ID/); assert.ok(b.all((n) => n.id === 'dp-id').length === 1, id + ': ID box at the end'); assert.match(t, /Add variables/);
   }
 });
 
@@ -359,11 +359,11 @@ test('someone who just paired: the ID is already in (no box), hidden on screen, 
 
 test('file hosts with no ZIP, no GitHub, no clutter; "already installed" changes what they get; "slow host" explains the no-ID route', async () => {
   const b = fakeBrowser({ job: 'job1234567', handler: LIVE_JOB(), hash: '#session' }); await wait(80);
-  for (const id of ['termux', 'vps', 'panel', 'desktop']) { const t = await hostText(b, id); assert.ok(!/\bZIP\b|GitHub/i.test(t), id + ' mentions no ZIP or GitHub'); assert.match(t, /Start right away/); assert.match(t, /My host is slow to install/); }
+  for (const id of ['termux', 'vps', 'panel', 'desktop']) { const t = await hostText(b, id); assert.ok(!/\bZIP\b|GitHub/i.test(t), id + ' mentions no ZIP or GitHub'); assert.match(t, /Run the steps now/); assert.match(t, /My host is slow to install/); }
   await hostText(b, 'vps'); assert.match(b.text(), /Install TurboFex with your session ID/);
-  b.btn('TurboFex is already installed on this host').click(); await wait(); assert.match(b.text(), /Add your session ID and restart/); assert.ok(!/Install TurboFex with your session ID/.test(b.text()));
+  b.btn('Already installed? Add the ID only.').click(); await wait(); assert.match(b.text(), /Add your session ID and restart/); assert.ok(!/Install TurboFex with your session ID/.test(b.text()));
   b.ctx.copied.length = 0; b.all((n) => n.className.includes('cb')).forEach((c) => c.click()); await wait(); assert.ok(b.ctx.copied.includes("cd ~/turbofex && printf 'SESSION_ID=%s\\n' '" + REAL_ID + "' > session_id.txt && pm2 restart turbofex"));
-  b.btn('Not installed yet? Install with this ID').click(); await wait(); assert.match(b.text(), /Install TurboFex with your session ID/);
+  b.btn('Not installed yet? Install with this ID.').click(); await wait(); assert.match(b.text(), /Install TurboFex with your session ID/);
 });
 
 test('paste flow: invalid and expired IDs get nothing; a good ID unlocks the host; Clear removes it; running out wipes it', async () => {
@@ -406,4 +406,12 @@ test('static: the page code keeps the session ID out of storage, the address and
   const js = fs.readFileSync(path.join(PUB, 'deploy.js'), 'utf8');
   assert.ok(!/localStorage|pushState|replaceState|location\.(search|href|hash)\s*=/.test(js));
   assert.ok(/JSON\.stringify\(\{ p: S\.p, installed: S\.installed \}\)/.test(js), 'only the host is saved');
+});
+
+test('simple: every host has at most 5 short steps, step text stays short, and long install commands are split over short lines', () => {
+  for (const id of D.ids) {
+    const sets = [D.plan(id, ctx(), REAL_ID, {}), D.plan(id, ctx(), REAL_ID, { installed: true }), D.plan(id, ctx(), '')];
+    for (const p of sets) { assert.ok(p.steps.length <= 5, id + ': ' + p.steps.length + ' steps'); for (const s of p.steps) { assert.ok(s.title.length <= 40, id + ' title: ' + s.title); assert.ok((s.text || '').length <= 130, id + ' text too long: ' + s.text); } }
+  }
+  for (const id of ['termux', 'vps']) { const line = cmdOf(id, ORIGIN, REAL_ID, false)[1].lines[0]; assert.ok(line.split('\n').every((l) => l.length <= 78), id + ': no long line'); assert.strictEqual(cp.spawnSync('bash', ['-n'], { input: line }).status, 0); }
 });

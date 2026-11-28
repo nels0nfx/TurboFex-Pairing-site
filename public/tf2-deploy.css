@@ -1,23 +1,43 @@
 /* Deploy page (v3.36.0). The page uses the site's own components (tabs, .panel .steps, .code, .warnbox, details) from tf2.css and tf2-install.css;
    this file only adds what they do not have: the session ID field (the pair page's input look), hints and small links. */
-#app > h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; color: var(--t); }
-.sub { color: var(--m); font-size: 14px; }
-.panel.dp-inner, .dp-inner { padding: 16px; }
+/* quieter, smaller, roomier: everything sits inside #app so no other page is touched */
+#app > h2 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; color: var(--t); margin: 0 0 14px; }
+#app .tabs { margin-top: 0; }
+#app .sub { color: var(--m); font-size: 13.5px; margin: 14px 0 0; }
+#app .panel.steps { margin-top: 16px; }
+#app .steps li { padding: 16px 16px; gap: 14px; }
+#app .steps .num { width: 24px; height: 24px; min-width: 24px; font-size: 11px; margin-top: 1px; }
+#app .steps b { font-size: 15px; font-weight: 500; line-height: 1.35; }
+#app .steps .tx p { font-size: 13px; line-height: 1.5; color: var(--m); margin: 4px 0 0; }
+#app .steps .tx .btns { margin-top: 12px; }
+#app .steps .tx .btns .btn { height: 40px; padding: 0 16px; font-size: 14px; flex: 0 0 auto; }
+#app .steps .tx .btns .btn svg { width: 15px; height: 15px; }
+#app .steps .tx .code, #app .steps .tx .code { margin-top: 12px; }
+#app .code .bar2 { padding: 6px 8px 6px 14px; font-size: 12px; }
+#app .code .cb { height: 30px; padding: 0 10px; font-size: 12px; }
+#app .code pre { font-size: 12px; line-height: 1.75; padding: 10px 14px 12px; }
+#app .code .ln { display: block; padding-left: 0; }
+#app .warnbox { margin-top: 16px; padding: 12px 14px; }
+#app .warnbox b { font-size: 14px; font-weight: 500; } #app .warnbox p { font-size: 13px; line-height: 1.5; margin: 2px 0 0; }
+#app details > summary { font-size: 14px; padding: 14px 16px; }
+#app details p, .dp-ans { font-size: 13px; line-height: 1.55; }
+.dp-inner { padding: 18px 16px; }
 .dp-inner label { display: block; font-size: 13px; color: var(--m); margin-bottom: 8px; }
-.fld { border: 1px solid var(--line2); border-radius: 14px; background: var(--bg); height: 56px; display: flex; }
+.fld { border: 1px solid var(--line2); border-radius: 14px; background: var(--bg); height: 54px; display: flex; }
 .fld:focus-within { border-color: rgb(var(--acc)); box-shadow: 0 0 0 3px rgb(var(--acc) / .2); }
-.fld input { flex: 1; min-width: 0; padding: 0 14px; border: 0; background: transparent; outline: 0; font-size: 17px; font-family: var(--mono); letter-spacing: .04em; color: var(--t); border-radius: 14px; }
+.fld input { flex: 1; min-width: 0; padding: 0 14px; border: 0; background: transparent; outline: 0; font-size: 16px; font-family: var(--mono); letter-spacing: .04em; color: var(--t); border-radius: 14px; }
 .fld input::placeholder { color: var(--d); letter-spacing: .02em; }
-.dp-inner .btns, .steps .tx .btns { margin-top: 12px; flex-wrap: wrap; }
-.hint { margin: 10px 0 0; color: var(--m); font-size: 13px; line-height: 1.5; }
+.dp-inner .btns { margin-top: 12px; flex-wrap: wrap; }
+.dp-inner .btn { height: 44px; font-size: 15px; }
+.hint { margin: 10px 0 0; color: var(--m); font-size: 12.5px; line-height: 1.5; }
 .hint.ok { color: rgb(var(--ok)); } .hint.ok b { font-family: var(--mono); font-weight: 500; }
-.hint.warn { margin-top: 12px; padding: 11px 13px; border: 1px solid rgb(var(--warn) / .45); border-radius: 12px; background: rgb(var(--warn) / .07); color: var(--b); }
+.hint.warn { margin-top: 12px; padding: 2px 0 2px 11px; border-left: 2px solid rgb(var(--warn)); color: var(--b); }
 .hint.warn b { color: var(--t); font-weight: 500; }
-.err { margin: 10px 0 0; font-size: 14px; color: rgb(var(--bad)); }
-.lnk { background: none; border: 0; padding: 0; color: var(--t); font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 3px; }
+.err { margin: 10px 0 0; font-size: 13px; color: rgb(var(--bad)); }
+.lnk { background: none; border: 0; padding: 0; color: var(--m); font: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--d); text-underline-offset: 3px; }
+.lnk:hover { color: var(--t); }
 .cb.ok { color: rgb(52 211 153); border-color: rgb(52 211 153 / .6); }
-.steps .tx .code { margin-top: 12px; }
-.steps .tx .btns .btn svg { width: 16px; height: 16px; }
-.dp-ans { padding: 0 16px 16px; color: var(--b); font-size: 14px; } .dp-ans p { padding: 0; } .dp-ans .steps li { padding: 12px 0; }
-.dp-list { list-style: disc; padding-left: 18px; margin: 0 0 6px; } .dp-list li { margin: 4px 0; }
+.dp-ans { padding: 0 16px 16px; color: var(--b); } .dp-ans p { padding: 0; }
+.dp-ans .steps li { padding: 12px 0; border-top: 1px solid var(--line); } .dp-ans .steps { border: 0; background: none; }
+.dp-list { list-style: none; padding: 0; margin: 0 0 4px; } .dp-list li { margin: 6px 0; padding-left: 14px; position: relative; font-size: 13px; color: var(--b); } .dp-list li::before { content: ""; position: absolute; left: 0; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--acc)); }
 .dp-toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 99px; background: var(--t); color: var(--bg); font-size: 14px; box-shadow: 0 10px 30px rgb(0 0 0 / .35); }

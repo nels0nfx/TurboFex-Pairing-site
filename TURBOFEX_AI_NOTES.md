@@ -674,3 +674,8 @@ He asked: add all possible plugin abilities to bot and site. Bot added ctx.quote
 - Docker no longer uses the bot ZIP: the page makes `turbofex-docker.zip` (Dockerfile + docker-compose.yml + index.js with the ID) in the browser (`public/zip-lite.js`); the launcher installs the bot inside the container, data/session/accounts are mounted like the bot's own compose file. NOT run against a real Docker here.
 - The bot ZIP (`/download/TurboFex-hosting.zip`) remains ONLY for Render, Koyeb and other web hosts (GitHub repository). Reason: the launcher opens no port while it installs, and the web hosts' port/health-check timing could not be checked.
 - Removed: the 5-step wizard, the "full bot files instead" route for file hosts, optional time zone/prefix settings, and the old ZIP-based prepare/launch generators.
+
+## v3.37.0 — Deploy page: quieter and shorter
+- Wording cut hard (step text <= 130 characters, titles <= 40, at most 5 steps per host; a test enforces it). GitHub hosts: 5 steps (repo, bot files, service, variables, session ID). The "start right away" box is now one quiet line, and turns into a warning only under 90 seconds. "Already installed?" is a small link under the steps.
+- The long install command is ONE command split over short lines with `&& \` (stops if any part fails). Real-run tests still pass.
+- All new styles sit under `#app` in `tf2-deploy.css`, so no other page changes.

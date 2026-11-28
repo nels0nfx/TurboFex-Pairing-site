@@ -104,7 +104,7 @@
     fetchTemplate().then(function (t) {
       if (kind === 'docker-zip') { download({ name: 'turbofex-docker.zip', data: window.TFXZip.build(D.dockerFiles(t, sid)), mime: 'application/zip' }); report('docker'); }
       else { download({ name: 'index.js', text: D.buildLauncher(t, sid), mime: 'text/javascript;charset=utf-8' }); report('launcher'); }
-      fileBad = false; fileMsg = 'Downloaded. Do the next steps now.'; render();
+      fileBad = false; fileMsg = 'Downloaded.'; render();
     }).catch(function (e) { fileBad = true; fileMsg = (e && e.message) || 'Could not build the file.'; render(); });
   }
 
@@ -132,34 +132,34 @@
     var kids = [el('label', { for: 'dp-id', text: 'Session ID' }), el('div', { class: 'fld' }, [inp]), el('div', { class: 'btns' }, [go])];
     if (pairing) { var u = el('button', { type: 'button', class: 'btn' }, ['Use my session ID (' + mmss(pairLeft()) + ' left)']); u.addEventListener('click', usePairing); kids.push(el('div', { class: 'btns' }, [u])); }
     if (msg) kids.push(el('p', { class: msgBad ? 'err' : 'hint', text: msg }));
-    kids.push(el('p', { class: 'hint' }, ['No session ID yet? ', el('a', { href: '/pair', text: 'Pair WhatsApp' }), '. It works once and expires 5 minutes after pairing. It stays on this page only: not saved, not in the address, not sent to your host. Verifying only asks TurboFex whether it is still alive.']));
+    kids.push(el('p', { class: 'hint' }, ['No session ID? ', el('a', { href: '/pair', text: 'Pair WhatsApp' }), '. It works once and lasts 5 minutes. It stays on this page only.']));
     return el('div', { class: inline ? 'dp-inner' : 'panel mt dp-inner' }, kids);
   }
   function idLine(h) {
     var left = secsLeft(), clr = el('button', { type: 'button', class: 'lnk', text: 'Clear' }); clr.addEventListener('click', function () { clearSid('manual'); render(); });
     var kids = [el('p', { class: 'hint ok' }, ['Session ID verified · ', el('b', { id: 'dp-time', text: mmss(left) }), ' left · ', clr])];
     if (msg) kids.push(el('p', { class: msgBad ? 'err' : 'hint', text: msg }));
-    if (h.kind !== 'github') kids.push(el('p', { class: 'hint warn' }, [el('b', { text: 'Start right away. ' }), 'Installing takes a few minutes and your ID is saved at the end. It is used when your bot starts, not when you download.']));
+    if (h.kind !== 'github') kids.push(left <= 90 ? el('p', { class: 'hint warn' }, [el('b', { text: 'Under 90 seconds left. ' }), 'Pair again if you are not ready.']) : el('p', { class: 'hint', text: 'Run the steps now. Your ID is used when the bot starts.' }));
     return el('div', {}, kids);
   }
   function plusIcon() { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.8'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('aria-hidden', 'true'); p.setAttribute('d', 'M12 5v14M5 12h14'); s.appendChild(p); return s; }
   function faq(h) {
     var plus = plusIcon;
-    var rows = [el('details', {}, [el('summary', {}, ['How to tell it worked', plus()]), el('div', { class: 'dp-ans' }, [el('ul', { class: 'dp-list' }, h.verify.map(function (t) { return el('li', { text: t }); })), el('p', { class: 'hint', text: 'TurboFex can tell that your bot collected its ID. Only you can confirm that WhatsApp connected.' })])])];
+    var rows = [el('details', {}, [el('summary', {}, ['How to tell it worked', plus()]), el('div', { class: 'dp-ans' }, [el('ul', { class: 'dp-list' }, h.verify.map(function (t) { return el('li', { text: t }); })), el('p', { class: 'hint', text: 'TurboFex sees when the ID is collected. Only you can confirm WhatsApp connected.' })])])];
     h.trouble.forEach(function (t) { rows.push(el('details', {}, [el('summary', {}, [t.q, plus()]), el('p', { text: t.a })])); });
     return el('div', { class: 'panel mt' }, rows);
   }
   function slowHost(h) {
     var first = D.plan(h.id, { origin: origin() }, '', { first: true }); if (!first || !first.steps) return null;
-    return el('div', { class: 'panel mt' }, [el('details', {}, [el('summary', {}, ['My host is slow to install', plusIcon()]), el('div', { class: 'dp-ans' }, [el('p', { text: 'A session ID lives only 5 minutes. If your host takes longer, install first without an ID. It will say it has no session ID yet. Then come back, press "TurboFex is already installed" and add your ID in one short step.' }), stepsList(first.steps)])])]);
+    return el('div', { class: 'panel mt' }, [el('details', {}, [el('summary', {}, ['My host is slow to install', plusIcon()]), el('div', { class: 'dp-ans' }, [el('p', { class: 'hint', text: 'An ID lasts 5 minutes. If installing takes longer, install without an ID first, then come back, choose "Already installed" and add it.' }), stepsList(first.steps)])])]);
   }
   function view() {
     var h = D.byId[S.p], v = el('div', {});
-    var tabs = el('div', { class: 'tabs mt', role: 'tablist', 'aria-label': 'Where to run it' });
+    var tabs = el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Where to run it' });
     ORDER.forEach(function (id) { var b = el('button', { type: 'button', role: 'tab', 'data-p': id, 'aria-selected': id === S.p ? 'true' : 'false', text: D.byId[id].name }); b.addEventListener('click', function () { if (S.p !== id) { S.p = id; S.installed = false; fileMsg = ''; save(); report(id); render(); } }); tabs.appendChild(b); });
     v.appendChild(tabs);
-    v.appendChild(el('p', { class: 'sub mt', text: h.blurb }));
-    if (h.warn) v.appendChild(el('div', { class: 'warnbox mt' }, [icon('i-alert'), el('div', {}, [el('b', { text: 'Check your plan' }), el('p', { text: h.warn })])]));
+    v.appendChild(el('p', { class: 'sub', text: h.blurb }));
+    if (h.warn) v.appendChild(el('div', { class: 'warnbox mt' }, [icon('i-alert'), el('div', {}, [el('b', { text: 'Use a paid plan' }), el('p', { text: h.warn })])]));
     if (expired) v.appendChild(el('div', { class: 'hint warn', text: EXPIRED_MSG }));
     if (collected) { v.appendChild(collectedNote()); var again = el('button', { type: 'button', class: 'lnk', text: 'Deploy again with a new session ID' }); again.addEventListener('click', function () { collected = ''; expired = false; render(); }); v.appendChild(el('p', { class: 'hint' }, [again])); }
     if (h.kind === 'github') {
@@ -168,10 +168,10 @@
       v.appendChild(idBox(false));
     } else {
       v.appendChild(idLine(h));
-      if (h.kind === 'file') {   // one question, only when it changes what they get
-        var tog = el('button', { type: 'button', class: 'lnk', text: S.installed ? 'Not installed yet? Install with this ID' : 'TurboFex is already installed on this host' }); tog.addEventListener('click', function () { S.installed = !S.installed; save(); render(); }); v.appendChild(el('p', { class: 'hint' }, [tog]));
-      }
       v.appendChild(stepsList(D.plan(h.id, { origin: origin() }, sid, { installed: S.installed }).steps));
+      if (h.kind === 'file') {   // only when it changes what they get
+        var tog = el('button', { type: 'button', class: 'lnk', text: S.installed ? 'Not installed yet? Install with this ID.' : 'Already installed? Add the ID only.' }); tog.addEventListener('click', function () { S.installed = !S.installed; save(); render(); }); v.appendChild(el('p', { class: 'hint' }, [tog]));
+      }
       if (h.kind === 'file' && !S.installed) { var sh = slowHost(h); if (sh) v.appendChild(sh); }
     }
     v.appendChild(faq(h));
